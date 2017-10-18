@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# dupReport.rc
+# Set control variables for dupReport programs
+# These may need adjustment based on different systems and environments.
+
+# Path to dupReport program files
+PROGDIR=$HOME/dupReport
+
+# Path to getmail downloader executable
+GETMAIL=/usr/local/bin/getmail
+
+# Path to getmail data files. Typically ~/.getmail, but if you move them change this variable to point to the new location.
+GETMAILDATA=${HOME}/.getmail
+
+# Path to getmail message files. Relative to ${GETMAILDATA}.
+# Shouldn't need to change this unless you do something unusual with your getmail installation.
+MSGSDIR=${GETMAILDATA}/maildir/new
+
+# Path to dupReport Sqlite3 database
+DBPATH=${PROGDIR}/dupReport.db
+
+# Email account where Duplicati back status email is sent.
+BACKUPEMAIL=backups@mymailservice.com
+
+# Summary email reports should be sent to...
+REPORTEMAIL=recipient@mymailservice.com
+
+# Email to send non-backup email messages retrieved from email server.
+# Should be different than backup email address, lest you create an endless email receive-send loop.
+# Will probably be the same as REPORTEMAIL for most installations, but you never know...
+FORWARDEMAIL=recipient@mymailservice.com
+
+# Path to Sqlite3
+SQLITE3=/usr/bin/sqlite3
+
+# Path to awk
+AWKPATH=/usr/bin/awk
+
+# List of <Source>-<Destination>-<Email> Tuples
+# Each tuple names the source of the backup, the destination for the backup, and an email to send special notifications to
+# <Source> and <Destination> should only contain letters or numbers, else Bad Things(tm) will happen.
+TUPLE1=Desktop1-LocalServer-dummy@mail.com
+TUPLE2=Desktop2-LocalServer-dummy@mail.com
+TUPLE3=Desktop1-CloudServer-dummy@mail.com
+
+# Days before backup executes before sending special warnings to individuals
+WARNINGDAYS=7
+
