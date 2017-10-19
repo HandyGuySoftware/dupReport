@@ -1,0 +1,99 @@
+dupReport
+
+"Dear long-time-paying CrashPlan Home customer,
+
+We value you and the great amount of money you have poured into our service. Unfortunately, your business is no longer valuable to us so we are closing our consumer business in favor of companies that can spend lots more money with us. You have six months to leave.
+
+Good luck."
+
+Bitter? Who's bitter? 
+
+Background 
+Like many CrashPlan customers, the notification in September 2017 that they would be closing their consumer-oriented CrashPlan Home service came as a bit of a shock to those who had grown accustomed to its easy, intuitive, and reliable system backup service. I'll spare you the gory details of searching for another backup provider and skip right to the part where I began implementing Duplicati as the backup service and Backblaze's B2 cloud service for data storage.
+ 
+CrashPlan Status Reporting 
+Duplicati is not as easy or intuitive to set up as CrashPlan, but I was able to configure it to make the backups I wanted on a regular enough schedule to ensure data reliability. But there was one CrashPlan feature that Duplicati could not replicate: coordinated email status reporting. CrashPlan had a really nice feature whereby it would gather up the current backup status for all your systems and mail you a consolidated report on a periodic basis. It was a great way to make sure all your backups were current and to notify you if something was wrong. 
+ 
+Duplicati has no such capability. You can configure it to send you email when backup jobs completed, but you get a separate email for each backup job that runs. In the configuration I have (9 systems backing up to 2 different storage services in various combinations) that's 14 different emails per day. Compare that with CrashPlan's one summary email per day and you can see how this was a problem. Others on the Duplicati discussion forum noticed it, too. That started me thinking about developing a tool to provide summarized email notification for Duplicati users. 
+ 
+dupReport was born. 
+ 
+Source-Destination Pairs
+dupReport identifies backup jobs as a series of Source/Destination pairs. Source/Destination pairs are specified in dupReport in the following format:
+ 
+<Source><delimiter><Destination>
+ 
+Where:
+<Source> is a series of alphanumeric characters
+<delimiter> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source/Destination pairs
+<Destination> is a series of alphanumeric characters
+ 
+dupReport allows you to define the specification of the Source, Destination, and Delimiter in the dupReport.rc file in the [main] section. Each specification is the regular expression definition of that element. The defaults are:
+ 
+[main]
+srcregex=\w*
+destregex=\w*
+srcdestdelimiter=-
+
+Together the full source/destination regex is:
+
+<srcregex><srcdestdelimiter><destregex>
+ 
+You can modify the specification of these elements by replacing each with a regular expression defining how dupReport can find that element in a email's subject line.
+ 
+WARNING! dupReport relies on the Source/Destination pair format for all of its operations. If you do not properly specify your Source/Destination pair formats in both the program (through the .rc file) and in Duplicati (through proper job naming) none of this will work for you. That will make us both very sad. :-(
+
+Identifying Emails of Interest
+dupReport scans the identified mailbox looking for backup job emails. However, there may be hundreds (or thousands) of emails in the inbox, only a few of which contain information about Duplicati backup jobs. dupReport identifies "Emails of Interest" by matching the email's subject line against a pattern defined in the dupReport.rc file. If the pattern matches, the email is analyzed. If the pattern does not match, the email is ignored.
+ 
+The default pattern it looks for is the phrase "Duplicati backup report for" which is the default used for Duplicati's send-mail-subject advanced option. You can change the text that dupReport scans by adjusting the subjectregex parameter in the dupReport.rc file in the [main] section. subjectregex is the regular expression definition for the desired phrase. The default for this specification is:
+ 
+[main]
+subjectregex=^Duplicati Backup report for
+ 
+If you change the subjectregex parameter, be sure that it will match the text specified in the Duplicati send-mail-subject advanced option.
+
+System Requirements
+dupReport has been tested on Linux (Debian 8) and Windows 10. It comes as a single Python script so it should be portable on any number of other environments. The only other software dupReport needs is Python3. Installation instructions for Python are beyond our scope here, but instructions are readily available on the Internet.
+
+Installing dupReport 
+dupreport comes a single Python script that you can place in a desired directory. Once in place execute the following command:
+
+dupReport.py -i
+
+This will perform the following actions:
+Create and initialize the dupReport database (dupReport.db)
+Create a default configuration file (dupReport.rc)
+Both of these files will be created in the same directory where the dupReport.py script is located. 
+
+Edit the dupReport.rc file and change any desired parameters. The default dupReport.rc file contains explanations for each of the parameters to help you make any changes. Save the file when complete.
+
+To run the program simply enter "dupReport.py" at the command prompt, plus any options you may want to add.
+ 
+Command Line Options
+dupReport has the following command line options:
+
+-h, --help (show this help message and exit)
+-r RCPATH, --rcpath RCPATH (Define directory for dupReport.rc file)
+-d DBPATH, --dbpath DBPATH (Define directory for dupReport.db file)
+-v {0,1,2}, --verbose {0,1,2} (Log file verbosity. 0=none 1=verbose 2=Please make it stop!!! Same as [main]verbose= in rc file.)
+-V, --version (dupReport version and program info.)
+-l LOGPATH, --logpath LOGPATH (Path to dupReport log file. (Default: dupReport.log'. Same as [main]logpath= in rc file.)
+-a, --append  (Append new logs to log file. Same as [main]logappend= in rc file.)
+-m {mega,giga,none}, --mega {mega,giga,none} (Convert file sizes to megabytes or gigabytes.  Same as [main]sizereduce= in rc file.)
+-i, --initdb ((re-)Initialize database)
+-c, --collect (Collect new emails only. Don't run report)
+-t, --report (Run summary report only. Don't collect emails)
+Many command line options have equivalent options in the dupReport.rc file. If an option is specified on both the command line and the .rc file, the command line option takes precedence.
+
+And Away You Go…. 
+
+Comments and discussions can be made on the Duplicati Forums.
+
+Bug reports and feature requests can be added to the Issues section for this project on GitHub.
+ 
+Enjoy! 
+
+Steve 
+ 
+October 2017 
