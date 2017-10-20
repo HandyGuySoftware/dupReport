@@ -282,7 +282,7 @@ def version_info():
     print('dupReport Version {}.{}.{}'.format(version[0], version[1], version[2]))
     print('A summary email report generator for Duplicati.')
     print('Copyright (c) 2017 Stephen Fried for HandyGuy Software')
-    print('Something here about GPL Licensing')
+    print('Distributed under MIT License. See LICENSE file for details.')
     return
 
 def get_script_path():
