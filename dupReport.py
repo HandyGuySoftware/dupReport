@@ -706,7 +706,8 @@ def process_mailbox_pop(mBox):
     return None
 
 
-# Find all new emails on serveref process_mailbox_imap(mBox):
+# Find all new emails on server
+def process_mailbox_imap(mBox):
     # Open All Mail
     write_log_entry(2,'process_mailbox_imap()\n')
     rv, data = mBox.search(None, "ALL")
