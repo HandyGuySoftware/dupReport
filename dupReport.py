@@ -788,8 +788,6 @@ if __name__ == "__main__":
         version_info()
         sys.exit(0)
 
-    sys.exit(2)
-
     # Open log file
     if ('logappend' in options) and (options['logappend'] is True):
         logFile = open(options['logpath'],'a')
