@@ -25,7 +25,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # Define version info
-version=[2,0,0]
+version=[2,0,1]     # Program Version
+dbversion=[1,0,0]   # Required DB version
+copyright='2017'
 
 # Define global variables
 options={}        # Parsed and read options from command line & .rc file
@@ -61,8 +63,8 @@ def db_initialize(conn):
  
     # version table holds current database version.
     # Has no real purpose now, but will be useful if need to change database formats later
-    exec_sqlite(conn,"create table version (major int, minor int, subminor int)")
-    exec_sqlite(conn,"insert into version(major, minor, subminor) values (1,0,0)")
+    exec_sqlite(conn,"create table version (desc varchar(20), major int, minor int, subminor int)")
+    exec_sqlite(conn,"insert into version(desc, major, minor, subminor) values (\'database\',{},{},{})".format(dbversion[0], dbversion[1],dbversion[2]))
 
     # emails table holds information about all emails received
     sqlStmt = "create table emails (messageId varchar(50), sourceComp varchar(50), destComp varchar(50), \
@@ -80,96 +82,73 @@ def db_initialize(conn):
     # backup sets contains information on all source-destination pairs in the backups
     exec_sqlite(conn,"create table backupsets (source varchar(20), destination varchar(20), lastFileCount integer, lastFileSize integer, \
         lastDate varchar(50), lastTime varchar(50))")
+
     conn.commit()
 
 
+def curr_db_version():
+    # Get current database version in use
+    dbConn = sqlite3.connect(options['dbpath'])
+    dbCursor = exec_sqlite(dbConn, 'SELECT major, minor, subminor FROM  version WHERE desc = \'database\'')
+    maj, min, subm = dbCursor.fetchone()
+
+    if (maj == dbversion[0]) and (min == dbversion[1]) and (subm == dbversion[2]):
+        res = True
+    else:
+        res = False
+
+    return maj, min, subm, res
+
 # Initialize RC file to default values
 def rc_initialize(fname):
-    rcFile = open(fname,'w')
-    config="""
-### dupReport.rc
-# Configuration file for dupReport
-[main]
-# Path to dupReport Sqlite database (directory only). Defaults to dupReport.db in dupReport script directory
-# Can be overridden by -d command line option
-dbpath=
+# See if RC file has all the parts needed before proceeding with the rest of the program
+    rcParts= [
+        ('main','dbpath',get_script_path()),
+        ('main','logpath',get_script_path()),
+        ('main','verbose','1'),
+        ('main','logappend','false'),
+        ('main','sizereduce','none'),
+        ('main','subjectregex','^Duplicati Backup report for'),
+        ('main','summarysubject','Duplicati Backup Summary Report'),
+        ('main','srcregex','\w*'),
+        ('main','destregex','\w*'),
+        ('main','srcdestdelimiter','-'),
+        ('main','border','1'),
+        ('main','padding','5'),
+        ('incoming','transport','imap'),
+        ('incoming','server','localhost'),
+        ('incoming','port','993'),
+        ('incoming','encryption','tls'),
+        ('incoming','account','someacct@hostmail.com'),
+        ('incoming','password','********'),
+        ('incoming','folder','INBOX'),
+        ('outgoing','server','localhost'),
+        ('outgoing','port','587'),
+        ('outgoing','encryption','tls'),
+        ('outgoing','account','someacct@hostmail.com'),
+        ('outgoing','password','********'),
+        ('outgoing','sender','sender@hostmail.com'),
+        ('outgoing','receiver','receiver@hostmail.com'),
+        ]
 
-# Path to log file (directory only). Defaults to dupReport.log in dupReport script directory
-# Can be overridden by -l command line option
-logpath=
+    rcParser = configparser.SafeConfigParser()
+    rcParser.read(fname)
 
-# Level of log file verbosity
-# 0=none  1=verbose  2=Please make it stop!!!
-# Can be overridden by -v command line option
-verbose=1
+    # Flag to see if any RC parts have changed
+    newRc=False
 
-# Append new logs to log file. False = overwrite log file each run
-# Can be overridden by -a command line option
-logappend=false
+    for section, option, default in rcParts:
+        if rcParser.has_section(section) == False:
+            rcParser.add_section(section)
+            newRc=True
+        if rcParser.has_option(section, option) == False:
+            rcParser.set(section, option, default)
+            newRc=True
 
-# Display file sizes in megabytes or gigabytes. Options = 'mega', 'giga' or 'none'
-# Can be overridden by -m command line option
-sizereduce=none
-
-# Regular expression to find backup message emails.
-# Should somewhat match text from send-mail-subject option in Duplicati 
-subjectregex=^Duplicati Backup report for
-
-# Subject for summary emails
-summarysubject=Duplicati Backup Summary Report
-
-# Regular expressions for <source><delimiter><destion> in email subject line
-srcregex=\w*
-destregex=\w*
-srcdestdelimiter=-
-
-# Display Table Options
-border=1
-padding=5
-
-# Parameters for incoming (downloaded) email. Should be self-explanatory #
-# Sample POP3 configuration
-#[incoming]
-#transport=pop3
-#server=localhost
-#port=995
-## Encryption options: 'none' 'ssl' 'tls'
-#encryption=ssl
-#account=XXXXXX@XXXXXX.com
-#password=XXXXXXXXX
-## Inbox folder where emails are stored. 
-## Used for IMAP. Ignored for POP3, but MUST be present or you'll get nasty error messages
-#folder=xxxxx 
-
-# Sample IMAP configuration
-[incoming]
-transport=imap
-server=localhost
-port=993
-# Encryption options: 'none' 'ssl' 'tls'
-encryption=tls
-account=xxx@xxxx.xxx
-password=xxxxxxxx
-# Inbox folder where emails are stored.
-# Used for IMAP. Ignored for POP3, but MUST be present or you'll get nasty error messages
-folder=INBOX
-
-
-# Parameters for outgoing (sent) email. Onlysupported protocol is SMTP. Should be self-explanatory 
-[outgoing]
-server=localhost
-port=587
-# Encryption options: 'none' 'ssl' 'tls'
-encryption=tls
-# account: ID/password for smtp server
-account=xxx@xxxx.com
-password=xxxxxxxx
-sender=sender@mymail.com
-receiver=receiver@mymail.com
-"""
-
-    rcFile.write(config)
-    rcFile.close()
+    # save updated RC configuration to a file
+    with open(fname, 'w') as configfile:
+        rcParser.write(configfile)
+    return newRc
 
 
 # Store command-line options
@@ -186,7 +165,7 @@ def parse_command_line():
     argParser.add_argument("-a","--append", help="Append new logs to log file. Same as [main]logappend= in rc file.", action="store_true")
     argParser.add_argument("-m", "--mega", help="Convert file sizes to megabytes or gigabytes. Options are 'mega' 'giga' or 'none'. \
         Same as [main]sizereduce= in rc file.", action="store", choices=['mega','giga','none'])
-    argParser.add_argument("-i", "--initdb", help="Initialize database", action="store_true")
+    argParser.add_argument("-i", "--initdb", help="Initialize database.", action="store_true")
 
     opGroup = argParser.add_mutually_exclusive_group()
     opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
@@ -279,10 +258,14 @@ def parse_config_file(rcPath, args):
     return
 
 def version_info():
-    print('dupReport Version {}.{}.{}'.format(version[0], version[1], version[2]))
-    print('A summary email report generator for Duplicati.')
-    print('Copyright (c) 2017 Stephen Fried for HandyGuy Software')
-    print('Distributed under MIT License. See LICENSE file for details.')
+    print('\n-----\ndupReport: A summary email report generator for Duplicati.')
+    print('Program Version {}.{}.{}'.format(version[0], version[1], version[2]))
+    
+    maj, min, subm, res = curr_db_version()
+    print('Database Version {}.{}.{}'.format(maj, min, subm))
+
+    print('Copyright (c) {} Stephen Fried for HandyGuy Software'.format(copyright))
+    print('Distributed under MIT License. See LICENSE file for details.\n-----\n')
     return
 
 def get_script_path():
@@ -723,8 +706,7 @@ def process_mailbox_pop(mBox):
     return None
 
 
-# Find all new emails on server
-def process_mailbox_imap(mBox):
+# Find all new emails on serveref process_mailbox_imap(mBox):
     # Open All Mail
     write_log_entry(2,'process_mailbox_imap()\n')
     rv, data = mBox.search(None, "ALL")
@@ -758,7 +740,6 @@ def write_log_entry(level, entry):
         logFile.write(entry)
     return
 
-
 if __name__ == "__main__":
     # Start Program Timer
     startTime = time.time()
@@ -768,34 +749,47 @@ if __name__ == "__main__":
     # We'll look for the rest later.
     cmdLine = parse_command_line()
 
-    if cmdLine.version == True:   # Print version info & exit
-        version_info()
-        sys.exit(0)
-
     # Get operating parameters from .rc file, overlay with command line options
     if cmdLine.rcpath != None:  # RC Path specified on command line
         options['rcpath'] = '{}/{}'.format(cmdLine.rcpath, rcName)
     else: # RC path not specified on command line. use default location
         options['rcpath'] = '{}/{}'.format(get_script_path(), rcName)
 
-    # Open RC file
-    if (os.path.isfile(options['rcpath']) is not True):
-        sys.stderr.write('Initializing configuration file: {}\n'.format(options['rcpath']))
-        rc_initialize(options['rcpath'])
-        sys.stderr.write('RC file initialized. Please configure file before running program\n'.format(options['rcpath']))
-        sys.exit() #Can't continue if RC gets initialized - need to set parameters
+    needToExit=False   # Will be true if rc file or db file needs changing
+    # Initialize RC file
+    if rc_initialize(options['rcpath']): #RC file changed or initialized. Can't continue with manual configuration
+        sys.stderr.write('RC file {} initialized or changed. Please configure file before running program again.\n'.format(options['rcpath']))
+        needToExit=True  #Can't continue if RC gets initialized - need to editparameters
 
     # Get additional options from config file
     parse_config_file(options['rcpath'], cmdLine)
 
     # Next, let's check if the DB exists or needs initializing
-    if (os.path.isfile(options['dbpath']) is not True) or ('initdb' in options):  # Doesn't exist or init specified on command line
-        sys.stderr.write('Initializing database: {}\n'.format(options['dbpath']))
+    if ((os.path.isfile(options['dbpath']) is not True) or ('initdb' in options)): # DB file doesn't exist or forced initialization
+        sys.stderr.write('Database {} needs initializing.\n'.format(options['dbpath']))
         dbConn = sqlite3.connect(options['dbpath'])
         db_initialize(dbConn)
         dbConn.commit()
         dbConn.close()
-    
+        sys.stderr.write('Database {} initialized. Exiting program.\n'.format(options['dbpath']))
+        needToExit=True
+
+    maj, min, subm, res = curr_db_version()
+    if res == False:
+        sys.stderr.write('Database version mismatch. {}.{}.{} required. Current version is {}.{}.{}.\n'.format(dbversion[0], dbversion[1], dbversion[2],
+            maj, min, subm))
+        sys.stderr.write('Run program with \'-i\' option to update database.\n')
+        needToExit = True
+
+    if needToExit:
+        sys.exit(1)
+
+    if cmdLine.version == True:   # Print version info & exit
+        version_info()
+        sys.exit(0)
+
+    sys.exit(2)
+
     # Open log file
     if ('logappend' in options) and (options['logappend'] is True):
         logFile = open(options['logpath'],'a')
