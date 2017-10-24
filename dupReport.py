@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 #
 # dupReport.py
 #
@@ -26,7 +25,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # Define version info
-version=[2,0,1]     # Program Version
+version=[2,0,2]     # Program Version
 dbversion=[1,0,0]   # Required DB version
 copyright='2017'
 
@@ -446,7 +445,6 @@ def process_message(mess):
     # Get Message ID
     decode =  email.header.decode_header(mess['Message-Id'])[0]
     write_log_entry(2, 'decode=[{}]\n'.format(decode))
-    #msgParts['messageId'] = unicode(decode[0])
     msgParts['messageId'] = decode[0]
     write_log_entry(2, 'messageId=[{}]\n'.format(msgParts['messageId']))
 
@@ -459,6 +457,7 @@ def process_message(mess):
 
     decode = email.header.decode_header(mess['Subject'])[0]
     msgParts['subject'] = decode[0]
+    write_log_entry(1, 'Subject=[{}].\n'.format(msgParts['subject']))
 
     date_tuple = email.utils.parsedate_tz(mess['Date'])
     if date_tuple:
@@ -473,12 +472,18 @@ def process_message(mess):
         return 1    # Not a message of Interest
 
     # Get source & desination computers from email subject
-    srcRegex = '{}{}'.format(options['srcregex'], options['srcdestdelimiter'])
-    destRegex = '{}{}'.format(options['srcdestdelimiter'], options['destregex'])
+    srcRegex = '{}{}'.format(options['srcregex'], re.escape(options['srcdestdelimiter']))
+    destRegex = '{}{}'.format(re.escape(options['srcdestdelimiter']), options['destregex'])
     write_log_entry(2,'srcregex=[{}]  destRegex=[{}]\n'.format(srcRegex, destRegex))
 
-    msgParts['sourceComp'] = re.search(srcRegex, msgParts['subject']).group().split('-')[0]
-    msgParts['destComp'] = re.search(destRegex, msgParts['subject']).group().split('-')[1]
+    partsSrc = re.search(srcRegex, msgParts['subject'])
+    partsDest = re.search(destRegex, msgParts['subject'])
+    if (partsSrc is None) or (partsDest is None):    # Correct subject but delim not found. Something is wrong.
+        write_log_entry(2,'srcdestdelimiter [{}] not found in subject. Abandoning message.\n'.format(options['srcdestdelimiter']))
+        return 1
+        
+    msgParts['sourceComp'] = re.search(srcRegex, msgParts['subject']).group().split(options['srcdestdelimiter'])[0]
+    msgParts['destComp'] = re.search(destRegex, msgParts['subject']).group().split(options['srcdestdelimiter'])[1]
     write_log_entry(2, 'source=[{}] dest=[{}] Date=[{}]  Time=[{}] Subject=[{}]\n'.format(msgParts['sourceComp'], \
         msgParts['destComp'], msgParts['emailDate'], msgParts['emailTime'], msgParts['subject']))
 
