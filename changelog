@@ -1,0 +1,11 @@
+2.0.3
+-----
+Issue #8 - Flush file buffer after every log write
+
+2.0.2
+-----
+Issue #5:
+- Subject found but no delimiter found. Program now abandons message with a level 2 log message.
+- Regular expression used as delimiter character. Delimiter character now escaped by using re.escape() around variable
+
+

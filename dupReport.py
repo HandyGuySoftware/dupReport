@@ -25,7 +25,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # Define version info
-version=[2,0,2]     # Program Version
+version=[2,0,3]     # Program Version
 dbversion=[1,0,0]   # Required DB version
 copyright='2017'
 
@@ -535,7 +535,7 @@ def process_message(mess):
 
 # Build list of text strings for sending final email
 def create_email_text(txtTup,fmtTup):
-    write_log_entry(2, 'create_email_text(): textTup={}  fmtTup={}'.format(txtTup,fmtTup))
+    write_log_entry(2, 'create_email_text(): textTup={}  fmtTup={}\n'.format(txtTup,fmtTup))
 
     # Append text and formats tuples to email & format lists
     emailText.append(txtTup)
@@ -641,10 +641,13 @@ def create_summary_report():
         write_log_entry(2, 'emailRows=[{}]\n'.format(emailRows))
         if not emailRows: #NO rows found = no recent activity
             # Calculate days since last activity
+            nowTxt = datetime.datetime.now()
             now = str(datetime.datetime.now()).split(' ')[0].split('-')
             then = lastDate.split('/')
+            write_log_entry(2, 'nowTxt=[{}]  now=[{}]  then=[{}]\n'.format(nowTxt, now, then))
             d0 = datetime.date(int(then[0]),int(then[1]), int(then[2]))
             d1 = datetime.date(int(now[0]),int(now[1]), int(now[2]))
+            write_log_entry(2, 'd0=[{}]  d1=[{}]\n'.format(d0, d1))
             tupFields = ('No new activity. Last activity on {} at {} ({} days ago)'.format(lastDate, lastTime, (d1-d0).days),'',)
             tupFormats = ('','',)
             create_email_text(tupFields, tupFormats)
@@ -745,6 +748,7 @@ def process_mailbox_imap(mBox):
 def write_log_entry(level, entry):
     if level <= options['verbose']:
         logFile.write(entry)
+        logFile.flush()
     return
 
 if __name__ == "__main__":
