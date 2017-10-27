@@ -115,6 +115,10 @@ def rc_initialize(fname):
         ('main','srcdestdelimiter','-'),
         ('main','border','1'),
         ('main','padding','5'),
+        ('main','disperrors','true'),
+        ('main','dispwarnings','true'),
+        ('main','dispmessages','false'),
+        ('main','sortorder','source'),
         ('incoming','transport','imap'),
         ('incoming','server','localhost'),
         ('incoming','port','993'),
@@ -165,7 +169,10 @@ def parse_command_line():
     argParser.add_argument("-a","--append", help="Append new logs to log file. Same as [main]logappend= in rc file.", action="store_true")
     argParser.add_argument("-m", "--mega", help="Convert file sizes to megabytes or gigabytes. Options are 'mega' 'giga' or 'none'. \
         Same as [main]sizereduce= in rc file.", action="store", choices=['mega','giga','none'])
-    argParser.add_argument("-i", "--initdb", help="Initialize database.", action="store_true")
+
+    initGroup = argParser.add_mutually_exclusive_group()
+    initGroup.add_argument("-i", "--initdb", help="Initialize database.", action="store_true")
+    initGroup.add_argument("-I", "--initdbrun", help="Initialize database and continue processing.", action="store_true")
 
     opGroup = argParser.add_mutually_exclusive_group()
     opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
@@ -200,6 +207,10 @@ def parse_config_file(rcPath, args):
         options['summarysubject'] = rcConfig.get('main','summarysubject')
         options['border'] = rcConfig.get('main','border')
         options['padding'] = rcConfig.get('main','padding')
+        options['dispwarnings'] = rcConfig.getboolean('main','dispwarnings')
+        options['disperrors'] = rcConfig.getboolean('main','disperrors')
+        options['dispmessages'] = rcConfig.getboolean('main','dispmessages')
+        options['sortorder'] = rcConfig.get('main','sortorder')
 
         options['intransport'] = rcConfig.get('incoming','transport')
         options['inserver'] = rcConfig.get('incoming','server')
@@ -252,6 +263,8 @@ def parse_config_file(rcPath, args):
         options['logappend'] = True
     if args.initdb == True:
         options['initdb'] = True
+    if args.initdbrun == True:
+        options['initdbrun'] = True
     if args.mega != None:
         options['sizereduce'] = args.mega
 
@@ -323,7 +336,7 @@ def db_search_srcdest_pair(src, dest):
     dbCursor = exec_sqlite(dbConn, sqlStmt)
     idExists = dbCursor.fetchone()
     if idExists:
-        write_log_entry(2, "Source/Destination pair [{}/{}] already in database".format(src, dest))
+        write_log_entry(2, "Source/Destination pair [{}/{}] already in database.\n".format(src, dest))
         return True
 
     sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastDate, lastTime) \
@@ -357,7 +370,7 @@ def convert_date_time(dtString):
 # Build SQL statement to put into the emails table
 def build_email_sql_statement(mParts, sParts, dParts):
 
-    write_log_entry(2, 'build_email_sql_statement(): messageId={}  sourceComp={}  destComp={}'.format(mParts['messageId'],mParts['sourceComp'],mParts['destComp']))
+    write_log_entry(2, 'build_email_sql_statement(): messageId={}  sourceComp={}  destComp={}\n'.format(mParts['messageId'],mParts['sourceComp'],mParts['destComp']))
 
     sqlStmt = "INSERT INTO emails(messageId, sourceComp, destComp, emailDate, emailTime, \
         deletedFiles, deletedFolders, modifiedFiles, examinedFiles, \
@@ -392,7 +405,7 @@ def process_message(mess):
     #2 - Duplicati name from email and regex to find it
     #3 - regex flags. 0=none.
     #4 - field Type (0=INT or 1=STR)
-    #5 - Number of space-separated segments in that line
+    #5 - Number of space-separated segments in that line (0=don't care)
     lineParts = [
         ('deletedFiles','DeletedFiles: \d+', 0, 0, 1),
         ('deletedFolders', 'DeletedFolders: \d+', 0, 0, 1),
@@ -424,6 +437,7 @@ def process_message(mess):
         ('messages', 'Messages: \[.*^\]', re.MULTILINE|re.DOTALL, 1, 0),
         ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1, 0),
         ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1, 0),
+        ('details','Details: .*', re.MULTILINE|re.DOTALL, 1, 0),
         ('failed', 'Failed: .*', 0, 1, 100),
         ]
 
@@ -464,6 +478,7 @@ def process_message(mess):
         local_date = datetime.datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
         msgParts['emailDate'] = local_date.strftime("%Y-%m-%d")
         msgParts['emailTime'] = local_date.strftime("%H:%M:%S")
+        write_log_entry(2, 'emailDate=[{}]  emailTime=[{}]\n'.format( msgParts['emailDate'], msgParts['emailTime']))
 
     # See if it's a message of interest
     # Match subjetc field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...'
@@ -500,28 +515,33 @@ def process_message(mess):
 
     # Adjust fields if not a clean run
     write_log_entry(2, "statusParts['failed']=[{}]\n".format(statusParts['failed']))
-    if statusParts['failed'] == '':
+    if statusParts['failed'] == '':  # Looks like a good run
         # Convert dates & times to normlalized forms - YYYY/MM/DD  HH:MM:SS
         dateParts['endSaveDate'] = convert_date_time(statusParts['endTimeStr'])[0]
         dateParts['endSaveTime'] = convert_date_time(statusParts['endTimeStr'])[1]
 
         dateParts['beginSaveDate'] = convert_date_time(statusParts['beginTimeStr'])[0]
         dateParts['beginSaveTime'] = convert_date_time(statusParts['beginTimeStr'])[1]
-    else:
+    else:  # Something went wrong. Let's gather the details.
         statusParts['errors'] = statusParts['failed']
         statusParts['parsedResult'] = 'Failure'
-        dateParts['endSaveDate'] = ''
-        dateParts['endSaveTime'] = ''
-        dateParts['beginSaveDate'] = ''
-        dateParts['beginSaveTime'] = ''
+        statusParts['warnings'] = statusParts['details']
+        write_log_entry(2, 'Errors=[{}]\n'.format(statusParts['errors']))
+        write_log_entry(2, 'Warnings=[{}]\n'.format(statusParts['warnings']))
 
-    if statusParts['messages'] != '':
-        statusParts['messages'] = statusParts['messages'].replace(',','\n')
-    if statusParts['warnings'] != '':
-        statusParts['warnings'] = statusParts['warnings'].replace(',','\n')
-    if statusParts['errors'] != '':
-        statusParts['errors'] = statusParts['errors'].replace(',','\n')
+        # Since the full report never ran, we'll use the email date/time as the report date/time
+        # Email dates use '-'. Database dates use '/'. Need to convert before sending to DB
+        dateParts['endSaveDate'] = msgParts['emailDate'].replace('-','/')
+        dateParts['endSaveTime'] = msgParts['emailTime']
+        dateParts['beginSaveDate'] = msgParts['emailDate'].replace('-','/')
+        dateParts['beginSaveTime'] =  msgParts['emailTime']
+        write_log_entry(2, 'Failure message. Replaced date/time: end=[{} {}]  begin=[{} {}]\n'.format(dateParts['endSaveDate'], dateParts['endSaveTime'], 
+            dateParts['beginSaveDate'], dateParts['beginSaveTime']))
 
+    # Replace commas (,) with newlines (\n) in message fields. Sqlite really doesn't like commas in SQL statements!
+    for part in ['messages', 'warnings', 'errors']:
+        if statusParts[part] != '':
+             statusParts[part] = statusParts[part].replace(',','\n')
 
     write_log_entry(2, 'endSaveDate=[{}] endSaveTime=[{}] beginSaveDate=[{}] beginSaveTime=[{}]\n'.format(dateParts['endSaveDate'], \
         dateParts['endSaveTime'], dateParts['beginSaveDate'], dateParts['beginSaveTime']))
@@ -601,7 +621,12 @@ def send_email():
 # Add those tuples to final email through create_email_text()
 def create_summary_report():
 
-    sqlStmt = "SELECT source, destination, lastDate,lastTime,lastFileCount,lastFileSize from backupsets order by source, destination"
+    sqlStmt = "SELECT source, destination, lastDate,lastTime,lastFileCount,lastFileSize from backupsets"
+    # How should report be sorted?
+    if options['sortorder'] == 'source':
+        sqlStmt = sqlStmt + " order by source, destination"
+    else:
+        sqlStmt = sqlStmt + " order by destination, source"
     write_log_entry(2, 'create_summary_report(): {}\n'.format(sqlStmt))
 
     tupFields = (options['summarysubject']+'\n',)
@@ -631,7 +656,7 @@ def create_summary_report():
 
         # Select all activity for src/dest pair since last report run
         sqlStmt = 'SELECT endDate, endtime, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-            filesWithError, parsedResult, warnings, errors FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
+            filesWithError, parsedResult, warnings, errors, messages FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
             AND  ((endDate > \'{}\') OR  ((endDate == \'{}\') AND (endtime > \'{}\'))) order by endDate, endTime'.format(source, \
             destination, lastDate, lastDate, lastTime)
         write_log_entry(2, '{}\n'.format(sqlStmt))
@@ -654,9 +679,10 @@ def create_summary_report():
         else:
             # Loop through each new activity and report
             for endDate, endtime, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                filesWithError, parsedResult, warnings, errors in emailRows:
+                filesWithError, parsedResult, warnings, errors, messages in emailRows:
             
                 # Determine file count & size diffeence from last run
+
                 examinedFilesDelta = examinedFiles - lastFileCount
                 write_log_entry(2, 'examinedFilesDelta = {} - {} = {}\n'.format(examinedFiles, lastFileCount, examinedFilesDelta))
                 fileSizeDelta = sizeOfExaminedFiles - lastFileSize
@@ -674,12 +700,15 @@ def create_summary_report():
                     tupFields = (endDate, endtime, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                         addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult)
                     tupFormats = ('13','11','>12,','>+12,','>20,','>+20,','>12,','>12,','>12,','>12,','>13')
+
                 create_email_text(tupFields, tupFormats)
 
-                if warnings != '':
-                    create_email_text((warnings,'',),('','',))
-                if errors != '':
+                if ((errors != '') and (options['disperrors'] == True)):
                     create_email_text((errors,'',),('','',))
+                if ((warnings != '') and (options['dispwarnings'] == True)):
+                    create_email_text((warnings,'',),('','',))
+                if ((messages != '') and (options['dispmessages'] == True)):
+                    create_email_text((messages,'',),('','',))
 
                 # Update latest activity into into backupsets
                 sqlStmt = 'UPDATE backupsets SET lastFileCount={}, lastFileSize={}, lastDate=\'{}\', \
@@ -776,14 +805,18 @@ if __name__ == "__main__":
     parse_config_file(options['rcpath'], cmdLine)
 
     # Next, let's check if the DB exists or needs initializing
-    if ((os.path.isfile(options['dbpath']) is not True) or ('initdb' in options)): # DB file doesn't exist or forced initialization
+    if ((os.path.isfile(options['dbpath']) is not True) or ('initdb' in options) or ('initdbrun' in options)):
+        # DB file doesn't exist or forced initialization
         sys.stderr.write('Database {} needs initializing.\n'.format(options['dbpath']))
         dbConn = sqlite3.connect(options['dbpath'])
         db_initialize(dbConn)
         dbConn.commit()
         dbConn.close()
-        sys.stderr.write('Database {} initialized. Exiting program.\n'.format(options['dbpath']))
-        needToExit=True
+        if 'initdbrun' not in options: # Flag to init and keep processing. If not there, exit program.
+            sys.stderr.write('Database {} initialized. Exiting program.\n'.format(options['dbpath']))
+            needToExit=True
+        else:
+            sys.stderr.write('Database {} initialized. -I = Continue processing.\n'.format(options['dbpath']))
 
     maj, min, subm, res = curr_db_version()
     if res == False:
@@ -870,7 +903,6 @@ if __name__ == "__main__":
     if ('report' in options) or ('collect' not in options):
         # All email has been collected. Create the report
         create_summary_report()
-
         # Calculate running time
         runningTime = 'Running Time: {:.3f} seconds.\n'.format(time.time() - startTime)
         create_email_text((runningTime,),('',))
