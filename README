@@ -105,7 +105,7 @@ dupReport has the following command line options:
 
 -d DBPATH, --dbpath DBPATH (Define directory for dupReport.db file. Default is directory where dupReport.py program is located.)
 
--v {0,1,2}, --verbose {0,1,2} (Log file verbosity. 0=none 1=verbose 2=Please make it stop!!! Same as [main]verbose= in rc file.)
+-v {0,1,2, 3}, --verbose {0,1,2, 3} (Log file verbosity. Same as [main]verbose= in rc file.)
 
 -V, --version (dupReport program and database version info.)
 
@@ -143,9 +143,9 @@ dbpath=
 logpath=
 
 # Level of log file verbosity
-# 0=none  1=verbose  2=Please make it stop!!!
+# 0=none  1=Informational  2=Detailed  3=Please make it stop!!!
 # Can be overridden by -v command line option
-verbose=2
+verbose=1
 
 # Append new logs to log file. False = overwrite log file each run
 # Can be overridden by -a command line option
