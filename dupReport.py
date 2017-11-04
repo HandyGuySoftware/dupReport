@@ -25,7 +25,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # Define version info
-version=[2,0,2]     # Program Version
+version=[2,0,3]     # Program Version
 dbversion=[1,0,0]   # Required DB version
 copyright='2017'
 
@@ -40,13 +40,13 @@ rcName='dupReport.rc'
 
 # Execute a Sqlite command and manage exceptions
 def exec_sqlite(conn, stmt):
+
     curs = conn.cursor()
 
     try:
         curs.execute(stmt)
     except sqlite3.Error as err:
-        sys.stderr.write('SQLite error: {}\n'.format(err.args[0]))
-        write_log_entry(1, 'SQLite error: {}\n'.format(err.args[0]))
+        sys.stderr.write('SQLite error: {}\n'.format(err.args[0]))  # Special case here. Write to stderr regardless of logging level
         sys.exit(1) # Abort program. Can't continue with DB error
     return curs
 
@@ -85,13 +85,13 @@ def db_initialize(conn):
 
     conn.commit()
 
-
+# Get current database version in use and see if it matches current requirement
 def curr_db_version():
-    # Get current database version in use
     dbConn = sqlite3.connect(options['dbpath'])
-    dbCursor = exec_sqlite(dbConn, 'SELECT major, minor, subminor FROM  version WHERE desc = \'database\'')
+    dbCursor = exec_sqlite(dbConn, 'SELECT major, minor, subminor FROM version WHERE desc = \'database\'')
     maj, min, subm = dbCursor.fetchone()
 
+    # Is this the latest DB version?
     if (maj == dbversion[0]) and (min == dbversion[1]) and (subm == dbversion[2]):
         res = True
     else:
@@ -102,33 +102,43 @@ def curr_db_version():
 # Initialize RC file to default values
 def rc_initialize(fname):
 # See if RC file has all the parts needed before proceeding with the rest of the program
+
+    # rcParts tuples
+    # 1 - section name
+    # 2 - option name
+    # 3 - default value
+    # 4 - is the default value acceptable if not already present in .rc file (true/false)?
     rcParts= [
-        ('main','dbpath',get_script_path()),
-        ('main','logpath',get_script_path()),
-        ('main','verbose','1'),
-        ('main','logappend','false'),
-        ('main','sizereduce','none'),
-        ('main','subjectregex','^Duplicati Backup report for'),
-        ('main','summarysubject','Duplicati Backup Summary Report'),
-        ('main','srcregex','\w*'),
-        ('main','destregex','\w*'),
-        ('main','srcdestdelimiter','-'),
-        ('main','border','1'),
-        ('main','padding','5'),
-        ('incoming','transport','imap'),
-        ('incoming','server','localhost'),
-        ('incoming','port','993'),
-        ('incoming','encryption','tls'),
-        ('incoming','account','someacct@hostmail.com'),
-        ('incoming','password','********'),
-        ('incoming','folder','INBOX'),
-        ('outgoing','server','localhost'),
-        ('outgoing','port','587'),
-        ('outgoing','encryption','tls'),
-        ('outgoing','account','someacct@hostmail.com'),
-        ('outgoing','password','********'),
-        ('outgoing','sender','sender@hostmail.com'),
-        ('outgoing','receiver','receiver@hostmail.com'),
+        ('main','dbpath',get_script_path(), True),
+        ('main','logpath',get_script_path(), True),
+        ('main','verbose','1', True),
+        ('main','logappend','false', True),
+        ('main','sizereduce','none', True),
+        ('main','subjectregex','^Duplicati Backup report for', True),
+        ('main','summarysubject','Duplicati Backup Summary Report', True),
+        ('main','srcregex','\w*', True),
+        ('main','destregex','\w*', True),
+        ('main','srcdestdelimiter','-', True),
+        ('main','border','1', True),
+        ('main','padding','5', True),
+        ('main','disperrors','true', True),
+        ('main','dispwarnings','true', True),
+        ('main','dispmessages','false', True),
+        ('main','sortorder','source', True),
+        ('incoming','transport','imap', False),
+        ('incoming','server','localhost', False),
+        ('incoming','port','993', False),
+        ('incoming','encryption','tls', False),
+        ('incoming','account','someacct@hostmail.com', False),
+        ('incoming','password','********', False),
+        ('incoming','folder','INBOX', False),
+        ('outgoing','server','localhost', False),
+        ('outgoing','port','587', False),
+        ('outgoing','encryption','tls', False),
+        ('outgoing','account','someacct@hostmail.com', False),
+        ('outgoing','password','********', False),
+        ('outgoing','sender','sender@hostmail.com', False),
+        ('outgoing','receiver','receiver@hostmail.com', False),
         ]
 
     rcParser = configparser.SafeConfigParser()
@@ -137,13 +147,14 @@ def rc_initialize(fname):
     # Flag to see if any RC parts have changed
     newRc=False
 
-    for section, option, default in rcParts:
-        if rcParser.has_section(section) == False:
+    for section, option, default, canCont in rcParts:
+        if rcParser.has_section(section) == False: # Whole sectionm is missing. Probably a new install.
             rcParser.add_section(section)
             newRc=True
-        if rcParser.has_option(section, option) == False:
+        if rcParser.has_option(section, option) == False: # Option is missing. Might be able to continue if non-critical.
             rcParser.set(section, option, default)
-            newRc=True
+            if canCont == False:
+                newRc=True
 
     # save updated RC configuration to a file
     with open(fname, 'w') as configfile:
@@ -158,14 +169,17 @@ def parse_command_line():
     argParser = argparse.ArgumentParser(description='Process dupReport options.')
     argParser.add_argument("-r","--rcpath", help="Location of dupReport config directory.", action="store")
     argParser.add_argument("-d","--dbpath", help="Locatoin of dupReport database.", action="store")
-    argParser.add_argument("-v", "--verbose", help="Log file verbosity. 0=none  1=verbose  2=Please make it stop!!! Same as [main]verbose= in rc file.", \
-        type=int, action="store", choices=[0,1,2])
+    argParser.add_argument("-v", "--verbose", help="Log file verbosity, 0-3. Same as [main]verbose= in rc file.", \
+        type=int, action="store", choices=[0,1,2,3])
     argParser.add_argument("-V","--version", help="dupReport version and program info.", action="store_true")
     argParser.add_argument("-l","--logpath", help="Path to dupReport log file. (Default: 'dupReport.log'. Same as [main]logpath= in rc file.", action="store")
     argParser.add_argument("-a","--append", help="Append new logs to log file. Same as [main]logappend= in rc file.", action="store_true")
     argParser.add_argument("-m", "--mega", help="Convert file sizes to megabytes or gigabytes. Options are 'mega' 'giga' or 'none'. \
         Same as [main]sizereduce= in rc file.", action="store", choices=['mega','giga','none'])
-    argParser.add_argument("-i", "--initdb", help="Initialize database.", action="store_true")
+
+    initGroup = argParser.add_mutually_exclusive_group()
+    initGroup.add_argument("-i", "--initdb", help="Initialize database.", action="store_true")
+    initGroup.add_argument("-I", "--initdbrun", help="Initialize database and continue processing.", action="store_true")
 
     opGroup = argParser.add_mutually_exclusive_group()
     opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
@@ -183,10 +197,11 @@ def parse_config_file(rcPath, args):
         rcConfig = SafeConfigParser()
         rv=rcConfig.read(rcPath)
     except configparser.ParsingError as err:
-        sys.stderr.write('RC Parse error: {}\n'.format(err.args[0]))
+        sys.stderr.write('RC file parsing error: {}\n'.format(err.args[0]))
         sys.exit(1) # Abort program. Can't continue with RC error
 
-    # OPTIMIZE - LOOP THIS
+    # Extract options from .rc file
+    # Gotta be a way to optimize this. Someday...
     try:
         options['dbpath'] = rcConfig.get('main','dbpath')
         options['logpath'] = rcConfig.get('main','logpath')
@@ -200,6 +215,10 @@ def parse_config_file(rcPath, args):
         options['summarysubject'] = rcConfig.get('main','summarysubject')
         options['border'] = rcConfig.get('main','border')
         options['padding'] = rcConfig.get('main','padding')
+        options['dispwarnings'] = rcConfig.getboolean('main','dispwarnings')
+        options['disperrors'] = rcConfig.getboolean('main','disperrors')
+        options['dispmessages'] = rcConfig.getboolean('main','dispmessages')
+        options['sortorder'] = rcConfig.get('main','sortorder')
 
         options['intransport'] = rcConfig.get('incoming','transport')
         options['inserver'] = rcConfig.get('incoming','server')
@@ -223,7 +242,7 @@ def parse_config_file(rcPath, args):
         sys.stderr.write('RC Parse error - No Section: {}\n'.format(err.args[0]))
         sys.exit(1) # Abort program. Can't continue with RC error
 
-    # Now, overlay with command line options
+    # Now, override with command line options
     # Database Path
     if args.dbpath != None:  #dbPath specified on command line
         options['dbpath'] = '{}/{}'.format(args.dbpath, dbName) 
@@ -252,83 +271,86 @@ def parse_config_file(rcPath, args):
         options['logappend'] = True
     if args.initdb == True:
         options['initdb'] = True
+    if args.initdbrun == True:
+        options['initdbrun'] = True
     if args.mega != None:
         options['sizereduce'] = args.mega
 
     return
 
 def version_info():
-    print('\n-----\ndupReport: A summary email report generator for Duplicati.')
-    print('Program Version {}.{}.{}'.format(version[0], version[1], version[2]))
+    sys.stdout.write('\n-----\ndupReport: A summary email report generator for Duplicati.\n')
+    sys.stdout.write('Program Version {}.{}.{}\n'.format(version[0], version[1], version[2]))
     
     maj, min, subm, res = curr_db_version()
-    print('Database Version {}.{}.{}'.format(maj, min, subm))
+    sys.stdout.write('Database Version {}.{}.{}\n'.format(maj, min, subm))
 
-    print('Copyright (c) {} Stephen Fried for HandyGuy Software'.format(copyright))
-    print('Distributed under MIT License. See LICENSE file for details.\n-----\n')
+    sys.stdout.write('Copyright (c) {} Stephen Fried for HandyGuy Software.\n'.format(copyright))
+    sys.stdout.write('Distributed under MIT License. See LICENSE file for details.\n-----\n')
     return
 
 def get_script_path():
+    # Get directory path where script is running
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
-def search_message_part(part, mp, lines, typ, parts):
+def search_message_part(msgField, regex, multiLine, typ):
 # Search for field in message
-# part - section to search for
-# mp - list of all message parts
-# lines - 0=single line, 1=multi-line
+# msgField - text to search against
+# regex - regex to search for
+# multiLine - 0=single line, 1=multi-line
 # type - 0=int or 1=string
-# parts - for text fields, the number of words expected in the line
+#
+    match = re.compile(regex, multiLine).search(msgField)  # Search msgField for regex match
 
-    d=''
-    m = re.compile(mp, lines).search(part)
-    if m:
-        if lines == 0:   # Single line result
-            num=1
-            while num <= parts:
-                try:
-                    d = d +  m.group().split()[num] + ' '
-                    num += 1
-                except IndexError:
-                    break
+    if match is not None:  # Found a match - regex is in msgField
+        if multiLine == 0:   # Single line result
+            grpSplit =  match.group().split()  # Split matching text into "words"
+            grpLen = len(grpSplit)
+            retData = ''
+            for num in range(1, len(grpSplit)):   # Loop through number of 'words' expeced
+                retData = retData + grpSplit[num]  # Add current 'word' to result
+                if (num < (grpLen - 1)):
+                    retData = retData + ' '    # Add spaces between words, but not at the end
         else:    # Multi-line result
-            d = m.group()
-            d = re.sub(re.compile(r'\s+'), ' ', d)
-            d = re.sub(re.compile(r'\"'), '\'', d)
+            retData = match.group()    # Group the multi-line data
+            retData = re.sub(re.compile(r'\s+'), ' ', retData)  # Convert multiple white space to a single space
+            retData = re.sub(re.compile(r'\"'), '\'', retData)  # Convert double quotes to single quotes
     else:  # Pattern not found
-        if typ == 0:        # integer field
-            d = '0'
+        if typ == 0:  # Integer field
+            retData = '0'
+        else:         # String field
+            retData = ''
 
-    return d
-
+    return retData
 
 # Check database for existing message ID
 def db_search_message(messId):
 
-    write_log_entry(2,'db_search_message({})\n'.format(messId))
+    write_log_entry(1,'db_search_message() for messageId=[{}]'.format(messId))
     sqlStmt = "SELECT messageId FROM emails WHERE messageId=\'{}\'".format(messId)
-    write_log_entry(2,'{}\n'.format(sqlStmt))
+    write_log_entry(3,'{}'.format(sqlStmt))
     dbCursor = exec_sqlite(dbConn,sqlStmt)
     idExists = dbCursor.fetchone()
     if idExists:
-        write_log_entry(1,'Message [{}] already in email database\n'.format(messId))
+        write_log_entry(2,'Message [{}] already in email database'.format(messId))
         return True
     return False
 
 # Check database for existing source/destination pair
 # Insert if it doesn't exist
 def db_search_srcdest_pair(src, dest):
-    write_log_entry(2, 'db_search_srcdest_pair({}, {})\n'.format(src, dest))
+    write_log_entry(1, 'db_search_srcdest_pair({}, {})'.format(src, dest))
     sqlStmt = "SELECT source, destination FROM backupsets WHERE source=\'{}\' AND destination=\'{}\'".format(src, dest)
-    write_log_entry(2, '{}\n'.format(sqlStmt))
+    write_log_entry(3, '{}'.format(sqlStmt))
     dbCursor = exec_sqlite(dbConn, sqlStmt)
     idExists = dbCursor.fetchone()
     if idExists:
-        write_log_entry(2, "Source/Destination pair [{}/{}] already in database".format(src, dest))
+        write_log_entry(2, "Source/Destination pair [{}/{}] already in database.".format(src, dest))
         return True
 
     sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastDate, lastTime) \
         VALUES ('{}', '{}', 0, 0, \'2000-01-01\', \'00:00:00\')".format(src, dest)
-    write_log_entry(2, '{}\n'.format(sqlStmt))
+    write_log_entry(3, '{}'.format(sqlStmt))
     exec_sqlite(dbConn, sqlStmt)
     dbConn.commit()
     write_log_entry(2, "Pair [{}/{}] added to database".format(src, dest))
@@ -337,27 +359,35 @@ def db_search_srcdest_pair(src, dest):
 
 
 def convert_date_time(dtString):
-    # Convert dates & times to normlalized forms. Input=[YYYY/MM/DD  HH:MM:SS]
-    write_log_entry(2, 'convert_date_time: dtString=[{}]\n'.format(dtString))
+    # Convert dates & times to normlalized forms. Input=[YYYY/MM/DD HH:MM:SS AM/PM ]
+    write_log_entry(1, 'convert_date_time({})'.format(dtString))
     if dtString == '':
         return None
 
-    datePart = re.split('/', dtString.split(' ')[0])
+    dtSplit = dtString.split(' ')  # Split dtString into [<date>,<time>,<AM/PM>]
+
+    datePart = re.split('/', dtSplit[0])
     endDate = "{:04d}/{:02d}/{:02d}".format(int(datePart[2]),int(datePart[0]),int(datePart[1]))
 
-    timePart = re.split(':', dtString.split(' ')[1])
-    if dtString.split(' ')[2] == "PM":  # Use 24-hour clock
+    timePart = re.split(':', dtSplit[1])
+
+    if ((timePart[0] == "12") and (dtSplit[2] == 'AM')):
+        timePart[0] = '00'
+    elif ((timePart[0] != "12") and (dtSplit[2] == 'PM')):
         timePart[0] = int(timePart[0]) + 12
+
     endTime = "{:02d}:{:02d}:{:02d}".format(int(timePart[0]),int(timePart[1]),int(timePart[2]))
 
-    write_log_entry(2, 'Convert_Date_Time: Converted date=[{}]  Time=[]\n'.format(endDate, endTime))
+    write_log_entry(2, 'Converted: date=[{}] time=[{}]\n'.format(endDate, endTime))
 
     return (endDate, endTime)
+
 
 # Build SQL statement to put into the emails table
 def build_email_sql_statement(mParts, sParts, dParts):
 
-    write_log_entry(2, 'build_email_sql_statement(): messageId={}  sourceComp={}  destComp={}'.format(mParts['messageId'],mParts['sourceComp'],mParts['destComp']))
+    write_log_entry(1, 'build_email_sql_statement(()')
+    write_log_entry(2, 'messageId={}  sourceComp={}  destComp={}'.format(mParts['messageId'],mParts['sourceComp'],mParts['destComp']))
 
     sqlStmt = "INSERT INTO emails(messageId, sourceComp, destComp, emailDate, emailTime, \
         deletedFiles, deletedFolders, modifiedFiles, examinedFiles, \
@@ -378,13 +408,14 @@ def build_email_sql_statement(mParts, sParts, dParts):
         sParts['verboseErrors'], dParts['endSaveDate'], dParts['endSaveTime'], dParts['beginSaveDate'], dParts['beginSaveTime'], \
         sParts['duration'], sParts['messages'], sParts['warnings'], sParts['errors'])
                 
-    write_log_entry(2, 'sqlStmt=[{}]\n'.format(sqlStmt))
+    write_log_entry(3, 'sqlStmt=[{}]'.format(sqlStmt))
     return sqlStmt
 
 # Split downloaded message into constituent parts
 def process_message(mess):
 
-    write_log_entry(2,'process_message(): mess=[{}]'.format(mess))
+    write_log_entry(1,'process_message()'.format(mess))
+    write_log_entry(2,'mess=[{}]'.format(mess))
     
     #Define lineParts
     #lineParts[] are the individual line items in the Duplicati status email report.
@@ -392,39 +423,39 @@ def process_message(mess):
     #2 - Duplicati name from email and regex to find it
     #3 - regex flags. 0=none.
     #4 - field Type (0=INT or 1=STR)
-    #5 - Number of space-separated segments in that line
     lineParts = [
-        ('deletedFiles','DeletedFiles: \d+', 0, 0, 1),
-        ('deletedFolders', 'DeletedFolders: \d+', 0, 0, 1),
-        ('modifiedFiles', 'ModifiedFiles: \d+', 0, 0, 1),
-        ('examinedFiles', 'ExaminedFiles: \d+', 0, 0, 1),
-        ('openedFiles', 'OpenedFiles: \d+', 0, 0, 1),
-        ('addedFiles', 'AddedFiles: \d+', 0, 0, 1),
-        ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: \d+', 0, 0, 1),
-        ('sizeOfAddedFiles', 'SizeOfAddedFiles: \d+', 0, 0, 1),
-        ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: \d+', 0, 0, 1),
-        ('sizeOfOpenedFiles', 'SizeOfOpenedFiles: \d+', 0, 0, 1),
-        ('notProcessedFiles', 'NotProcessedFiles: \d+', 0, 0, 1),
-        ('addedFolders', 'AddedFolders: \d+', 0, 0, 1),
-        ('tooLargeFiles', 'TooLargeFiles: \d+', 0, 0, 1),
-        ('filesWithError', 'FilesWithError: \d+', 0, 0, 1),
-        ('modifiedFolders', 'ModifiedFolders: \d+', 0, 0, 1),
-        ('modifiedSymlinks', 'ModifiedSymlinks: \d+', 0, 0, 1),
-        ('addedSymlinks', 'AddedSymlinks: \d+', 0, 0, 1),
-        ('deletedSymlinks', 'DeletedSymlinks: \d+', 0, 0, 1),
-        ('partialBackup', 'PartialBackup: \w+', 0, 1, 1),
-        ('dryRun', 'Dryrun: \w+', 0, 1, 1),
-        ('mainOperation', 'MainOperation: \w+', 0, 1, 1),
-        ('parsedResult', 'ParsedResult: \w+', 0, 1, 1),
-        ('verboseOutput', 'VerboseOutput: \w+', 0, 1, 1),
-        ('verboseErrors', 'VerboseErrors: \w+', 0, 1, 1),
-        ('endTimeStr', 'EndTime: .*', 0, 1, 3),
-        ('beginTimeStr', 'BeginTime: .*', 0, 1, 3),
-        ('duration', 'Duration: .*', 0, 1, 1),
-        ('messages', 'Messages: \[.*^\]', re.MULTILINE|re.DOTALL, 1, 0),
-        ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1, 0),
-        ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1, 0),
-        ('failed', 'Failed: .*', 0, 1, 100),
+        ('deletedFiles','DeletedFiles: \d+', 0, 0),
+        ('deletedFolders', 'DeletedFolders: \d+', 0, 0),
+        ('modifiedFiles', 'ModifiedFiles: \d+', 0, 0),
+        ('examinedFiles', 'ExaminedFiles: \d+', 0, 0),
+        ('openedFiles', 'OpenedFiles: \d+', 0, 0),
+        ('addedFiles', 'AddedFiles: \d+', 0, 0),
+        ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: \d+', 0, 0),
+        ('sizeOfAddedFiles', 'SizeOfAddedFiles: \d+', 0, 0),
+        ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: \d+', 0, 0),
+        ('sizeOfOpenedFiles', 'SizeOfOpenedFiles: \d+', 0, 0),
+        ('notProcessedFiles', 'NotProcessedFiles: \d+', 0, 0),
+        ('addedFolders', 'AddedFolders: \d+', 0, 0),
+        ('tooLargeFiles', 'TooLargeFiles: \d+', 0, 0),
+        ('filesWithError', 'FilesWithError: \d+', 0, 0),
+        ('modifiedFolders', 'ModifiedFolders: \d+', 0, 0),
+        ('modifiedSymlinks', 'ModifiedSymlinks: \d+', 0, 0),
+        ('addedSymlinks', 'AddedSymlinks: \d+', 0, 0),
+        ('deletedSymlinks', 'DeletedSymlinks: \d+', 0, 0),
+        ('partialBackup', 'PartialBackup: \w+', 0, 1),
+        ('dryRun', 'Dryrun: \w+', 0, 1),
+        ('mainOperation', 'MainOperation: \w+', 0, 1),
+        ('parsedResult', 'ParsedResult: \w+', 0, 1),
+        ('verboseOutput', 'VerboseOutput: \w+', 0, 1),
+        ('verboseErrors', 'VerboseErrors: \w+', 0, 1),
+        ('endTimeStr', 'EndTime: .*', 0, 1),
+        ('beginTimeStr', 'BeginTime: .*', 0, 1),
+        ('duration', 'Duration: .*', 0, 1),
+        ('messages', 'Messages: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
+        ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
+        ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
+        ('details','Details: .*', re.MULTILINE|re.DOTALL, 1),
+        ('failed', 'Failed: .*', 0, 1),
         ]
 
 
@@ -444,47 +475,52 @@ def process_message(mess):
 
     # Get Message ID
     decode =  email.header.decode_header(mess['Message-Id'])[0]
-    write_log_entry(2, 'decode=[{}]\n'.format(decode))
+    write_log_entry(3, 'decode=[{}]'.format(decode))
     msgParts['messageId'] = decode[0]
-    write_log_entry(2, 'messageId=[{}]\n'.format(msgParts['messageId']))
+    if (type(msgParts['messageId']) is not str): # Email encoded as a byte object - See Issue #14
+        msgParts['messageId'] = msgParts['messageId'].decode('utf-8')
+    write_log_entry(3, 'messageId=[{}]'.format(msgParts['messageId']))
 
     # See if the record is already in the database, meaning we've seen it before
     if db_search_message(msgParts['messageId']):
         return 1
 
     # Message not yet in database. Proceed
-    write_log_entry(1, 'Message ID [{}] does not exist. Adding to DB\n'.format(msgParts['messageId']))
+    write_log_entry(1, 'Message ID [{}] does not exist. Adding to DB'.format(msgParts['messageId']))
 
     decode = email.header.decode_header(mess['Subject'])[0]
     msgParts['subject'] = decode[0]
-    write_log_entry(1, 'Subject=[{}].\n'.format(msgParts['subject']))
+    if (type(msgParts['subject']) is not str):  # Email encoded as a byte object - See Issue #14
+        msgParts['subject'] = msgParts['subject'].decode('utf-8')
+    write_log_entry(3, 'Subject=[{}]'.format(msgParts['subject']))
 
     date_tuple = email.utils.parsedate_tz(mess['Date'])
     if date_tuple:
         local_date = datetime.datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
         msgParts['emailDate'] = local_date.strftime("%Y-%m-%d")
         msgParts['emailTime'] = local_date.strftime("%H:%M:%S")
+        write_log_entry(3, 'emailDate=[{}]  emailTime=[{}]'.format( msgParts['emailDate'], msgParts['emailTime']))
 
     # See if it's a message of interest
     # Match subjetc field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...'
     if re.search(options['subjectregex'], msgParts['subject']) == None:
-        write_log_entry(1, 'Message [{}] is not a Message of Interest\n'.format(msgParts['messageId']))
+        write_log_entry(1, 'Message [{}] is not a Message of Interest.'.format(msgParts['messageId']))
         return 1    # Not a message of Interest
 
     # Get source & desination computers from email subject
     srcRegex = '{}{}'.format(options['srcregex'], re.escape(options['srcdestdelimiter']))
     destRegex = '{}{}'.format(re.escape(options['srcdestdelimiter']), options['destregex'])
-    write_log_entry(2,'srcregex=[{}]  destRegex=[{}]\n'.format(srcRegex, destRegex))
+    write_log_entry(3,'srcregex=[{}]  destRegex=[{}]'.format(srcRegex, destRegex))
 
     partsSrc = re.search(srcRegex, msgParts['subject'])
     partsDest = re.search(destRegex, msgParts['subject'])
     if (partsSrc is None) or (partsDest is None):    # Correct subject but delim not found. Something is wrong.
-        write_log_entry(2,'srcdestdelimiter [{}] not found in subject. Abandoning message.\n'.format(options['srcdestdelimiter']))
+        write_log_entry(2,'srcdestdelimiter [{}] not found in subject. Abandoning message.'.format(options['srcdestdelimiter']))
         return 1
         
     msgParts['sourceComp'] = re.search(srcRegex, msgParts['subject']).group().split(options['srcdestdelimiter'])[0]
     msgParts['destComp'] = re.search(destRegex, msgParts['subject']).group().split(options['srcdestdelimiter'])[1]
-    write_log_entry(2, 'source=[{}] dest=[{}] Date=[{}]  Time=[{}] Subject=[{}]\n'.format(msgParts['sourceComp'], \
+    write_log_entry(3, 'source=[{}] dest=[{}] Date=[{}]  Time=[{}] Subject=[{}]'.format(msgParts['sourceComp'], \
         msgParts['destComp'], msgParts['emailDate'], msgParts['emailTime'], msgParts['subject']))
 
     # Search for source/destination pair in database. Add if not already there
@@ -492,41 +528,47 @@ def process_message(mess):
 
     # Extract the body (payload) from the email
     msgParts['body'] = mess.get_payload()
-    write_log_entry(2, 'Body=[{}]\n'.format(msgParts['body']))
+    write_log_entry(3, 'Body=[{}]'.format(msgParts['body']))
 
     # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in statusParts{}
-    for section,regex,flag,typ,parts in lineParts:
-        statusParts[section] = search_message_part(msgParts['body'], regex, flag, typ, parts) # Get the field dats
+    for section,regex,flag,typ in lineParts:
+        statusParts[section] = search_message_part(msgParts['body'], regex, flag, typ) # Get the field dats
 
     # Adjust fields if not a clean run
-    write_log_entry(2, "statusParts['failed']=[{}]\n".format(statusParts['failed']))
-    if statusParts['failed'] == '':
+    write_log_entry(3, "statusParts['failed']=[{}]".format(statusParts['failed']))
+    if statusParts['failed'] == '':  # Looks like a good run
         # Convert dates & times to normlalized forms - YYYY/MM/DD  HH:MM:SS
         dateParts['endSaveDate'] = convert_date_time(statusParts['endTimeStr'])[0]
         dateParts['endSaveTime'] = convert_date_time(statusParts['endTimeStr'])[1]
 
         dateParts['beginSaveDate'] = convert_date_time(statusParts['beginTimeStr'])[0]
         dateParts['beginSaveTime'] = convert_date_time(statusParts['beginTimeStr'])[1]
-    else:
+    else:  # Something went wrong. Let's gather the details.
         statusParts['errors'] = statusParts['failed']
         statusParts['parsedResult'] = 'Failure'
-        dateParts['endSaveDate'] = ''
-        dateParts['endSaveTime'] = ''
-        dateParts['beginSaveDate'] = ''
-        dateParts['beginSaveTime'] = ''
+        statusParts['warnings'] = statusParts['details']
+        write_log_entry(3, 'Errors=[{}]'.format(statusParts['errors']))
+        write_log_entry(3, 'Warnings=[{}]'.format(statusParts['warnings']))
 
-    if statusParts['messages'] != '':
-        statusParts['messages'] = statusParts['messages'].replace(',','\n')
-    if statusParts['warnings'] != '':
-        statusParts['warnings'] = statusParts['warnings'].replace(',','\n')
-    if statusParts['errors'] != '':
-        statusParts['errors'] = statusParts['errors'].replace(',','\n')
+        # Since the full report never ran, we'll use the email date/time as the report date/time
+        # Email dates use '-'. Database dates use '/'. Need to convert before sending to DB
+        dateParts['endSaveDate'] = msgParts['emailDate'].replace('-','/')
+        dateParts['endSaveTime'] = msgParts['emailTime']
+        dateParts['beginSaveDate'] = msgParts['emailDate'].replace('-','/')
+        dateParts['beginSaveTime'] =  msgParts['emailTime']
+        write_log_entry(3, 'Failure message. Replaced date/time: end=[{} {}]  begin=[{} {}]'.format(dateParts['endSaveDate'], dateParts['endSaveTime'], 
+            dateParts['beginSaveDate'], dateParts['beginSaveTime']))
 
+    # Replace commas (,) with newlines (\n) in message fields. Sqlite really doesn't like commas in SQL statements!
+    for part in ['messages', 'warnings', 'errors']:
+        if statusParts[part] != '':
+             statusParts[part] = statusParts[part].replace(',','\n')
 
-    write_log_entry(2, 'endSaveDate=[{}] endSaveTime=[{}] beginSaveDate=[{}] beginSaveTime=[{}]\n'.format(dateParts['endSaveDate'], \
+    write_log_entry(3, 'endSaveDate=[{}] endSaveTime=[{}] beginSaveDate=[{}] beginSaveTime=[{}]'.format(dateParts['endSaveDate'], \
         dateParts['endSaveTime'], dateParts['beginSaveDate'], dateParts['beginSaveTime']))
 
     sqlStmt = build_email_sql_statement(msgParts, statusParts, dateParts)
+    write_log_entry(3, 'sqlStmt=[{}]'.format(sqlStmt))
 
     dbCursor.execute(sqlStmt)
     dbConn.commit()
@@ -535,7 +577,8 @@ def process_message(mess):
 
 # Build list of text strings for sending final email
 def create_email_text(txtTup,fmtTup):
-    write_log_entry(2, 'create_email_text(): textTup={}  fmtTup={}'.format(txtTup,fmtTup))
+    write_log_entry(1, 'create_email_text()')
+    write_log_entry(2, 'textTup={}  fmtTup={}'.format(txtTup,fmtTup))
 
     # Append text and formats tuples to email & format lists
     emailText.append(txtTup)
@@ -543,7 +586,7 @@ def create_email_text(txtTup,fmtTup):
 
 # Send final email result
 def send_email():
-    write_log_entry(2, 'Send_email()\n')
+    write_log_entry(2, 'Send_email()')
     msgText=''
 
     # Begin HTML output
@@ -551,7 +594,7 @@ def send_email():
 
     # Loop through all text & format entries & build message as we go
     for txt,format in zip(emailText, emailFormat):
-        write_log_entry(2, 'txt={}  format={}\n'.format(txt, format))
+        write_log_entry(3, 'txt={}  format={}'.format(txt, format))
         msgHtml = msgHtml + '<tr>'  # New table row
         if len(txt) == 1:  # Single line of data = header. Center & bold
             msgText = msgText + '{}\n'.format(txt[0])
@@ -561,14 +604,14 @@ def send_email():
             msgHtml = '{}<td align="center" colspan = "11"><i>{}{}</i></td>'.format(msgHtml, txt[0], txt[1])
         else:
             for txt2,format2 in zip(txt,format):
-                write_log_entry(2, 'txt2={}  fmt2={}\n'.format(txt2,format2))
+                write_log_entry(3, 'txt2={}  fmt2={}'.format(txt2,format2))
                 msgText = msgText + '{:{fmt}}'.format(txt2,fmt=format2)
                 msgHtml = msgHtml + '<td align="right">{:{fmt}}</td>'.format(txt2,fmt=format2)
         msgText = msgText + '\n'
         msgHtml = msgHtml + '</tr>\n'
     msgHtml = msgHtml + '</table>\n'
-    write_log_entry(2, 'msgtext={}\n'.format(msgText))
-    write_log_entry(2, 'msgHtml={}\n'.format(msgHtml))
+    write_log_entry(3, 'msgtext={}'.format(msgText))
+    write_log_entry(3, 'msgHtml={}'.format(msgHtml))
 
     # Build email message
     msg = MIMEMultipart('alternative')
@@ -588,7 +631,7 @@ def send_email():
 
     # Send the message via local SMTP server.
     server = smtplib.SMTP('{}:{}'.format(options['outserver'], options['outport']))
-    write_log_entry(2, 'Server=[{}]'.format(server))
+    write_log_entry(2, 'SMTP Server=[{}]'.format(server))
     if options['outencryption'] == 'tls':   # Do we need to use SSL/TLS?
         server.starttls()
     server.login(options['outaccount'], options['outpassword'])
@@ -601,8 +644,14 @@ def send_email():
 # Add those tuples to final email through create_email_text()
 def create_summary_report():
 
-    sqlStmt = "SELECT source, destination, lastDate,lastTime,lastFileCount,lastFileSize from backupsets order by source, destination"
-    write_log_entry(2, 'create_summary_report(): {}\n'.format(sqlStmt))
+    write_log_entry(1, 'create_summary_report()')
+    sqlStmt = "SELECT source, destination, lastDate, lastTime, lastFileCount, lastFileSize from backupsets"
+    # How should report be sorted?
+    if options['sortorder'] == 'source':
+        sqlStmt = sqlStmt + " order by source, destination"
+    else:
+        sqlStmt = sqlStmt + " order by destination, source"
+    write_log_entry(2, 'sqlStmt=[{}]'.format(sqlStmt))
 
     tupFields = (options['summarysubject']+'\n',)
     tupFormats = ('^',)
@@ -621,9 +670,9 @@ def create_summary_report():
     # Loop through backupsets table and then get latest actibity for each src/dest pair
     dbCursor = exec_sqlite(dbConn, sqlStmt)
     bkSetRows = dbCursor.fetchall()
-    write_log_entry(2, 'bkSetRows=[{}]\n'.format(bkSetRows))
+    write_log_entry(2, 'bkSetRows=[{}]'.format(bkSetRows))
     for source, destination, lastDate, lastTime, lastFileCount, lastFileSize in bkSetRows:
-        write_log_entry(2, 'Src=[{}] Dest=[{}] lastDate=[{}] lastTime=[{}] lastFileCount=[{}] lastFileSize=[{}]\n'.format(source, 
+        write_log_entry(3, 'Src=[{}] Dest=[{}] lastDate=[{}] lastTime=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, 
             destination, lastDate, lastTime, lastFileCount, lastFileSize))
         tupFields = ('***** {} to {} *****'.format(source, destination),)
         tupFormats = ('',)
@@ -631,33 +680,37 @@ def create_summary_report():
 
         # Select all activity for src/dest pair since last report run
         sqlStmt = 'SELECT endDate, endtime, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-            filesWithError, parsedResult, warnings, errors FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
+            filesWithError, parsedResult, warnings, errors, messages FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
             AND  ((endDate > \'{}\') OR  ((endDate == \'{}\') AND (endtime > \'{}\'))) order by endDate, endTime'.format(source, \
             destination, lastDate, lastDate, lastTime)
-        write_log_entry(2, '{}\n'.format(sqlStmt))
+        write_log_entry(3, 'sqlStmt=[{}]'.format(sqlStmt))
 
         dbCursor = exec_sqlite(dbConn, sqlStmt)
         emailRows = dbCursor.fetchall()
-        write_log_entry(2, 'emailRows=[{}]\n'.format(emailRows))
+        write_log_entry(3, 'emailRows=[{}]'.format(emailRows))
         if not emailRows: #NO rows found = no recent activity
             # Calculate days since last activity
+            nowTxt = datetime.datetime.now()
             now = str(datetime.datetime.now()).split(' ')[0].split('-')
             then = lastDate.split('/')
+            write_log_entry(3, 'nowTxt=[{}]  now=[{}]  then=[{}]'.format(nowTxt, now, then))
             d0 = datetime.date(int(then[0]),int(then[1]), int(then[2]))
             d1 = datetime.date(int(now[0]),int(now[1]), int(now[2]))
+            write_log_entry(3, 'd0=[{}]  d1=[{}]'.format(d0, d1))
             tupFields = ('No new activity. Last activity on {} at {} ({} days ago)'.format(lastDate, lastTime, (d1-d0).days),'',)
             tupFormats = ('','',)
             create_email_text(tupFields, tupFormats)
         else:
             # Loop through each new activity and report
             for endDate, endtime, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                filesWithError, parsedResult, warnings, errors in emailRows:
+                filesWithError, parsedResult, warnings, errors, messages in emailRows:
             
                 # Determine file count & size diffeence from last run
+
                 examinedFilesDelta = examinedFiles - lastFileCount
-                write_log_entry(2, 'examinedFilesDelta = {} - {} = {}\n'.format(examinedFiles, lastFileCount, examinedFilesDelta))
+                write_log_entry(3, 'examinedFilesDelta = {} - {} = {}'.format(examinedFiles, lastFileCount, examinedFilesDelta))
                 fileSizeDelta = sizeOfExaminedFiles - lastFileSize
-                write_log_entry(2, 'fileSizeDelta = {} - {} = {}\n'.format(sizeOfExaminedFiles, lastFileSize, fileSizeDelta))
+                write_log_entry(3, 'fileSizeDelta = {} - {} = {}'.format(sizeOfExaminedFiles, lastFileSize, fileSizeDelta))
 
                 if options['sizereduce'] == 'mega': 
                     tupFields = (endDate, endtime, examinedFiles, examinedFilesDelta, (sizeOfExaminedFiles / 1000000.00), (fileSizeDelta / 1000000.00), \
@@ -671,18 +724,21 @@ def create_summary_report():
                     tupFields = (endDate, endtime, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                         addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult)
                     tupFormats = ('13','11','>12,','>+12,','>20,','>+20,','>12,','>12,','>12,','>12,','>13')
+
                 create_email_text(tupFields, tupFormats)
 
-                if warnings != '':
-                    create_email_text((warnings,'',),('','',))
-                if errors != '':
+                if ((errors != '') and (options['disperrors'] == True)):
                     create_email_text((errors,'',),('','',))
+                if ((warnings != '') and (options['dispwarnings'] == True)):
+                    create_email_text((warnings,'',),('','',))
+                if ((messages != '') and (options['dispmessages'] == True)):
+                    create_email_text((messages,'',),('','',))
 
                 # Update latest activity into into backupsets
                 sqlStmt = 'UPDATE backupsets SET lastFileCount={}, lastFileSize={}, lastDate=\'{}\', \
                     lasttime=\'{}\' WHERE source=\'{}\' AND destination=\'{}\''.format(examinedFiles, sizeOfExaminedFiles, \
                     endDate, endtime, source, destination)
-                write_log_entry(2, '{}\n'.format(sqlStmt))
+                write_log_entry(3, 'sqlStmt=[{}]'.format(sqlStmt))
 
                 dbCursor = exec_sqlite(dbConn, sqlStmt)
                 dbConn.commit()
@@ -694,19 +750,19 @@ def create_summary_report():
 
 # Find all new emails on server
 def process_mailbox_pop(mBox):
-    write_log_entry(2,'process_mailbox_pop()\n')
+    write_log_entry(1,'process_mailbox_pop()')
 
     # Open All Mail
     numMails = len(mBox.list()[1])
-    write_log_entry(2,'process_mailbox_pop(): POP3: numMails=[{}]\n'.format(numMails))
+    write_log_entry(3,'POP3: numMails=[{}]'.format(numMails))
     for i in range(numMails):
         server_msg, body, octets = mBox.retr(i+1)
-        write_log_entry(2, 'server_msg=[{}]  body=[{}]  octets=[{}]\n'.format(server_msg,body,octets))
+        write_log_entry(3, 'server_msg=[{}]  body=[{}]  octets=[{}]'.format(server_msg,body,octets))
         msg=''
         for j in body:
             msg = msg + '{}\n'.format(j.decode("utf-8"))
         msg2 = email.message_from_string(msg)  # Get message body
-        write_log_entry(2, 'msg2=[{}]'.format(msg2))
+        write_log_entry(3, 'msg2=[{}]'.format(msg2))
         mParts = process_message(msg2)
 
     return None
@@ -715,27 +771,27 @@ def process_mailbox_pop(mBox):
 # Find all new emails on server
 def process_mailbox_imap(mBox):
     # Open All Mail
-    write_log_entry(2,'process_mailbox_imap()\n')
+    write_log_entry(1,'process_mailbox_imap()')
     rv, data = mBox.search(None, "ALL")
     if rv != 'OK':
-        write_log_entry(2, 'No messages found!\n')
+        write_log_entry(2, 'No messages found!')
         return
 
-    write_log_entry(2,'search data=[{}]\n'.format(data))
+    write_log_entry(3,'search data=[{}]'.format(data))
     # Loop through every emial in the mail box
     # data[] contains all the record numbers in the mailbox.
     # Loop through these to get all the existing messages
     for num in data[0].split():
-        write_log_entry(2,'num=[{}]\n'.format(num))
+        write_log_entry(3,'num=[{}]'.format(num))
         rv, data = mBox.fetch(num,'(RFC822)') # Fetch message #num
-        write_log_entry(2,'rv=[{}] data=[{}]\n'.format(rv,data))
+        write_log_entry(3,'rv=[{}] data=[{}]'.format(rv,data))
         if rv != 'OK':
-            write_log_entry(1, 'ERROR getting message: {}\n'.format(num))
+            write_log_entry(1, 'ERROR getting message: {}'.format(num))
             return
 
-        write_log_entry(2,'data[0][1]=[{}]\n'.format(data[0][1]))
+        write_log_entry(3,'data[0][1]=[{}]'.format(data[0][1]))
         msg = email.message_from_string(data[0][1].decode('utf-8'))  # Get message body
-        write_log_entry(2, 'msg=[{}]\n'.format(msg))        
+        write_log_entry(2, 'msg=[{}]'.format(msg))        
         mParts = process_message(msg)                # Process message into parts
 
     return None
@@ -743,8 +799,26 @@ def process_mailbox_imap(mBox):
 
 # Write a message to the log file
 def write_log_entry(level, entry):
-    if level <= options['verbose']:
-        logFile.write(entry)
+    # Logging levels (stored in options['verbose']):
+    # 0 - No log info produced
+    # 1 - Informational and program flow tracking
+    # 2 - Additional state information
+    # 3 - Full debug info
+
+    # Safety check in case verbose level has not yet been set.
+    # Most likely to occur at very beginning of program
+    # Much debate on whether this is really necessary :-)
+    if 'verbose' not in options:
+        options['verbose'] = 1
+
+    if level <= options['verbose']:  # Check that we're writing to an appropriate logging level
+        if logFile is None:    # Log file not opened yet. Write to stderr
+            sys.stderr.write(entry)
+            sys.stderr.write('\n')
+        else:
+            logFile.write(entry)
+            logFile.write('\n')
+            logFile.flush()
     return
 
 if __name__ == "__main__":
@@ -764,28 +838,32 @@ if __name__ == "__main__":
 
     needToExit=False   # Will be true if rc file or db file needs changing
     # Initialize RC file
-    if rc_initialize(options['rcpath']): #RC file changed or initialized. Can't continue with manual configuration
-        sys.stderr.write('RC file {} initialized or changed. Please configure file before running program again.\n'.format(options['rcpath']))
+    if rc_initialize(options['rcpath']): #RC file changed or initialized. Can't continue without manual configuration
+        write_log_message(1, 'RC file {} initialized or changed. Please configure file before running program again.'.format(options['rcpath']))
         needToExit=True  #Can't continue if RC gets initialized - need to editparameters
 
     # Get additional options from config file
     parse_config_file(options['rcpath'], cmdLine)
 
     # Next, let's check if the DB exists or needs initializing
-    if ((os.path.isfile(options['dbpath']) is not True) or ('initdb' in options)): # DB file doesn't exist or forced initialization
-        sys.stderr.write('Database {} needs initializing.\n'.format(options['dbpath']))
+    if ((os.path.isfile(options['dbpath']) is not True) or ('initdb' in options) or ('initdbrun' in options)):
+        # DB file doesn't exist or forced initialization
+        write_log_entry(1, 'Database {} needs initializing.'.format(options['dbpath']))
         dbConn = sqlite3.connect(options['dbpath'])
         db_initialize(dbConn)
         dbConn.commit()
         dbConn.close()
-        sys.stderr.write('Database {} initialized. Exiting program.\n'.format(options['dbpath']))
-        needToExit=True
+        if 'initdbrun' not in options: # Flag to init and keep processing. If not there, exit program.
+            write_log_entry(1, 'Database {} initialized. Exiting program.'.format(options['dbpath']))
+            needToExit=True
+        else:
+            write_log_entry(1, 'Database {} initialized. -I = Continue processing.'.format(options['dbpath']))
 
     maj, min, subm, res = curr_db_version()
     if res == False:
-        sys.stderr.write('Database version mismatch. {}.{}.{} required. Current version is {}.{}.{}.\n'.format(dbversion[0], dbversion[1], dbversion[2],
+        write_log_entry(1, 'Database version mismatch. {}.{}.{} required. Current version is {}.{}.{}.'.format(dbversion[0], dbversion[1], dbversion[2],
             maj, min, subm))
-        sys.stderr.write('Run program with \'-i\' option to update database.\n')
+        write_log_entry(1, 'Run program with \'-i\' option to update database.')
         needToExit = True
 
     if needToExit:
@@ -806,15 +884,15 @@ if __name__ == "__main__":
     dbCursor = dbConn.cursor()
 
     # Write startup information to log file
-    write_log_entry(1,'******** dupReport Log - Start: {}\n'.format(time.asctime(time.localtime(time.time()))))
-    write_log_entry(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]\n'.format(options['logpath'], options['logappend'], \
+    write_log_entry(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
+    write_log_entry(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(options['logpath'], options['logappend'], \
         options['verbose']))
-    write_log_entry(2,'Config file options: {}\n'.format(options));
-    write_log_entry(2,'dbPath={}  rcpath={}\n'.format(options['dbpath'], options['rcpath']))
+    write_log_entry(2,'Config file options: {}'.format(options));
+    write_log_entry(2,'dbPath={}  rcpath={}'.format(options['dbpath'], options['rcpath']))
     
     if ('collect' in options) or ('report' not in options):
         if options['intransport'] == 'pop3':   # Incoming transport = POP3
-            write_log_entry(2,'Using POP3 incoming transport. Server={} Port={} Encryption={}\n'.format(options['inserver'], \
+            write_log_entry(2,'Using POP3 incoming transport. Server={} Port={} Encryption={}'.format(options['inserver'], \
                 options['inport'],options['inencryption']))
             # Open incoming mailbox
             try:
@@ -823,20 +901,21 @@ if __name__ == "__main__":
                 else:
                     mailBox = poplib.POP3(options['inserver'],options['inport'])
                 rv = mailBox.user(options['inaccount'])
-                write_log_entry(2,'POP3 user()=[{}]\n'.format(rv))
+                write_log_entry(2,'POP3 user()=[{}]'.format(rv))
                 rv = mailBox.pass_(options['inpassword'])
-                write_log_entry(2,'POP3 password()=[{}]\n'.format(rv))
+                write_log_entry(2,'POP3 password()=[{}]'.format(rv))
             except Exception as err:
-                write_log_entry(2,'Failed to connect to POP server: {}\n'.format(e.args))
+                write_log_entry(1,'Failed to connect to POP server: {}'.format(e.args))
                 sys.exit(1)
 
             rv, items, octets = mailBox.list()
-            write_log_entry(2,'mailBox.list() rv=[{}]  items=[{}]  octets=[{}]'.format(rv,items,octets))
-
+            write_log_entry(3,'mailBox.list() rv=[{}]  items=[{}]  octets=[{}]'.format(rv,items,octets))
+ 
+            write_log_entry(1, 'Processing POP3 mailbox...')
             process_mailbox_pop(mailBox)
             mailBox.quit()
         elif options['intransport'] == 'imap':   # Incoming transport = IMAP
-            write_log_entry(2,'Using IMAP incoming transport. Server={} Port={} Encryption={}\n'.format(options['inserver'], \
+            write_log_entry(1,'Using IMAP incoming transport. Server={} Port={} Encryption={}'.format(options['inserver'], \
                 options['inport'],options['inencryption']))
             if (options['inencryption'] == 'ssl') or (options['inencryption'] == 'tls'):
                 mailBox = imaplib.IMAP4_SSL(options['inserver'], options['inport'])
@@ -845,30 +924,29 @@ if __name__ == "__main__":
             try:
                 rv, data = mailBox.login(options['inaccount'], options['inpassword'])
             except imaplib.IMAP4.error:
-                write_log_entry(1,'email server LOGIN FAILED!!! \n')
+                write_log_entry(1,'Email server login failure!')
                 sys.exit(1)
 
-            write_log_entry(2,'rv={}\ndata={}\n'.format(rv, data))
+            write_log_entry(3,'IMAP server login rv=[{}] data=[{}]'.format(rv, data))
 
             rv, mailboxes = mailBox.list()
             if rv == 'OK':
-                write_log_entry(2,'Mailboxes: {}\n'.format(mailboxes))
+                write_log_entry(2,'Mailboxes: [{}]'.format(mailboxes))
 
             rv, data = mailBox.select(options['infolder'])
-            write_log_entry(2,'rv=[{}] data=[{}]\n'.format(rv, data))
+            write_log_entry(3,'mailBox.select() rv=[{}] data=[{}]'.format(rv, data))
             if rv == 'OK':
-                write_log_entry(1, 'Processing mailbox...\n')
+                write_log_entry(1, 'Processing IMAP mailbox...')
                 process_mailbox_imap(mailBox)
             mailBox.logout()
         else:
-            write_log_entry(1,'Unknown incoming transport: {}\n'.format(options['intransport']))
+            write_log_entry(1,'Unknown incoming transport: [{}]'.format(options['intransport']))
 
     if ('report' in options) or ('collect' not in options):
         # All email has been collected. Create the report
         create_summary_report()
-
         # Calculate running time
-        runningTime = 'Running Time: {:.3f} seconds.\n'.format(time.time() - startTime)
+        runningTime = 'Running Time: {:.3f} seconds.'.format(time.time() - startTime)
         create_email_text((runningTime,),('',))
     
         # Send the report through email
@@ -877,8 +955,10 @@ if __name__ == "__main__":
     dbConn.commit()    # Commit any remaining database transactions
     dbConn.close()     # Close database
 
-    write_log_entry(1,'Program completed - exiting\n')
+    write_log_entry(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
+
     # Close log file
     logFile.close()    
 
+    # Bye, bye, bye, bye, bye!
     sys.exit(0)

@@ -1,0 +1,22 @@
+2.0.3
+-----
+Issue #1 - Initialization with -i option will now always stop program after initialization. 
+           Non-critical changes/updates to the .rc file will now allow the program to continue 
+           with default option configs.
+Issue #7 - Fixed the way failed backup jobs are parsed & reported.
+Issue #8 - Flush file buffer after every log write
+Issue #10 - Added ability to sort the report by source or destination
+Issue #12 - Added level 3 logging and changed logging scheme
+Issue #13 - Fixed 24-hour date conversion errors
+Issue #14 - Deal with binary-encoded messages from mutant email senders.
+Non-Specific:
+    - general code cleanup and beautification
+
+
+2.0.2
+-----
+Issue #5:
+- Subject found but no delimiter found. Program now abandons message with a level 2 log message.
+- Regular expression used as delimiter character. Delimiter character now escaped by using re.escape() around variable
+
+

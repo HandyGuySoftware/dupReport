@@ -1,3 +1,32 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+WELCOME TO dupReport!!!
+
+dupReport is an email-based reporting system for Duplicati. It will gather all your Duplicati backup
+status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
+
+The GitHub "master" branch contains the latest production (stable...mostly) code. Current release version is 2.0.3.
+
+The GitHub "beta" branch contains the latest test code, development features, and other probably-unstable code. Swim
+here at your own risk. dupReport 2.0.4 is currently in development.
+
+See the "changelog" file for release history and feature/bug fixes.
+
+Bug reports and feature requests can be made on GitHub in the "Issues" section.
+
+The discussion group for dupReport is on the Duplicati Forum. (forum.duplicati.com)
+
+The program is released under an MIT license. Please see the LICENSE file for details.
+
+Enjoy!
+
+
+Background
+----------
+>>>>>>> beta
+>>>>>>> beta
 One CrashPlan feature that Duplicati could not replicate was coordinated email status reporting. 
 CrashPlan had a really nice feature whereby it would gather up the current backup status for all 
 your systems and mail you a consolidated report on a periodic basis. It was a great way to make 
@@ -105,7 +134,7 @@ dupReport has the following command line options:
 
 -d DBPATH, --dbpath DBPATH (Define directory for dupReport.db file. Default is directory where dupReport.py program is located.)
 
--v {0,1,2}, --verbose {0,1,2} (Log file verbosity. 0=none 1=verbose 2=Please make it stop!!! Same as [main]verbose= in rc file.)
+-v {0,1,2, 3}, --verbose {0,1,2, 3} (Log file verbosity. Same as [main]verbose= in rc file.)
 
 -V, --version (dupReport program and database version info.)
 
@@ -143,9 +172,9 @@ dbpath=
 logpath=
 
 # Level of log file verbosity
-# 0=none  1=verbose  2=Please make it stop!!!
+# 0=none  1=Informational  2=Detailed  3=Please make it stop!!!
 # Can be overridden by -v command line option
-verbose=2
+verbose=1
 
 # Append new logs to log file. False = overwrite log file each run
 # Can be overridden by -a command line option
@@ -173,6 +202,15 @@ srcdestdelimiter=-
 # Email Display Table Options
 border=1
 padding=5
+
+# Report section display. Indicate whether or not to display Errors,
+# Warnings, and/or Messages in reports. All options here are true/fales
+disperrors=true
+dispwarnings=true
+dispmessages=false
+
+# Sort email report by source or by destination.
+sortorder=source
 
 # [incoming] section contains parameters for 
 # incoming (downloaded) email. 
