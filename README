@@ -4,11 +4,13 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
 
 The GitHub "master" branch contains the latest production (stable...mostly) code. Current release version is 2.0.3.
+See the "changelog" file for release history and feature/bug fixes.
 
 The GitHub "beta" branch contains the latest test code, development features, and other probably-unstable code. Swim
-here at your own risk. dupReport 2.0.4 is currently in development.
+here at your own risk, and only if you're looking for something specific. dupReport 2.1 is currently in development.
 
-See the "changelog" file for release history and feature/bug fixes.
+Other branches will be posted as needed to test bug fixes or address specific issues.
+
 
 Bug reports and feature requests can be made on GitHub in the "Issues" section.
 
