@@ -371,10 +371,11 @@ def convert_date_time(dtString):
 
     timePart = re.split(':', dtSplit[1])
 
-    if ((timePart[0] == "12") and (dtSplit[2] == 'AM')):
-        timePart[0] = '00'
-    elif ((timePart[0] != "12") and (dtSplit[2] == 'PM')):
-        timePart[0] = int(timePart[0]) + 12
+    if (len(dtSplit) == 3):    # Using 12-hour time notation. Need to convert to 24-hour notation
+        if ((timePart[0] == "12") and (dtSplit[2] == 'AM')):
+            timePart[0] = '00'
+        elif ((timePart[0] != "12") and (dtSplit[2] == 'PM')):
+            timePart[0] = int(timePart[0]) + 12
 
     endTime = "{:02d}:{:02d}:{:02d}".format(int(timePart[0]),int(timePart[1]),int(timePart[2]))
 
