@@ -840,7 +840,7 @@ if __name__ == "__main__":
     needToExit=False   # Will be true if rc file or db file needs changing
     # Initialize RC file
     if rc_initialize(options['rcpath']): #RC file changed or initialized. Can't continue without manual configuration
-        write_log_message(1, 'RC file {} initialized or changed. Please configure file before running program again.'.format(options['rcpath']))
+        write_log_entry(1, 'RC file {} initialized or changed. Please configure file before running program again.'.format(options['rcpath']))
         needToExit=True  #Can't continue if RC gets initialized - need to editparameters
 
     # Get additional options from config file
