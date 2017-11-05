@@ -1,6 +1,7 @@
 2.0.4
 -----
-Issue #18 - Adjusting time properly when 'AM/PM' is not specified in email
+Issue #18 - Several iterations of fixes for this issue. Should now be able to handle most
+            global date formats. Probably.
 Issue #19 - Added .rc file setting for using euro-style dates. Will need to revisit in V2.1
 
 2.0.3

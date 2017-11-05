@@ -217,12 +217,31 @@ sortorder=source
 
 # Specify the format for dates that appear in the EndTime and BeginTime
 # fields of Duplicati report emails.
-# 'us' format is MM/DD/YYYY
-# 'euro' format is DD/MM/YY
-# The default is 'us'. Sorry, rest of the world.
+# Acceptable formats are:
+#    MM/DD/YYYY
+#    DD/MM/YYYY
+#    MM-DD-YYYY
+#    DD-MM-YYYY
+#    MM.DD.YYYY
+#    DD.MM.YYYY
+#    YYYY/MM/DD
+#    YYYY/DD/MM
+#    YYYY-MM-DD
+#    YYYY-DD-MM
+#    YYYY.MM.DD
+#    YYYY.DD.MM
+# The default is 'MM/DD/YY'.
 # If there some funkiness in your report dates (especially of your locale doesn't
-# use U.S.-style dates), you might try changing this value
-dateformat=us
+# use U.S.-style dates), or if you are getting program crashes around the date/time
+routines, you might try changing this value
+dateformat=MM/DD/YY
+
+# Specify the format for times that appear in the EndTime and BeginTime
+# fields of Duplicati report emails.
+# Acceptable formats are:
+#    HH:MM:SS
+# The default is 'HH:MM:SS'.
+timeformat=HH:MM:SS
 
 # [incoming] section contains parameters for 
 # incoming (downloaded) email. 
