@@ -25,7 +25,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # Define version info
-version=[2,0,3]     # Program Version
+version=[2,0,4]     # Program Version
 dbversion=[1,0,0]   # Required DB version
 copyright='2017'
 
@@ -125,6 +125,7 @@ def rc_initialize(fname):
         ('main','dispwarnings','true', True),
         ('main','dispmessages','false', True),
         ('main','sortorder','source', True),
+        ('main','dateformat', 'us', True),
         ('incoming','transport','imap', False),
         ('incoming','server','localhost', False),
         ('incoming','port','993', False),
@@ -219,6 +220,7 @@ def parse_config_file(rcPath, args):
         options['disperrors'] = rcConfig.getboolean('main','disperrors')
         options['dispmessages'] = rcConfig.getboolean('main','dispmessages')
         options['sortorder'] = rcConfig.get('main','sortorder')
+        options['dateformat'] = rcConfig.get('main','dateformat')
 
         options['intransport'] = rcConfig.get('incoming','transport')
         options['inserver'] = rcConfig.get('incoming','server')
@@ -359,7 +361,13 @@ def db_search_srcdest_pair(src, dest):
 
 
 def convert_date_time(dtString):
-    # Convert dates & times to normlalized forms. Input=[YYYY/MM/DD HH:MM:SS AM/PM ]
+    # Convert dates & times to normlalized forms. 
+    # Possible input formats:
+    #     'US' format (default): MM/DD/YYYY HH:MM:SS AM/PM
+    #     'Euro' format: DD/MM/YYYY  HH:MM:SS AM/PM
+    # Also: if system is using 24-hour format, AM/PM may not be present
+    # Standard output format: YYYY/MM/DD HH:MM:SS
+
     write_log_entry(1, 'convert_date_time({})'.format(dtString))
     if dtString == '':
         return None
@@ -367,7 +375,10 @@ def convert_date_time(dtString):
     dtSplit = dtString.split(' ')  # Split dtString into [<date>,<time>,<AM/PM>]
 
     datePart = re.split('/', dtSplit[0])
-    endDate = "{:04d}/{:02d}/{:02d}".format(int(datePart[2]),int(datePart[0]),int(datePart[1]))
+    if (options['dateformat'] == 'us'):  # MM/DD/YYYY
+        endDate = "{:04d}/{:02d}/{:02d}".format(int(datePart[2]),int(datePart[0]),int(datePart[1]))
+    else:    # 'euro' format  DD/MM/YYYY
+        endDate = "{:04d}/{:02d}/{:02d}".format(int(datePart[2]),int(datePart[1]),int(datePart[0]))
 
     timePart = re.split(':', dtSplit[1])
 
