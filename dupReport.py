@@ -109,6 +109,7 @@ def rc_initialize(fname):
     # 3 - default value
     # 4 - is the default value acceptable if not already present in .rc file (true/false)?
     rcParts= [
+        ('main','version','{}.{}.{}'.format(version[0],version[1],version[2]), True),
         ('main','dbpath',get_script_path(), True),
         ('main','logpath',get_script_path(), True),
         ('main','verbose','1', True),
