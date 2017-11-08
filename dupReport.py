@@ -299,7 +299,8 @@ def version_info():
     sys.stdout.write('Database Version {}.{}.{}\n'.format(maj, min, subm))
 
     sys.stdout.write('Copyright (c) {} Stephen Fried for HandyGuy Software.\n'.format(copyright))
-    sys.stdout.write('Distributed under MIT License. See LICENSE file for details.\n-----\n')
+    sys.stdout.write('Distributed under MIT License. See LICENSE file for details.\n')
+    sys.stdout.write('Follow dupReport on Twitter @dupreport\n-----\n')
     return
 
 def get_script_path():
