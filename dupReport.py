@@ -783,17 +783,17 @@ def create_summary_report():
             nowTxt = datetime.datetime.now()
             now = str(datetime.datetime.now()).split(' ')[0].split('-')
 
-            # Find the date separation character in the 'then' variable
-            # Use that to parse 'then' into date parts
+            # Find the date separation character in the 'lastDate' variable
+            # Use that to parse 'lastDate' into date parts, assign to 'then'
             # This is a total hack to address problem #21 in v2.0.3
             # Need to totally re-write date/time parsing in v2.1
             dtPat = re.compile('[/\.-]')  # all possible date separators
-            dateMatch = re.search(dtPat,then)
-            dateSep = dt[dateMatch.regs[0][0]:dateMatch.regs[0][1]]
-            write_log_entry(3,'dt=[{}]  start=[{}]  finish=[{}]  char=[{}]'.format(dt,dateMatch.regs[0][0], dateMatch.regs[0][1], dateStr))
+            dateMatch = re.search(dtPat,lastDate)
+            dateSep = lastDate[dateMatch.regs[0][0]:dateMatch.regs[0][1]]
+            write_log_entry(3,'lastDate=[{}]  start=[{}]  finish=[{}]  char=[{}]'.format(lastDate,dateMatch.regs[0][0], dateMatch.regs[0][1], dateSep))
             then = lastDate.split(dateSep)
-            
             write_log_entry(3, 'nowTxt=[{}]  now=[{}]  then=[{}]'.format(nowTxt, now, then))
+
             d0 = datetime.date(int(then[0]),int(then[1]), int(then[2]))
             d1 = datetime.date(int(now[0]),int(now[1]), int(now[2]))
             write_log_entry(3, 'd0=[{}]  d1=[{}]'.format(d0, d1))
