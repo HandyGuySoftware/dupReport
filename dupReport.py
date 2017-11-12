@@ -26,6 +26,7 @@ from email.mime.text import MIMEText
 
 # Define version info
 version=[2,0,4]     # Program Version
+status='Release 1'
 dbversion=[1,0,0]   # Required DB version
 copyright='2017'
 
@@ -293,10 +294,9 @@ def parse_config_file(rcPath, args):
 
 def version_info():
     sys.stdout.write('\n-----\ndupReport: A summary email report generator for Duplicati.\n')
-    sys.stdout.write('Program Version {}.{}.{}\n'.format(version[0], version[1], version[2]))
+    sys.stdout.write('Program Version {}.{}.{} {}\n'.format(version[0], version[1], version[2], status))
     
-    maj, min, subm, res = curr_db_version()
-    sys.stdout.write('Database Version {}.{}.{}\n'.format(maj, min, subm))
+    sys.stdout.write('Database Version {}.{}.{}\n'.format(dbversion[0], dbversion[1], dbversion[2]))
 
     sys.stdout.write('Copyright (c) {} Stephen Fried for HandyGuy Software.\n'.format(copyright))
     sys.stdout.write('Distributed under MIT License. See LICENSE file for details.\n')
