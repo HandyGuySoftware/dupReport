@@ -25,7 +25,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # Define version info
-version=[2,0,3]     # Program Version
+version=[2,0,4]     # Program Version
+status='Release 1'
 dbversion=[1,0,0]   # Required DB version
 copyright='2017'
 
@@ -109,6 +110,7 @@ def rc_initialize(fname):
     # 3 - default value
     # 4 - is the default value acceptable if not already present in .rc file (true/false)?
     rcParts= [
+        ('main','version','{}.{}.{}'.format(version[0],version[1],version[2]), True),
         ('main','dbpath',get_script_path(), True),
         ('main','logpath',get_script_path(), True),
         ('main','verbose','1', True),
@@ -125,6 +127,8 @@ def rc_initialize(fname):
         ('main','dispwarnings','true', True),
         ('main','dispmessages','false', True),
         ('main','sortorder','source', True),
+        ('main','dateformat', 'MM/DD/YYYY', False),
+        ('main','timeformat','HH:MM:SS', False),
         ('incoming','transport','imap', False),
         ('incoming','server','localhost', False),
         ('incoming','port','993', False),
@@ -219,6 +223,16 @@ def parse_config_file(rcPath, args):
         options['disperrors'] = rcConfig.getboolean('main','disperrors')
         options['dispmessages'] = rcConfig.getboolean('main','dispmessages')
         options['sortorder'] = rcConfig.get('main','sortorder')
+        
+        # Make sure we have the proper time/date formats
+        options['dateformat'] = rcConfig.get('main','dateformat')
+        if date_format_index(options['dateformat']) < 0:
+            sys.stderr.write('RC file error: Invalid date format [{}]\n'.format(options['dateformat']))
+            sys.exit(1) # Abort program. Can't continue with invalid format specerror
+        options['timeformat'] = rcConfig.get('main','timeformat')
+        if time_format_index(options['timeformat']) < 0:
+            sys.stderr.write('RC file error: Invalid time format [{}]\n'.format(options['timeformat']))
+            sys.exit(1) # Abort program. Can't continue with invalid format specerror
 
         options['intransport'] = rcConfig.get('incoming','transport')
         options['inserver'] = rcConfig.get('incoming','server')
@@ -280,13 +294,13 @@ def parse_config_file(rcPath, args):
 
 def version_info():
     sys.stdout.write('\n-----\ndupReport: A summary email report generator for Duplicati.\n')
-    sys.stdout.write('Program Version {}.{}.{}\n'.format(version[0], version[1], version[2]))
+    sys.stdout.write('Program Version {}.{}.{} {}\n'.format(version[0], version[1], version[2], status))
     
-    maj, min, subm, res = curr_db_version()
-    sys.stdout.write('Database Version {}.{}.{}\n'.format(maj, min, subm))
+    sys.stdout.write('Database Version {}.{}.{}\n'.format(dbversion[0], dbversion[1], dbversion[2]))
 
     sys.stdout.write('Copyright (c) {} Stephen Fried for HandyGuy Software.\n'.format(copyright))
-    sys.stdout.write('Distributed under MIT License. See LICENSE file for details.\n-----\n')
+    sys.stdout.write('Distributed under MIT License. See LICENSE file for details.\n')
+    sys.stdout.write('Follow dupReport on Twitter @dupreport\n-----\n')
     return
 
 def get_script_path():
@@ -358,28 +372,103 @@ def db_search_srcdest_pair(src, dest):
     return False
 
 
-def convert_date_time(dtString):
+# dateFmtDefs - definitions for date field formats
+# 0 - format string
+# 1 - separator character
+# 2, 3, 4 - Positions in format string for year, month, day
+# 5 - regex for date string
+dateFmtDefs=[
+    ('MM/DD/YYYY', '/', 2,0,1,'(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    ('DD/MM/YYYY', '/', 2,1,0,'(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    ('MM-DD-YYYY', '-', 2,0,1,'(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    ('DD-MM-YYYY', '-', 2,1,0,'(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    ('MM.DD.YYYY', '.', 2,0,1,'(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    ('DD.MM.YYYY', '.', 2,1,0,'(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    ('YYYY-MM-DD', '-', 0,1,2,'(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    ('YYYY-DD-MM', '-', 0,2,1,'(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    ('YYYY/MM/DD', '/', 0,1,2,'(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    ('YYYY/DD/MM', '/', 0,2,1,'(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    ('YYYY.MM.DD','.',  0,1,2,'(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    ('YYYY.DD.MM','.',  0,2,1,'(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    ]
+
+# timeFmtDefs - definitions for time field formats
+# 0 - format string
+# 1 - separator character
+# 2, 3, 4 - Position in format string for hour, minute, seconds
+# 5 - regex for time string
+timeFmtDefs=[
+    ('HH:MM:SS', ':', 0, 1, 2, '(\d)+[:](\d+)[:](\d+)'),
+    ]
+
+def date_format_index(fmtString):
+    for i in range(len(dateFmtDefs)):
+        if dateFmtDefs[i][0] == fmtString:
+            return i
+    return -1
+
+def time_format_index(fmtString):
+    for i in range(len(timeFmtDefs)):
+        if timeFmtDefs[i][0] == fmtString:
+            return i
+    return -1
+
+def convert_date_time(dtString, dfmt, tfmt):
     # Convert dates & times to normlalized forms. Input=[YYYY/MM/DD HH:MM:SS AM/PM ]
-    write_log_entry(1, 'convert_date_time({})'.format(dtString))
+    write_log_entry(1, 'convert_date_time({})  dfmt=[{}]  tfmt=[{}]'.format(dtString, dfmt, tfmt))
+
+    # This shouldn't happen. But, hey, you never know...
     if dtString == '':
-        return None
+        return '', ''
 
-    dtSplit = dtString.split(' ')  # Split dtString into [<date>,<time>,<AM/PM>]
+    #Find proper date spec
+    defRow = date_format_index(dfmt)
+    if defRow < 0:
+        endDate = ''  # This shouldn't happen. Invalid date specification
+    else:
+        # Get column positions
+        yrCol = dateFmtDefs[defRow][2] # Which field holds the year?
+        moCol = dateFmtDefs[defRow][3] # Which field holds the month?
+        dyCol = dateFmtDefs[defRow][4] # Which field holds the day?
 
-    datePart = re.split('/', dtSplit[0])
-    endDate = "{:04d}/{:02d}/{:02d}".format(int(datePart[2]),int(datePart[0]),int(datePart[1]))
+        # Extract the date
+        dtPat = re.compile(dateFmtDefs[defRow][5])
+        dateMatch = re.match(dtPat,dtString)
+        if dateMatch is not None:
+            dateStr = dtString[dateMatch.regs[0][0]:dateMatch.regs[0][1]]
+        datePart = re.split(re.escape(dateFmtDefs[defRow][1]), dateStr)
+        endDate = "{:04d}/{:02d}/{:02d}".format(int(datePart[yrCol]),int(datePart[moCol]),int(datePart[dyCol]))
+        
+    defRow = time_format_index(tfmt)
+    if defRow < 0:
+        endtime = ''  # This shouldn't happen. Invalid time specification
+    else:
+        # Get column positions
+        hrCol = timeFmtDefs[defRow][2] # Which field holds the Hour?
+        mnCol = timeFmtDefs[defRow][3] # Which field holds the minute?
+        seCol = timeFmtDefs[defRow][4] # Which field holds the seconds?
+ 
+        # Extract the time
+        tmPat = re.compile(timeFmtDefs[defRow][5])
+        timeMatch = re.search(tmPat,dtString)
+        if timeMatch is not None:
+            timeStr = dtString[timeMatch.regs[0][0]:timeMatch.regs[0][1]]
+        timePart = re.split(re.escape(timeFmtDefs[defRow][1]), timeStr)
 
-    timePart = re.split(':', dtSplit[1])
+        # See if we need AM/PM adjustment
+        pmPat = re.compile('AM|PM')
+        pmMatch = re.search(pmPat,dtString)
+        if pmMatch is not None:
+            hr = timePart[hrCol]
+            dayPart = dtString[pmMatch.regs[0][0]:pmMatch.regs[0][1]]
+            if ((hr == "12") and (dayPart == 'AM')):
+                timePart[hrCol] = '00'
+            elif ((hr != "12") and (dayPart == 'PM')):
+                timePart[hrCol] = int(timePart[hrCol]) + 12
 
-    if (len(dtSplit) == 3):    # Using 12-hour time notation. Need to convert to 24-hour notation
-        if ((timePart[0] == "12") and (dtSplit[2] == 'AM')):
-            timePart[0] = '00'
-        elif ((timePart[0] != "12") and (dtSplit[2] == 'PM')):
-            timePart[0] = int(timePart[0]) + 12
+        endTime = "{:02d}:{:02d}:{:02d}".format(int(timePart[hrCol]),int(timePart[mnCol]),int(timePart[seCol]))
 
-    endTime = "{:02d}:{:02d}:{:02d}".format(int(timePart[0]),int(timePart[1]),int(timePart[2]))
-
-    write_log_entry(2, 'Converted: date=[{}] time=[{}]\n'.format(endDate, endTime))
+    write_log_entry(2, 'Converted: dtString=[{}] date=[{}] time=[{}]\n'.format(dtString, endDate, endTime))
 
     return (endDate, endTime)
 
@@ -539,11 +628,11 @@ def process_message(mess):
     write_log_entry(3, "statusParts['failed']=[{}]".format(statusParts['failed']))
     if statusParts['failed'] == '':  # Looks like a good run
         # Convert dates & times to normlalized forms - YYYY/MM/DD  HH:MM:SS
-        dateParts['endSaveDate'] = convert_date_time(statusParts['endTimeStr'])[0]
-        dateParts['endSaveTime'] = convert_date_time(statusParts['endTimeStr'])[1]
+        dateParts['endSaveDate'] = convert_date_time(statusParts['endTimeStr'], options['dateformat'], options['timeformat'])[0]
+        dateParts['endSaveTime'] = convert_date_time(statusParts['endTimeStr'], options['dateformat'], options['timeformat'])[1]
 
-        dateParts['beginSaveDate'] = convert_date_time(statusParts['beginTimeStr'])[0]
-        dateParts['beginSaveTime'] = convert_date_time(statusParts['beginTimeStr'])[1]
+        dateParts['beginSaveDate'] = convert_date_time(statusParts['beginTimeStr'], options['dateformat'], options['timeformat'])[0]
+        dateParts['beginSaveTime'] = convert_date_time(statusParts['beginTimeStr'], options['dateformat'], options['timeformat'])[1]
     else:  # Something went wrong. Let's gather the details.
         statusParts['errors'] = statusParts['failed']
         statusParts['parsedResult'] = 'Failure'
@@ -693,8 +782,18 @@ def create_summary_report():
             # Calculate days since last activity
             nowTxt = datetime.datetime.now()
             now = str(datetime.datetime.now()).split(' ')[0].split('-')
-            then = lastDate.split('/')
+
+            # Find the date separation character in the 'lastDate' variable
+            # Use that to parse 'lastDate' into date parts, assign to 'then'
+            # This is a total hack to address problem #21 in v2.0.3
+            # Need to totally re-write date/time parsing in v2.1
+            dtPat = re.compile('[/\.-]')  # all possible date separators
+            dateMatch = re.search(dtPat,lastDate)
+            dateSep = lastDate[dateMatch.regs[0][0]:dateMatch.regs[0][1]]
+            write_log_entry(3,'lastDate=[{}]  start=[{}]  finish=[{}]  char=[{}]'.format(lastDate,dateMatch.regs[0][0], dateMatch.regs[0][1], dateSep))
+            then = lastDate.split(dateSep)
             write_log_entry(3, 'nowTxt=[{}]  now=[{}]  then=[{}]'.format(nowTxt, now, then))
+
             d0 = datetime.date(int(then[0]),int(then[1]), int(then[2]))
             d1 = datetime.date(int(now[0]),int(now[1]), int(now[2]))
             write_log_entry(3, 'd0=[{}]  d1=[{}]'.format(d0, d1))
@@ -840,7 +939,7 @@ if __name__ == "__main__":
     needToExit=False   # Will be true if rc file or db file needs changing
     # Initialize RC file
     if rc_initialize(options['rcpath']): #RC file changed or initialized. Can't continue without manual configuration
-        write_log_entry(1, 'RC file {} initialized or changed. Please configure file before running program again.'.format(options['rcpath']))
+        write_log_entry(1, 'RC file {} initialized or changed and requires configuration.\nPlease edit RC file configuraton before running program again.'.format(options['rcpath']))
         needToExit=True  #Can't continue if RC gets initialized - need to editparameters
 
     # Get additional options from config file

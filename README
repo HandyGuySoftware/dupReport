@@ -3,15 +3,17 @@ WELCOME TO dupReport!!!
 dupReport is an email-based reporting system for Duplicati. It will gather all your Duplicati backup
 status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
 
-The GitHub "master" branch contains the latest production (stable...mostly) code. 
-Current release version is 2.0.3. See the "changelog" file for release history and feature/bug fixes.
+Current Release Version: 2.0.4
 
-The GitHub "beta" branch contains the latest test code, development features, and other 
-probably-unstable code. Swim here at your own risk, and only if you're looking for something specific.
-dupReport 2.1 is currently in development.
+The GitHub "master" branch contains the latest production (stable...mostly) code.  See the "changelog" file 
+for release history and feature/bug fixes.
 
-Other branches will be posted as needed to test bug fixes or address specific issues.
-
+Other GitHub branches may contains the latest test code, development features, and other 
+probably-unstable code. Swim here at your own risk. Void where prohibited. Batteries not included. 
+Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. 
+Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. Unless you're
+looking for some adventure (or you've been asked specifically to test something in there), best stay away
+from that area. 
 
 Bug reports and feature requests can be made on GitHub in the "Issues" section.
 
@@ -20,7 +22,6 @@ The discussion group for dupReport is on the Duplicati Forum. (forum.duplicati.c
 The program is released under an MIT license. Please see the LICENSE file for details.
 
 Enjoy!
-
 
 
 Background
@@ -209,6 +210,34 @@ dispmessages=false
 
 # Sort email report by source or by destination.
 sortorder=source
+
+# Specify the format for dates that appear in the EndTime and BeginTime
+# fields of Duplicati report emails.
+# Acceptable formats are:
+#    MM/DD/YYYY
+#    DD/MM/YYYY
+#    MM-DD-YYYY
+#    DD-MM-YYYY
+#    MM.DD.YYYY
+#    DD.MM.YYYY
+#    YYYY/MM/DD
+#    YYYY/DD/MM
+#    YYYY-MM-DD
+#    YYYY-DD-MM
+#    YYYY.MM.DD
+#    YYYY.DD.MM
+# The default is 'MM/DD/YY'.
+# If there some funkiness in your report dates (especially of your locale doesn't
+# use U.S.-style dates), or if you are getting program crashes around the date/time
+routines, you might try changing this value
+dateformat=MM/DD/YY
+
+# Specify the format for times that appear in the EndTime and BeginTime
+# fields of Duplicati report emails.
+# Acceptable formats are:
+#    HH:MM:SS
+# The default is 'HH:MM:SS'.
+timeformat=HH:MM:SS
 
 # [incoming] section contains parameters for 
 # incoming (downloaded) email. 

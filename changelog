@@ -1,3 +1,8 @@
+2.0.4
+-----
+Issue #18, #19, #21 - Several iterations of fixes for these issues. Should now be able to handle most
+            global date formats. Probably.
+
 2.0.3
 -----
 Issue #1 - Initialization with -i option will now always stop program after initialization. 
