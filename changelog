@@ -1,3 +1,19 @@
+2.1.0
+-----
+Large-scale rewrite of code:
+	- Migrated to a python class-based structure and split code into multiple modules. Will make the
+      code much easier to maintain going forward.
+	- Changed from comparing date/time strings to using timestamps. Makes date comparisons and
+	  time tracking much simpler.
+	- Simpler date/time format matching. Should eliminate (all?) local date/time format issues from 2.0.x series.
+	- New 'grouped' report format. Report on backup activiy grouped by source, destination, or execution date
+
+Changed bahavior of -i option (again!). After initialization, if program can continue, it will. Also eliminated 
+            undocumented -I option.
+
+Added dupconvert.py program to convert database and .rc file structures to new format.
+
+
 2.0.4
 -----
 Issue #18, #19, #21 - Several iterations of fixes for these issues. Should now be able to handle most
