@@ -16,9 +16,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
 import re
-import configparser
-from configparser import SafeConfigParser 
 import sys
+import os
 
 # Import dupReport modules
 import globs
@@ -27,28 +26,27 @@ import drdatetime
 
 # fldDefs = Dictionary of field definitions
 fldDefs = {
-    # field                 [0]Title                [1]dbField             [2]alignment[3]gig/meg? [4hdrDef]   [5]normDef   [6]megaDef  [7]gigaDef
+    # field                 [0]Title                [1]dbField             [2]alignment[3]gig/meg? [4]hdrDef   [5]normDef   [6]megaDef  [7]gigaDef
     'source':               ('Source',              'source',              'left',     False,      '20',       '20'),
     'destination':          ('Destination',         'destination',         'left',     False,      '20',       '20'),
     'date':                 ('Date',                'dateStr',             'left',     False,      '13',       '13'),
     'time':                 ('Time',                'timeStr',             'left',     False,      '11',       '11'),
     'files':                ('Files',               'examinedFiles',       'right',    False,      '>12',      '>12,'),
     'filesplusminus':       ('+/-',                 'examinedFilesDelta',  'right',    False,      '>12',      '>+12,'),
-    'size':                 ('Size',                'sizeOfExaminedFiles', 'right',    True,       '>12',      '>20,',      '>15,.2f', '>12,.2f'),
-    'sizeplusminus':        ('+/-',                 'fileSizeDelta',       'right',    True,       '>12',      '>+20,',      '>+15,.2f', '>+12,.2f'),
+    'size':                 ('Size',                'sizeOfExaminedFiles', 'right',    True,       '>20',      '>20,',      '>20,.2f', '>20,.2f'),
+    'sizeplusminus':        ('+/-',                 'fileSizeDelta',       'right',    True,       '>20',      '>+20,',     '>+20,.2f', '>+20,.2f'),
     'added':                ('Added',               'addedFiles',          'right',    False,      '>12',      '>12,'),
     'deleted':              ('Deleted',             'deletedFiles',        'right',    False,      '>12',      '>12,'),
     'modified':             ('Modified',            'modifiedFiles',       'right',    False,      '>12',      '>12,'),
     'errors':               ('Errors',              'filesWithError',      'right',    False,      '>12',      '>12,'),
-    'result':               ('Result',              'parsedResult',        'left',     False,      '<13',      '<13'),
+    'result':               ('Result',              'parsedResult',        'left',     False,      '>13',      '>13'),
     'jobmessages':          ('JobMessages',         'messages',            'center',   False,      '^50',      '^50'),
     'jobwarnings':          ('JobWarnings',         'warnings',            'center',   False,      '^50',      '^50'),
     'joberrors':            ('JobErrors',           'errors',              'center',   False,      '^50',      '^50')
     }
 
 # List of columns in the report
-# This can be modified by emptying the value of the field names in the [headings] section of the .rc file
-rptColumns = ['source', 'destination', 'date', 'time', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result']
+rptColumns = []
 
 # Provide a field format specification for the titles in the report
 def printTitle(fld, typ):
@@ -69,7 +67,9 @@ def printTitle(fld, typ):
     if typ == 'html':
         outStr = '<td align=\"{}\">{}{}</td>'.format(fldDefs[fld][2], globs.report.reportTits[fld], displayAddOn)
     elif typ == 'text':
-        outStr = '{:{fmt}}'.format(fldDefs[fld][0], displayAddOn, fmt=fldDefs[fld][4])
+        outStr = '{:{fmt}}'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][4])
+    elif typ == 'csv':
+        outStr = '\"{:{fmt}}\",'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][4])
 
     return outStr
 
@@ -97,15 +97,50 @@ def printField(fld, val, fmt):
         # Create HTML and text versions of the format string
         outHtml = '<td align=\"{}\">{:{fmt}}</td>'.format(fldDefs[fld][2], v, fmt=outFmt)
         outTxt = '{:{fmt}}'.format(v, fmt=outFmt)
+        outCsv = '\"{:{fmt}}\",'.format(v, fmt=outFmt)
     else:
         # Create HTML and text versions of the format string
         outHtml = '<td align=\"{}\">{}</td>'.format(fldDefs[fld][2], val)
         outTxt = '{:{fmt}}'.format(val, fmt=fldDefs[fld][5])
+        outCsv = '\"{:{fmt}}\",'.format(val, fmt=fldDefs[fld][5])
 
     if fmt == 'html':
         return outHtml
     elif fmt == 'text':
         return outTxt
+    elif fmt == 'csv':
+        return outCsv
+
+
+def sendReportToFile(msgH, msgT, msgC = None):
+
+    # See where the output files are going
+    for fspec in globs.ofileList:
+        fsplit = fspec.split(',')
+        fName = fsplit[0]
+        fmt = fsplit[1]
+
+        if fmt == 'html':
+            outMsg = msgH
+        elif fmt == 'txt':
+            outMsg = msgT
+        elif fmt == 'csv':
+            outMsg = msgC
+
+        if fName == 'stdout':
+            sys.stdout.write(outMsg)
+        elif fName == 'stderr':
+            sys.stderr.write(outMsg)
+        else:
+            try:
+                outfile = open(fName,'w')
+            except (OSError, IOError):
+                sys.stderr.write('Error opening output file: {}\n'.format(fName))
+                return
+            outfile.write(outMsg)
+            outfile.close()
+
+    return
 
 
 class Report:
@@ -115,14 +150,10 @@ class Report:
         
         self.reportOpts = {}    # Dictionary of report options
         self.reportTits = {}    # Dictionary of report titles
+        titTmp = {}
         
-        # Open .rc file
-        rcConfig = SafeConfigParser()
-        rv=rcConfig.read(globs.opts['rcpath'])
-
         # Read name/value pairs from [report] section
-        for name, value in rcConfig.items('report'):
-            self.reportOpts[name] = value
+        self.reportOpts = globs.optionManager.getSection('report')
 
         # Fix some of the data field types
         self.reportOpts['border'] = int(self.reportOpts['border'])    # integer
@@ -133,27 +164,31 @@ class Report:
         self.reportOpts['displayerrors'] = self.reportOpts['displayerrors'].lower() in ('true')         # Convert to boolean
 
         # Basic field value checking
-        if self.reportOpts['style'] not in ('standard', 'grouped'):
+        # See if valid report name
+        rptName = globs.progPath + '/rpt_' + self.reportOpts['style'] + '.py'
+        validReport = os.path.isfile(rptName)
+        if not validReport:
             globs.log.err('Invalid RC file option in [report] section: style cannot be \'{}\''.format(self.reportOpts['style']))
             sys.exit(1)
-        if self.reportOpts['sortorder'] not in ('source', 'destination'):
-            globs.log.err('Invalid RC file option in [report] section: sortorder cannot be \'{}\''.format(self.reportOpts['sortorder']))
-            sys.exit(1)
-        if self.reportOpts['groupby'] not in ('source', 'destination', 'date'):
-            globs.log.err('Invalid RC file option in [report] section: groupby cannot be \'{}\''.format(self.reportOpts['groupby']))
+
+        if self.reportOpts['sortby'] not in ('source', 'destination', 'date', 'time'):
+            globs.log.err('Invalid RC file option in [report] section: sortorder cannot be \'{}\''.format(self.reportOpts['sortby']))
             sys.exit(1)
         if self.reportOpts['sizedisplay'].lower()[:4] not in ('byte', 'mega', 'giga'):
             globs.log.err('Invalid RC file option in [report] section: sizedisplay cannot be \'{}\''.format(self.reportOpts['sizedisplay']))
             sys.exit(1)
 
-        # Read name/value pairs from [headings] section
-        for name, value in rcConfig.items('headings'):
-           if value != '':
-              self.reportTits[name] = value
-           else: 
-               # Column was eliminated from .rc file by emptying the 'value' portion of the name/value pair
-               # We need to remove it from the rptColumns list so we don't go looking for it later
-               rptColumns.remove(name)
+        titTmp = globs.optionManager.getSection('headings')
+        if titTmp is not None:
+            for name in titTmp:
+                if titTmp[name] != '':
+                    self.reportTits[name] = titTmp[name]
+                    rptColumns.append(name)
+
+        # Remove these columns from the column list. We deal with these separately in the reports
+        rptColumns.remove('jobmessages')
+        rptColumns.remove('jobwarnings')
+        rptColumns.remove('joberrors')
 
         globs.log.write(3, 'Report: reportOps=[{}]'.format(self.reportOpts))
         globs.log.write(3, 'Report: reportTits=[{}]'.format(self.reportTits))
@@ -170,12 +205,12 @@ class Report:
         dbCursor = globs.db.execSqlStmt("DELETE FROM report")
 
         # Select source/destination pairs from database
-        sqlStmt = "SELECT source, destination, lastTime, lastFileCount, lastFileSize from backupsets"
+        sqlStmt = "SELECT source, destination, lastTime, lastFileCount, lastFileSize FROM backupsets ORDER BY source, destination"
         # How should report be sorted?
-        if self.reportOpts['sortorder'] == 'source':
-            sqlStmt = sqlStmt + " order by source, destination"
-        else:
-            sqlStmt = sqlStmt + " order by destination, source"
+        #if self.reportOpts['sortby'] == 'source':
+        #    sqlStmt = sqlStmt + ""
+        #else:
+        #    sqlStmt = sqlStmt + " order by destination, source"
 
         # Loop through backupsets table and then get latest activity for each src/dest pair
         dbCursor = globs.db.execSqlStmt(sqlStmt)

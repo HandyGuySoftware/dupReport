@@ -1,4 +1,6 @@
-#####
+#!/usr/bin/env python3
+
+######
 #
 # Program name: dupReport.py
 # Purpose:      Print summary reports from Duplicati backup service
@@ -10,17 +12,20 @@
 # Import system modules
 import time
 import sys
+import os
 
 # Import dupReport modules
 import globs
-import startup
 import db
 import log
 import report
+import options
+import dremail
 
 # test imports
-import drdatetime
+#import drdatetime
 
+# Print program verersion info
 def versionInfo():
     globs.log.out('\n-----\ndupReport: A summary email report generator for Duplicati.')
     globs.log.out('Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
@@ -30,25 +35,108 @@ def versionInfo():
     globs.log.out('\nFollow dupReport on Twitter @dupreport\n-----\n')
     return None
 
+def closeEverything():
+    globs.log.write(1,'Closing everything...')
+
+    
+    globs.inServer.close()
+    globs.outServer.close()
+    globs.db.dbClose()
+    globs.log.closeLog()
+
+    sys.exit(0)
+
+# Initialize options in the program
+# Return True if program can continue
+# Return False if enough changed in the .rc file that program needs to stop
+def initOptions():
+    globs.log.write(1, 'Startup.initOptions()')
+
+    # Set program path
+    globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
+
+    # Create OptionManager instance
+    oMgr = options.OptionManager()
+    # Parse command line options
+    oMgr.processCmdLineArgs()
+    # Prepare the .rc file for processing
+    oMgr.openRcFile(oMgr.options['rcfilename'])   
+    
+    # Check if .rc file needs upgrading
+    if oMgr.checkRcFileVersion() is False:
+        globs.log.err('RC file {} is out of date. Need to run dupUpgrade.py program to update config files.'.format(rc))
+        return False
+    
+    # Check .rc file structure to see if all proper fields are there
+    if oMgr.setRcDefaults() is True:
+        globs.log.err('RC file {} has changed. Plese edit file with proper configuration, then re-run program'.format(rc))
+        return False
+
+    # RC file is structurally correct. Now need to parse rc options for global use. 
+    if oMgr.readRcOptions() is True:
+        return False
+
+    # Set global variables for OptionManager and program options
+    # A bit "un-pure', but makes programming much easier
+    globs.optionManager = oMgr
+    globs.opts = oMgr.options
+
+    # If outpur files are specified on the command line (-f or -F), make sure their specification is correct
+    if validateOutputFiles() is False:
+        return False
+
+    # Check if the DB exists or needs initializin
+    # Either db file does not yet exist or forced db initialization
+    globs.db = db.Database(globs.opts['dbpath'])
+    if globs.opts['initdb'] is True:
+        globs.log.write(1, 'Database {} needs initializing.'.format(globs.opts['dbpath']))
+        globs.db.dbInitialize()
+        globs.log.write(1, 'Database {} initialized. Continue processing.'.format(globs.opts['dbpath']))
+    else:   # Check for DB version
+        if globs.db.checkDbVersion() is False:
+            globs.db.dbClose()
+            return False
+    globs.db.dbClose() # Done with DB for now. We'll reopen it properly later.
+
+    globs.log.write(1, 'Program initialization complete. Continuing program.')
+
+    return True
+
+def validateOutputFiles():
+    canContinue = True
+
+    # See where the output files are going
+    if globs.ofileList:    # Potential output files specified
+        for fspec in globs.ofileList:
+            fsplit = fspec.split(',')
+            if len(fsplit) != 2:
+                globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
+                canContinue = False
+            elif fsplit[1] not in ('html','txt', 'csv'):
+                globs.log.err('Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.'.format(fsplit[0], fsplit[1]))
+                canContinue = False
+
+    return canContinue
+
 
 if __name__ == "__main__":
-    globs.log.suppress()
+    globs.log = log.LogHandler()
+    
+    #globs.log.suppress()
 
     # Start Program Timer
     startTime = time.time()
 
-    prog = startup.Startup()
-    needToExit = prog.initOptions()
-
-    if needToExit is True:
-        sys.exit(1)
+    canContinue = initOptions() # Initialize program options
+    if not canContinue:
+        closeEverything()
 
     globs.log.unSuppress()
 
     # Looking for version info on command line? (-V)
     if globs.opts['version']:   # Print version info & exit
         versionInfo()
-        sys.exit(0)
+        closeEverything()
 
     # Open log file
     globs.log.openLog(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose'])
@@ -59,60 +147,65 @@ if __name__ == "__main__":
     # Write startup information to log file
     globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
     globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose']))
-    globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.opts['dbpath'], globs.opts['rcpath']))
+    globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.opts['dbpath'], globs.opts['rcfilename']))
 
+    # Roll back the database to a specific date?
+    if globs.opts['rollback']:
+        globs.db.rollback(globs.opts['rollback'])
+
+
+    # Open email servers
+    globs.inServer = dremail.EmailServer()
     retVal = globs.inServer.connect(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], globs.opts['inpassword'], globs.opts['inencryption'])
     retVal = globs.inServer.setFolder(globs.opts['infolder'])
-   
+
+    globs.outServer = dremail.EmailServer()
+    retVal = globs.outServer.connect('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], globs.opts['outpassword'], globs.opts['outencryption'])
+
+    # Either we're just collecting or not just reporting
     if (globs.opts['collect'] or not globs.opts['report']):
+   
+        # Get new messages on server
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
             nxtMsg = globs.inServer.getNextMessage()
             while nxtMsg is not None:
-                #print('nxtMsg=[{}]'.format(nxtMsg))
                 globs.inServer.processMessage(nxtMsg)
                 nxtMsg = globs.inServer.getNextMessage()
-        globs.inServer.close()
 
-
+    # Either we're just reporting or not just collecting
     if (globs.opts['report'] or not globs.opts['collect']):
         # All email has been collected. Create the report
+        globs.report = report.Report()
         globs.report.extractReportData()
 
         # Select report module based on config parameters
-        if globs.report.reportOpts['style'] == 'standard':
-            import report1 as rpt
-        elif globs.report.reportOpts['style'] == 'grouped':
-            if globs.report.reportOpts['groupby'] == 'destination':
-                import report2 as rpt
-            elif globs.report.reportOpts['groupby'] == 'source':
-                import report3 as rpt
-            elif globs.report.reportOpts['groupby'] == 'date':
-                import report4 as rpt
-            else:
-                globs.log.err('Invalid grouping specification for style \"{}\": {}. Please check .rc file for correct configuration.'.format(globs.opts['style'], globs.opts['groupby']))
-
+        if globs.report.reportOpts['style'] == 'srcdest':
+            import rpt_srcdest as rpt
+        elif globs.report.reportOpts['style'] == 'bydest':
+            import rpt_bydest as rpt
+        elif globs.report.reportOpts['style'] == 'bysource':
+            import rpt_bysource as rpt
+        elif globs.report.reportOpts['style'] == 'bydate':
+            import rpt_bydate as rpt
         else:
-            globs.log.err('Invalid report specification: Style:{}  Grouped By: {}. Please check .rc file for correct configuration.'.format(globs.opts['style'], globs.opts['groupby']))
+            globs.log.err('Invalid report specification: Style:{}  Please check .rc file for correct configuration.'.format(globs.report.reportOpts['style']))
 
-        msgHtml, msgText = rpt.runReport(startTime)
+        # Run selected report
+        msgHtml, msgText, msgCsv = rpt.runReport(startTime)
     
-    # Send the report through email
-    retVal = globs.outServer.connect('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], globs.opts['outpassword'], globs.opts['outencryption'])
+        globs.log.write(1,msgText)
 
-    # Send email to SMTP server
-    globs.outServer.sendEmail(msgHtml, msgText)
-    globs.outServer.close()
-
-    globs.log.write(1,msgText)
-
-    globs.db.dbCommit()    # Commit any remaining database transactions
-    globs.db.dbClose()     # Close database
+    # Do we need to send output to file(s)?
+    if globs.opts['file'] or globs.opts['filex']:
+        report.sendReportToFile(msgHtml, msgText, msgCsv)
+   
+    # Are we forbidden from sending report to email?
+    if not globs.opts['filex']: 
+        # Send email to SMTP server
+        globs.outServer.sendEmail(msgHtml, msgText)
 
     globs.log.write(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
 
-    # Close log file
-    globs.log.closeLog()    
-
     # Bye, bye, bye, BYE, BYE!
-    sys.exit(0)
+    closeEverything()

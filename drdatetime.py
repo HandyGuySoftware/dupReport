@@ -48,9 +48,9 @@ dtFmtDefs={
 # dfmt is date format - defaults to user-defined date format in .rc file
 # tfmt is time format - - defaults to user-defined time format in .rc file
 # utcOffset is UTC offset info as extracted from the incoming email message.
-# NOTE: The program doesn't do anything with the utcOffset info right now. But we probably should at some point.
+# NOTE: The program doesn't do anything with the utcOffset info right now. It probably should at some point. ;-)
 def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
-    globs.log.write(1,'toTimestamp({}, {}, {}, {})'.format(dtStr, dfmt, tfmt, utcOffset))
+    globs.log.write(1,'drDateTime.toTimestamp({}, {}, {}, {})'.format(dtStr, dfmt, tfmt, utcOffset))
 
     # Set default formats
     if (dfmt is None):
@@ -69,6 +69,8 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     dateMatch = re.match(dtPat,dtStr)        # Match regex against date/time
     if dateMatch:
         dateStr = dtStr[dateMatch.regs[0][0]:dateMatch.regs[0][1]]   # Extract the date string
+    else:
+        return None
     datePart = re.split(re.escape(dtFmtDefs[dfmt][0]), dateStr)     # Split date string based on the delimeter
     year = int(datePart[yrCol])
     month = int(datePart[moCol])
@@ -84,6 +86,8 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     timeMatch = re.search(tmPat,dtStr)
     if timeMatch:
         timeStr = dtStr[timeMatch.regs[0][0]:timeMatch.regs[0][1]]
+    else:
+        return None
     timePart = re.split(re.escape(dtFmtDefs[tfmt][0]), timeStr)
     hour = int(timePart[hrCol])
     minute = int(timePart[mnCol])
@@ -100,9 +104,11 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
             hour += 12
 
     # Convert to datetime object, then get timestamp
-    # THIS Is where the utcOffset should be applied (added or subtracted from ts)
-    # Need to work on this
     ts = datetime.datetime(year, month, day, hour, minute, second).timestamp()
+
+    # Apply email's UTC offset to date/time
+    if globs.opts['applyutcoffset'] and utcOffset is not None:
+        ts += float(utcOffset)
 
     globs.log.write(1,'Date/Time converted to [{}]'.format(ts))
 

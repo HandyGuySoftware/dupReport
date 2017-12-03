@@ -13,6 +13,7 @@ import sys
 
 # Import dupReport modules
 import globs
+import drdatetime
 
 class Database:
     dbConn = None
@@ -37,6 +38,19 @@ class Database:
             self.dbConn.close()
         self.dbConn = None
         return None
+
+    # Return True if version is OK, false if out of date.
+    def checkDbVersion(self):
+        globs.log.write(1, 'Database.currentVersion()')
+        dbCursor = self.execSqlStmt('SELECT major, minor, subminor FROM version WHERE desc = \'database\'')
+        maj, min, subm = dbCursor.fetchone()
+
+        currVerNum = (maj * 100) + (min * 10) + subm
+        newVerNum = (globs.dbVersion[0] * 100) + (globs.dbVersion[1] * 10) + globs.dbVersion[2]
+        if currVerNum < newVerNum:
+            globs.log.err('Database file {} is out of date. Need to run dupUpgrade.py program to update database.'.format(globs.opts['dbpath']))
+            return False
+        return True
 
     # Commit pending database transaction
     def dbCommit(self):
@@ -85,7 +99,7 @@ class Database:
 
         # emails table holds information about all emails received
         sqlStmt = "create table emails (messageId varchar(50), sourceComp varchar(50), destComp varchar(50), \
-            emailDate varchar(50), emailTime varchar(50), emailTimestamp real, deletedFiles int, deletedFolders int, modifiedFiles int, \
+            emailTimestamp real, deletedFiles int, deletedFolders int, modifiedFiles int, \
             examinedFiles int, openedFiles int, addedFiles int, sizeOfModifiedFiles int, sizeOfAddedFiles int, sizeOfExaminedFiles int, \
             sizeOfOpenedFiles int, notProcessedFiles int, addedFolders int, tooLargeFiles int, filesWithError int, \
             modifiedFolders int, modifiedSymlinks int, addedSymlinks int, deletedSymlinks int, partialBackup varchar(30), \
@@ -108,19 +122,6 @@ class Database:
         self.dbCommit()
         return None
 
-    # Get current database version in use and see if it matches current requirement
-    # Returns major, minor, and sub-minor version numbers
-    def currentVersion(self):
-        globs.log.write(1, 'Database.currentVersion()')
-        if not self.dbConn:
-            return None
-
-        dbCursor = self.execSqlStmt('SELECT major, minor, subminor FROM version WHERE desc = \'database\'')
-        maj, min, subm = dbCursor.fetchone()
-        globs.log.write(2, 'Current DB version: {}.{}.{}'.format(maj, min, subm))
-        
-        return maj, min, subm
-
     # See if a particular message ID is already in the database
     # Return True (already there) or False (not there)
     def searchForMessage(self, msgID):
@@ -137,7 +138,6 @@ class Database:
     def searchSrcDestPair(self, src, dest):
         globs.log.write(1, 'Database.searchSrcDestPair({}, {})'.format(src, dest))
         sqlStmt = "SELECT source, destination FROM backupsets WHERE source=\'{}\' AND destination=\'{}\'".format(src, dest)
-        globs.log.write(3, '{}'.format(sqlStmt))
         dbCursor = self.execSqlStmt(sqlStmt)
         idExists = dbCursor.fetchone()
         if idExists:
@@ -151,5 +151,52 @@ class Database:
         self.dbCommit()
         globs.log.write(2, "Source/Destination pair [{}/{}] added to database".format(src, dest))
 
+        """
+        # Look for [src-dest] section in .rc file
+        # If not there, add date & time spec
+
+        rcParser = configparser.SafeConfigParser()
+        rcParser.read(globs.opts['rcfilename'])
+
+        section = '{}-{}'.format(src, dest)
+        if not rcParser.has_option(section,'dateformat'):
+            rcParser.add_section(section)
+            rcParser.set(section, 'dateformat', globs.opts['dateformat'])
+            rcParser.set(section, 'timeformat', globs.opts['timeformat'])
+
+            # save updated RC configuration to a file
+            with open(globs.opts['rcfilename'], 'w') as configfile:
+                rcParser.write(configfile)
+
+        """
+        
         return False
 
+    # Roll back database to pecific date/time
+    def rollback(self, datespec):
+
+        globs.log.write(1,'db.rollback({})'.format(datespec))
+
+        newTimeStamp = drdatetime.toTimestamp(datespec)
+        tsCheck = drdatetime.fromTimestamp(newTimeStamp)
+
+        sqlStmt = 'DELETE FROM emails WHERE emailtimestamp > {}'.format(newTimeStamp)
+        dbCursor = self.execSqlStmt(sqlStmt)
+
+        sqlStmt = 'SELECT source, destination FROM backupsets WHERE lastTime > {}'.format(newTimeStamp)
+        dbCursor = self.execSqlStmt(sqlStmt)
+        setRows= dbCursor.fetchall()
+        for source, destination in setRows:
+            # Select largest timestamp from remaining data
+            sqlStmt = 'select max(endTimeStamp), examinedFiles, sizeOfExaminedFiles from emails where sourceComp = \'{}\' and destComp= \'{}\''.format(source, destination)
+            dbCursor = self.execSqlStmt(sqlStmt)
+            emailTimestamp, examinedFiles, sizeOfExaminedFiles = dbCursor.fetchone()
+            globs.log.write(2, print('Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp))))
+
+            # Update backupset table to reflect rolled-back date
+            sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTime={} where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, source, destination)
+            dbCursor = self.execSqlStmt(sqlStmt)
+
+        self.dbCommit()
+        
+        return None

@@ -11,9 +11,6 @@ Large-scale rewrite of code:
 Changed bahavior of -i option (again!). After initialization, if program can continue, it will. Also eliminated 
             undocumented -I option.
 
-Added dupconvert.py program to convert database and .rc file structures to new format.
-
-
 2.0.4
 -----
 Issue #18, #19, #21 - Several iterations of fixes for these issues. Should now be able to handle most

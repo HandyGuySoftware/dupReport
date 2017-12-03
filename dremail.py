@@ -264,11 +264,9 @@ class EmailServer:
             sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
             sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
             sParts['duration'], sParts['messages'], sParts['warnings'], sParts['errors'])
-
                 
         globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
         return sqlStmt
-
 
     # Parse email message for relevant data useful by dupReport
     # Input is string with full message text
@@ -367,8 +365,23 @@ class EmailServer:
         # Adjust fields if not a clean run
         globs.log.write(3, "statusParts['failed']=[{}]".format(statusParts['failed']))
         if statusParts['failed'] == '':  # Looks like a good run
-            dateParts['endTimestamp'] = drdatetime.toTimestamp(statusParts['endTimeStr'], utcOffset=msgParts['timezone'])
-            dateParts['beginTimestamp'] = drdatetime.toTimestamp(statusParts['beginTimeStr'], utcOffset=msgParts['timezone'])
+            # See if there's a timestamp (xxxx.xxxx) already in the EndTime field
+            # If so, use that, else calculate timestamp
+            pat = re.compile('\(.*\)')
+
+            match = re.search(pat, statusParts['endTimeStr'])
+            if match:  # Timestamp found in line
+                dateParts['endTimestamp'] = statusParts['endTimeStr'][match.regs[0][0]+1:match.regs[0][1]-1]
+            else:  # No timestamp found. Calculate timestamp
+                #dt, tm = drdatetime.getDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
+                dt, tm = globs.optionManager.getSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
+                dateParts['endTimestamp'] = drdatetime.toTimestamp(statusParts['endTimeStr'], dfmt=dt, tfmt=tm, utcOffset=msgParts['timezone'])
+
+            match = re.search(pat, statusParts['beginTimeStr'])
+            if match:  # Timestamp found in line
+                dateParts['beginTimestamp'] = statusParts['beginTimeStr'][match.regs[0][0]+1:match.regs[0][1]-1]
+            else:  # No timestamp found. Calculate timestamp
+                dateParts['beginTimestamp'] = drdatetime.toTimestamp(statusParts['beginTimeStr'], utcOffset=msgParts['timezone'])
         else:  # Something went wrong. Let's gather the details.
             statusParts['errors'] = statusParts['failed']
             statusParts['parsedResult'] = 'Failure'
@@ -385,6 +398,19 @@ class EmailServer:
         for part in ['messages', 'warnings', 'errors']:
             if statusParts[part] != '':
                     statusParts[part] = statusParts[part].replace(',','\n')
+
+        # If we're just collecting and get a warning/error, we may need to send an email to the admin
+        if (globs.opts['collect'] is True) and (globs.opts['warnoncollect'] is True) and ((statusParts['warnings'] != '') or (statusParts['errors'] != '')):
+            errMsg = 'Duplicati error(s) on backup job\n'
+            errMsg += 'Message ID {} on {}\n'.format(msgParts['messageId'], msg['date'])
+            errMsg += 'Subject: {}\n\n'.format(msgParts['subject'])
+            if statusParts['warnings'] != '':
+                errMsg += 'Warnings:' + statusParts['warnings'] + '\n\n'
+            if statusParts['errors'] != '':
+                errMsg += 'Errors:' + statusParts['warnings'] + '\n\n'
+
+            globs.outServer.sendErrorEmail(errMsg)
+
 
         globs.log.write(3, 'endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
             
@@ -407,14 +433,38 @@ class EmailServer:
         msg['To'] = globs.opts['outreceiver']
 
         # Record the MIME types of both parts - text/plain and text/html.
-        part1 = MIMEText(msgText, 'plain')
-        part2 = MIMEText(msgHtml, 'html')
-
         # Attach parts into message container.
-        # According to RFC 2046, the last part of a multipart message, in this case
-        # the HTML message, is best and preferred.
-        msg.attach(part1)
-        msg.attach(part2)
+        # According to RFC 2046, the last part of a multipart message
+        # is best and preferred.
+        if msgText is not None:
+            msgPart = MIMEText(msgText, 'plain')
+            msg.attach(msgPart)
+        if msgHtml is not None:
+            msgPart = MIMEText(msgHtml, 'html')
+            msg.attach(msgPart)
 
         # Send the message via local SMTP server.
-        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string())
+        # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
+        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
+
+    # Send email for errors
+    def sendErrorEmail(self, errText):
+        globs.log.write(2, 'sendErrorEmail()')
+
+        # Build email message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Duplicati Job Status Error'
+        msg['From'] = globs.opts['outsender']
+        msg['To'] = globs.opts['outreceiver']
+
+        # Record the MIME types of both parts - text/plain and text/html.
+        # Attach parts into message container.
+        # According to RFC 2046, the last part of a multipart message
+        # is best and preferred.
+        msgPart = MIMEText(errText, 'plain')
+        msg.attach(msgPart)
+
+        # Send the message via local SMTP server.
+        # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
+        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
+
