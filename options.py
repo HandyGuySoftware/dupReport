@@ -37,8 +37,8 @@ rcParts= [
     ('main','srcdestdelimiter','-', True),
     ('main','dateformat', 'MM/DD/YYYY', False),
     ('main','timeformat','HH:MM:SS', False),
-    ('main','collectemailonwarning','false', True),
-    ('main','applyemailutcoffset','false', True),
+    ('main','warnoncollect','false', True),
+    ('main','applyutcoffset','false', True),
     
     
     # [incoming] section defaults
@@ -70,6 +70,7 @@ rcParts= [
     ('report','displaymessages','false', True),
     ('report','displaywarnings','true', True),
     ('report','displayerrors','true', True),
+    ('report','titlebg','#FFFFFF', True),
     ('report','subheadbg','#D3D3D3', True),
     ('report','jobmessagebg','#FFFFFF', True),
     ('report','jobwarningbg','#FFFF00', True),
@@ -303,11 +304,27 @@ class OptionManager:
         globs.log.write(3, 'RC path=[{}]'.format(self.options['rcfilename']))
 
 
-    def getOption(self, section, option):
+    # Get individual .rc file option
+    def getRcOption(self, section, option):
         if self.parser.has_option(section, option):
             return self.parser.get(section, option)
         else:
             return None
+
+    # Set individual .rc file option
+    def setRcOption(self, section, option, value):
+        self.parser.set(section, option, value)
+        return None
+
+    # Clear individual option in .rc file
+    def clearRcOption(self, section, option):
+        self.parser.remove_option(section, option)
+        return None
+
+    # Add a new section to the .rc file
+    def addRcSection(self, section):
+        self.parser.add_section(section)
+        return None
 
     def getSection(self, section):
         vals = {}

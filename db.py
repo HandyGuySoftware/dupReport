@@ -48,7 +48,7 @@ class Database:
         currVerNum = (maj * 100) + (min * 10) + subm
         newVerNum = (globs.dbVersion[0] * 100) + (globs.dbVersion[1] * 10) + globs.dbVersion[2]
         if currVerNum < newVerNum:
-            globs.log.err('Database file {} is out of date. Need to run dupUpgrade.py program to update database.'.format(globs.opts['dbpath']))
+            globs.log.err('Database file {} is out of date. Needs update to latest version.'.format(globs.opts['dbpath']))
             return False
         return True
 
@@ -117,7 +117,7 @@ class Database:
 
         # backup sets contains information on all source-destination pairs in the backups
         self.execSqlStmt("create table backupsets (source varchar(20), destination varchar(20), lastFileCount integer, lastFileSize integer, \
-            lastTime real)")
+            lastTimestamp real)")
 
         self.dbCommit()
         return None
@@ -144,7 +144,7 @@ class Database:
             globs.log.write(2, "Source/Destination pair [{}/{}] already in database.".format(src, dest))
             return True
 
-        sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTime) \
+        sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTimestamp) \
             VALUES ('{}', '{}', 0, 0, 0)".format(src, dest)
         globs.log.write(3, '{}'.format(sqlStmt))
         self.execSqlStmt(sqlStmt)
@@ -183,7 +183,7 @@ class Database:
         sqlStmt = 'DELETE FROM emails WHERE emailtimestamp > {}'.format(newTimeStamp)
         dbCursor = self.execSqlStmt(sqlStmt)
 
-        sqlStmt = 'SELECT source, destination FROM backupsets WHERE lastTime > {}'.format(newTimeStamp)
+        sqlStmt = 'SELECT source, destination FROM backupsets WHERE lastTimestamp > {}'.format(newTimeStamp)
         dbCursor = self.execSqlStmt(sqlStmt)
         setRows= dbCursor.fetchall()
         for source, destination in setRows:
@@ -194,7 +194,7 @@ class Database:
             globs.log.write(2, print('Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp))))
 
             # Update backupset table to reflect rolled-back date
-            sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTime={} where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, source, destination)
+            sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTimestamp={} where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, source, destination)
             dbCursor = self.execSqlStmt(sqlStmt)
 
         self.dbCommit()

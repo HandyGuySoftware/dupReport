@@ -205,7 +205,7 @@ class Report:
         dbCursor = globs.db.execSqlStmt("DELETE FROM report")
 
         # Select source/destination pairs from database
-        sqlStmt = "SELECT source, destination, lastTime, lastFileCount, lastFileSize FROM backupsets ORDER BY source, destination"
+        sqlStmt = "SELECT source, destination, lastTimestamp, lastFileCount, lastFileSize FROM backupsets ORDER BY source, destination"
         # How should report be sorted?
         #if self.reportOpts['sortby'] == 'source':
         #    sqlStmt = sqlStmt + ""
@@ -216,14 +216,14 @@ class Report:
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         bkSetRows = dbCursor.fetchall()
         globs.log.write(2, 'bkSetRows=[{}]'.format(bkSetRows))
-        for source, destination, lastTime, lastFileCount, lastFileSize in bkSetRows:
-            globs.log.write(3, 'Src=[{}] Dest=[{}] lastTime=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, 
-                destination, lastTime, lastFileCount, lastFileSize))
+        for source, destination, lastTimestamp, lastFileCount, lastFileSize in bkSetRows:
+            globs.log.write(3, 'Src=[{}] Dest=[{}] lastTimestamp=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, 
+                destination, lastTimestamp, lastFileCount, lastFileSize))
 
             # Select all activity for src/dest pair since last report run
             sqlStmt = 'SELECT endTimestamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                 filesWithError, parsedResult, warnings, errors, messages FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
-                AND  endTimestamp > {} order by endTimestamp'.format(source, destination, lastTime)
+                AND  endTimestamp > {} order by endTimestamp'.format(source, destination, lastTimestamp)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
 
             emailRows = dbCursor.fetchall()
@@ -250,7 +250,7 @@ class Report:
 
                     # Update latest activity into into backupsets
                     sqlStmt = 'UPDATE backupsets SET lastFileCount={}, lastFileSize={}, \
-                        lasttime=\'{}\' WHERE source=\'{}\' AND destination=\'{}\''.format(examinedFiles, sizeOfExaminedFiles, \
+                        lasttimestamp=\'{}\' WHERE source=\'{}\' AND destination=\'{}\''.format(examinedFiles, sizeOfExaminedFiles, \
                         endTimeStamp, source, destination)
                     globs.db.execSqlStmt(sqlStmt)
                     globs.db.dbCommit()

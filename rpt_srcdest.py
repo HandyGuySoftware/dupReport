@@ -67,7 +67,7 @@ def runReport(startTime):
     msgCsv += '\n'
 
     # Select source/destination pairs from database
-    sqlStmt = "SELECT source, destination, lastTime, lastFileCount, lastFileSize from backupsets"
+    sqlStmt = "SELECT source, destination, lastTimestamp, lastFileCount, lastFileSize from backupsets"
 
     # How should report be sorted?
     # Options are source & destination
@@ -80,12 +80,12 @@ def runReport(startTime):
     globs.log.write(2, 'bkSetRows=[{}]'.format(bkSetRows))
 
     # Loop through backupsets table and then get latest activity for each src/dest pair
-    for source, destination, lastTime, lastFileCount, lastFileSize in bkSetRows:
-        globs.log.write(3, 'Src=[{}] Dest=[{}] lastTime=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, 
-            destination, lastTime, lastFileCount, lastFileSize))
+    for source, destination, lastTimestamp, lastFileCount, lastFileSize in bkSetRows:
+        globs.log.write(3, 'Src=[{}] Dest=[{}] lastTimestamp=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, 
+            destination, lastTimestamp, lastFileCount, lastFileSize))
         
         # Add title for source/dest pair
-        subHead = globs.optionManager.getOption('report', 'subheading')
+        subHead = globs.optionManager.getRcOption('report', 'subheading')
         if subHead is not None:
             subHead = subHead.replace('#SOURCE#',source).replace('#DESTINATION#', destination)
         if subHead is None or subHead == '':
@@ -109,10 +109,10 @@ def runReport(startTime):
             # Calculate days since last activity
             nowTimestamp = datetime.datetime.now().timestamp()
             now = datetime.datetime.fromtimestamp(nowTimestamp)
-            then = datetime.datetime.fromtimestamp(lastTime)
+            then = datetime.datetime.fromtimestamp(lastTimestamp)
             diff = (now-then).days
 
-            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTime)
+            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
             msgHtml += '<tr><td colspan={} align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>'.format(nFields, lastDateStr, lastTimeStr, diff)
             msgText += 'No new activity. Last activity on {} at {} ({} days ago)\n'.format(lastDateStr, lastTimeStr, diff)
             msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\",\n'.format(lastDateStr, lastTimeStr, diff)

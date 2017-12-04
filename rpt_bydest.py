@@ -74,7 +74,7 @@ def runReport(startTime):
     # Loop through backupsets table and get all the potential destinations
     for destKey in destSet:
         # Add Destination title
-        subHead = globs.optionManager.getOption('report', 'subheading')
+        subHead = globs.optionManager.getRcOption('report', 'subheading')
         if subHead is not None:
             subHead = subHead.replace('#DESTINATION#', destKey[0])
         if subHead is None or subHead == '':
@@ -86,10 +86,10 @@ def runReport(startTime):
             msgText += '***** {} *****\n'.format(subHead)
             msgCsv += '\"***** {} *****\",\n'.format(subHead)
 
-        dbCursor = globs.db.execSqlStmt("SELECT source, lastTime, lastFileCount, lastFileSize FROM backupsets WHERE destination = '{}'".format(destKey[0]))
+        dbCursor = globs.db.execSqlStmt("SELECT source, lastTimestamp, lastFileCount, lastFileSize FROM backupsets WHERE destination = '{}'".format(destKey[0]))
         #srcDestSets = dbCursor.fetchone()
-        source, lastTime, lastFileCount, lastFileSize = dbCursor.fetchone()
-        globs.log.write(2, 'source=[{}] lastTime=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, lastTime, lastFileCount, lastFileSize))
+        source, lastTimestamp, lastFileCount, lastFileSize = dbCursor.fetchone()
+        globs.log.write(2, 'source=[{}] lastTimestamp=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, lastTimestamp, lastFileCount, lastFileSize))
 
         sqlStmt = "SELECT source, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
             addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors \
@@ -106,10 +106,10 @@ def runReport(startTime):
             # Calculate days since last activity
             nowTimestamp = datetime.datetime.now().timestamp()
             now = datetime.datetime.fromtimestamp(nowTimestamp)
-            then = datetime.datetime.fromtimestamp(lastTime)
+            then = datetime.datetime.fromtimestamp(lastTimestamp)
             diff = (now-then).days
 
-            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTime)
+            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
             msgHtml += '<tr>'
             msgHtml += report.printField('source', source, 'html')
             msgHtml += '<td colspan={} align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, lastDateStr, lastTimeStr, diff)

@@ -39,10 +39,14 @@ def closeEverything():
     globs.log.write(1,'Closing everything...')
 
     
-    globs.inServer.close()
-    globs.outServer.close()
-    globs.db.dbClose()
-    globs.log.closeLog()
+    if globs.inServer is not None:
+        globs.inServer.close()
+    if globs.outServer is not None:
+        globs.outServer.close()
+    if globs.db is not None:
+        globs.db.dbClose()
+    if globs.log is not None:
+        globs.log.closeLog()
 
     sys.exit(0)
 
@@ -64,12 +68,14 @@ def initOptions():
     
     # Check if .rc file needs upgrading
     if oMgr.checkRcFileVersion() is False:
-        globs.log.err('RC file {} is out of date. Need to run dupUpgrade.py program to update config files.'.format(rc))
-        return False
+        globs.log.out('RC file {} is out of date. Needs update to latest version.'.format(oMgr.options['rcfilename']))
+        import convert
+        convert.convertRc(oMgr)
+        globs.log.out('RC file {} has been updated to the latest version.'.format(oMgr.rcFileName))
     
     # Check .rc file structure to see if all proper fields are there
     if oMgr.setRcDefaults() is True:
-        globs.log.err('RC file {} has changed. Plese edit file with proper configuration, then re-run program'.format(rc))
+        globs.log.out('RC file {} has changed. Plese edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
         return False
 
     # RC file is structurally correct. Now need to parse rc options for global use. 
@@ -81,7 +87,7 @@ def initOptions():
     globs.optionManager = oMgr
     globs.opts = oMgr.options
 
-    # If outpur files are specified on the command line (-f or -F), make sure their specification is correct
+   # If output files are specified on the command line (-f or -F), make sure their specification is correct
     if validateOutputFiles() is False:
         return False
 
@@ -94,10 +100,12 @@ def initOptions():
         globs.log.write(1, 'Database {} initialized. Continue processing.'.format(globs.opts['dbpath']))
     else:   # Check for DB version
         if globs.db.checkDbVersion() is False:
+            import convert
+            convert.convertDb()
             globs.db.dbClose()
-            return False
-    globs.db.dbClose() # Done with DB for now. We'll reopen it properly later.
+            globs.log.out('Databae file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
 
+    globs.db.dbClose() # Done with DB for now. We'll reopen it properly later.
     globs.log.write(1, 'Program initialization complete. Continuing program.')
 
     return True

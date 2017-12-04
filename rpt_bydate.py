@@ -90,7 +90,7 @@ def runReport(startTime):
         globs.log.write(3, 'reportRows=[{}]'.format(reportRows))
 
         if len(reportRows) != 0:
-            subHead = globs.optionManager.getOption('report', 'subheading')
+            subHead = globs.optionManager.getRcOption('report', 'subheading')
             if subHead is not None:
                     subHead = subHead.replace('#DATE#', currentDate)
             if subHead is None or subHead == '':
@@ -144,13 +144,13 @@ def runReport(startTime):
         currentTs = currentDateEndTs + 1
 
     # Now see which systems didn't report in
-    dbCursor = globs.db.execSqlStmt("SELECT source, destination, lasttime FROM backupsets ORDER BY source, destination")
+    dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination")
     setRows = dbCursor.fetchall()
     globs.log.write(3, 'setRows=[{}]'.format(setRows))
 
     # Flag to let us know if we need to print a header for missing backupsets
     hdrFlag = 0
-    for source, destination, lastTime in setRows:
+    for source, destination, lastTimestamp in setRows:
         dbCursor = globs.db.execSqlStmt("SELECT count(*) FROM report WHERE source = \'{}\' AND destination = \'{}\'".format(source, destination))
         seenRows = dbCursor.fetchone()[0]
         globs.log.write(3, 'seenRows=[{}]'.format(seenRows))
@@ -163,10 +163,10 @@ def runReport(startTime):
 
             nowTimestamp = datetime.datetime.now().timestamp()
             now = datetime.datetime.fromtimestamp(nowTimestamp)
-            then = datetime.datetime.fromtimestamp(lastTime)
+            then = datetime.datetime.fromtimestamp(lastTimestamp)
             diff = (now-then).days
 
-            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTime)
+            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
             msgHtml += '<tr><td colspan={} align="center">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>'.format(nFields, source, destination, lastDateStr, lastTimeStr, diff)
             msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
             msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
