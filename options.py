@@ -123,8 +123,9 @@ class OptionManager:
         return True
 
     # Check if need to upgrade RC file version
-    # Returns True if version is OK, False if needs an upgrade
+    # Returns True if need to upgrade RC file, False if at current version
     def checkRcFileVersion(self):
+        needToUpgrade = False
         # Get current RC version, if available. 
         if self.parser.has_option('main','version'):
             rcVersion = self.parser.get('main','version')
@@ -134,12 +135,13 @@ class OptionManager:
             currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
             newVerNum = (globs.version[0] * 100) + (globs.version[1] * 10) + globs.version[2]
             if currVerNum < newVerNum: # Need an upgrade
-                return False
+                needToUpgrade = True
             else:   # current version is OK
-                return True
+                needToUpgrade = False
         else:       # Current RC version not available. Using a really old version of the program, so need to upgrade
-            return False
+            needToUpgrade = True
 
+        return needToUpgrade, currVerNum
 
     # See if RC file has all the parts needed before proceeding with the rest of the program
     # Returns <status>, <newRC>

@@ -39,8 +39,10 @@ class Database:
         self.dbConn = None
         return None
 
-    # Return True if version is OK, false if out of date.
+    # Return True if need to upgrade DB, false if DB is current.
     def checkDbVersion(self):
+        needToUpgrade = False
+
         globs.log.write(1, 'Database.currentVersion()')
         dbCursor = self.execSqlStmt('SELECT major, minor, subminor FROM version WHERE desc = \'database\'')
         maj, min, subm = dbCursor.fetchone()
@@ -49,8 +51,9 @@ class Database:
         newVerNum = (globs.dbVersion[0] * 100) + (globs.dbVersion[1] * 10) + globs.dbVersion[2]
         if currVerNum < newVerNum:
             globs.log.err('Database file {} is out of date. Needs update to latest version.'.format(globs.opts['dbpath']))
-            return False
-        return True
+            needToUpgrade = True
+
+        return needToUpgrade, currVerNum
 
     # Commit pending database transaction
     def dbCommit(self):

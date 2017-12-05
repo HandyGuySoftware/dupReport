@@ -9,11 +9,13 @@
 
 # Import system modules
 import sys
+import globs
 
 class LogHandler:
     def __init__(self):
         self.logFile = None
         self.suppressFlag = False
+        self.tmpFile = None
         return None
 
     def openLog(self, path = None, append = False, level = 1):
@@ -26,8 +28,16 @@ class LogHandler:
                     self.logFile = open(path,'a')
                 else:
                     self.logFile = open(path,'w')
+                # Now,copy any existing data from the temp file
+                self.tmpFile.close()
+                self.tmpFile = open(globs.tmpName, 'r')
+                tmpData = self.tmpFile.read()
+                self.logFile.write(tmpData)
+                self.tmpFile.close()
+                self.tmpFile = None
             except (OSError, IOError):
                 sys.stderr.write('Error opening log file: {}\n'.format(path))
+
         return None
 
     def closeLog(self):
@@ -52,18 +62,24 @@ class LogHandler:
 
     # Write log info to log file
     def write(self, level, msg):
-        if self.suppressFlag:       # Suppress lof output even if logging is set
+        if self.suppressFlag:       # Suppress log output even if logging is set
             return None
         
-        if self.logFile is None:  # Log file hasn't been opened yet. Write to stdout
-            self.out(msg)
-            return None
+        if self.logFile is not None:
+            logTarget = self.logFile
+        else:
+            # Log file hasn't been opened yet. 
+            if self.tmpFile is None:
+                # Open a temp file to hold the output
+                self.tmpFile = open(globs.tmpName, 'w')
+                self.defLogLevel = 3
+            logTarget = self.tmpFile
 
         if (msg is not None) and (msg != ''):   # Non-empty message. Good to go...
             if level <= self.defLogLevel:               # Check that we're writing to an appropriate logging level
-                self.logFile.write(msg)
-                self.logFile.write('\n')
-                self.logFile.flush()            # Protect against buffered log data getting lost due to program crash
+                logTarget.write(msg)
+                logTarget.write('\n')
+                logTarget.flush()          # Protect against buffered log data getting lost due to program crash
         return None
 
     # Temporarily suppress all logging

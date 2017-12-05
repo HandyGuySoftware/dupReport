@@ -18,6 +18,7 @@ copyright='Copyright (c) 2017 Stephen Fried for HandyGuy Software.'
 dbName='dupReport.db'               # Default database name
 logName='dupReport.log'             # Default log file name
 rcName='dupReport.rc'               # Default configuration file name
+tmpName = 'duplog.tmp'
 db = None                           # Global database object
 dateFormat = None                   # Global date format - can be overridden per backup set
 timeFormat = None                   # Global time format - can be overridden per backup set

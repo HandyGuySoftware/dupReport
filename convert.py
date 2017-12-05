@@ -17,7 +17,7 @@ import options
 import db
 import drdatetime
 
-def convertRc(oMgr):
+def convertRc(oMgr, fromVersion):
     optList = {
         ('main',        'dbpath',           'main',         'dbpath'),
         ('main',        'logpath',          'main',         'logpath'),
@@ -74,7 +74,7 @@ def convertRc(oMgr):
     return None;
 
 
-def convertDb():
+def convertDb(fromVersion):
     globs.log.write(1, 'Converting database to version 1.0.1')
 
     # Update DB version number

@@ -67,10 +67,11 @@ def initOptions():
     oMgr.openRcFile(oMgr.options['rcfilename'])   
     
     # Check if .rc file needs upgrading
-    if oMgr.checkRcFileVersion() is False:
+    needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
+    if needToUpgrade is True:
         globs.log.out('RC file {} is out of date. Needs update to latest version.'.format(oMgr.options['rcfilename']))
         import convert
-        convert.convertRc(oMgr)
+        convert.convertRc(oMgr, currRcVersion)
         globs.log.out('RC file {} has been updated to the latest version.'.format(oMgr.rcFileName))
     
     # Check .rc file structure to see if all proper fields are there
@@ -99,9 +100,10 @@ def initOptions():
         globs.db.dbInitialize()
         globs.log.write(1, 'Database {} initialized. Continue processing.'.format(globs.opts['dbpath']))
     else:   # Check for DB version
-        if globs.db.checkDbVersion() is False:
+        needToUpgrade, currDbVersion = globs.db.checkDbVersion()
+        if needToUpgrade is True:
             import convert
-            convert.convertDb()
+            convert.convertDb(currDbVersion)
             globs.db.dbClose()
             globs.log.out('Databae file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
 
