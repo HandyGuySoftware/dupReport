@@ -303,7 +303,7 @@ class OptionManager:
         # Figure out whwre RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
             globs.log.write(2, 'RC path specified on command line')
-            rc = '{}/{}'.format(cmdLineArgs.rcpath, globs.rcName)
+            rc = '{}/{}'.format(self.cmdLineArgs.rcpath, globs.rcName)
         else: # RC path not specified on command line. use default location
             path = os.path.dirname(os.path.realpath(sys.argv[0]))
             globs.log.write(2, 'RC path not specified on command line. Using default.'.format(path))
