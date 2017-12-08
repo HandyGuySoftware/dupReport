@@ -112,7 +112,7 @@ def convertDb(fromVersion):
         # Update emails table with new data
         if endTimestamp is not None and beginTimestamp is not None:
             sqlStmt = "UPDATE emails SET emailTimestamp = {}, endTimestamp = {}, beginTimestamp = {} WHERE messageId = \'{}\'".format(emailTimestamp, endTimestamp, beginTimestamp, messageId)
-            print(sqlStmt)
+            globs.log.write(1, sqlStmt)
             globs.db.execSqlStmt(sqlStmt)
 
         globs.log.write(1, 'messageId:{}  emailDate={} emailTime={} emailTimestamp={} endDate={} endTime={} endTimestamp={} beginDate={} beginTime={} beginTimestamp={}'.format(messageId, emailDate, emailTime, emailTimestamp,\
