@@ -124,6 +124,7 @@ if __name__ == "__main__":
     # See LogHandler class description for more details
     globs.log = log.LogHandler()
     globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
+    globs.log.write(1,'Python version {}'.format(sys.version))
     
     # This routine suppresses log output until proper log file is established. 
     # Used for debugging before the use of a tmp file in LogHandler was implemented
