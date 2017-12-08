@@ -18,7 +18,7 @@ import db
 import drdatetime
 
 def convertRc(oMgr, fromVersion):
-    optList = {
+    optList = [
         ('main',        'dbpath',           'main',         'dbpath'),
         ('main',        'logpath',          'main',         'logpath'),
         ('main',        'verbose',          'main',         'verbose'),
@@ -53,7 +53,7 @@ def convertRc(oMgr, fromVersion):
         ('outgoing',    'password',         'outgoing',     'outpassword'),
         ('outgoing',    'sender',           'outgoing',     'outsender'),
         ('outgoing',    'receiver',         'outgoing',     'outreceiver')
-        }
+        ]
 
     # Now, start adding back in secitons
     globs.log.write(1, 'Updating version number.')

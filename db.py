@@ -21,13 +21,13 @@ class Database:
         globs.log.write(1, 'Database.__init__({})'.format(dbPath))
         if self.dbConn:
             globs.log.err('SQLite3 error: trying to reinitialize the database connection. Exiting program.')
-            sys.exit(1) # Abort program. Can't continue with DB error
+            globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
 
         try:
             self.dbConn = sqlite3.connect(dbPath)
         except sqlite3.Error as err:
             globs.log.err('SQLite3 error connecting to {}: {}. Exiting program.'.format(dbPath, err.args[0]))
-            sys.exit(1) # Abort program. Can't continue with DB error
+            globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
         return None
 
     # Close database connection
@@ -43,12 +43,13 @@ class Database:
     def checkDbVersion(self):
         needToUpgrade = False
 
-        globs.log.write(1, 'Database.currentVersion()')
+        globs.log.write(1, 'Database.checkDbVersion()')
         dbCursor = self.execSqlStmt('SELECT major, minor, subminor FROM version WHERE desc = \'database\'')
         maj, min, subm = dbCursor.fetchone()
 
         currVerNum = (maj * 100) + (min * 10) + subm
         newVerNum = (globs.dbVersion[0] * 100) + (globs.dbVersion[1] * 10) + globs.dbVersion[2]
+        globs.log.write(3,'Database: current version={}  new version={}'.format(currVerNum, newVerNum))
         if currVerNum < newVerNum:
             globs.log.err('Database file {} is out of date. Needs update to latest version.'.format(globs.opts['dbpath']))
             needToUpgrade = True
@@ -77,7 +78,7 @@ class Database:
         except sqlite3.Error as err:
             globs.log.err('SQLite error: {}\n'.format(err.args[0]))
             globs.log.write(1, 'SQLite error: {}\n'.format(err.args[0]))
-            sys.exit(1) # Abort program. Can't continue with DB error
+            globs.closeEverythingAndExit(1)  # Abort program. Can't continue with DB error
         return curs
 
     # Initialize database to empty, default tables
@@ -154,28 +155,10 @@ class Database:
         self.dbCommit()
         globs.log.write(2, "Source/Destination pair [{}/{}] added to database".format(src, dest))
 
-        """
-        # Look for [src-dest] section in .rc file
-        # If not there, add date & time spec
-
-        rcParser = configparser.SafeConfigParser()
-        rcParser.read(globs.opts['rcfilename'])
-
-        section = '{}-{}'.format(src, dest)
-        if not rcParser.has_option(section,'dateformat'):
-            rcParser.add_section(section)
-            rcParser.set(section, 'dateformat', globs.opts['dateformat'])
-            rcParser.set(section, 'timeformat', globs.opts['timeformat'])
-
-            # save updated RC configuration to a file
-            with open(globs.opts['rcfilename'], 'w') as configfile:
-                rcParser.write(configfile)
-
-        """
-        
         return False
 
     # Roll back database to pecific date/time
+    # Datespec = Date & time to roll back to
     def rollback(self, datespec):
 
         globs.log.write(1,'db.rollback({})'.format(datespec))

@@ -39,7 +39,7 @@ rcParts= [
     ('main','timeformat','HH:MM:SS', False),
     ('main','warnoncollect','false', True),
     ('main','applyutcoffset','false', True),
-    
+    ('main','show24hourtime', 'true', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -78,7 +78,7 @@ rcParts= [
 
     # [headings] section defaults
     ('headings','Source','Source', True),
-    ('headings','Destination','destination', True),
+    ('headings','Destination','Destination', True),
     ('headings','Date','Date', True),
     ('headings','Time','Time', True),
     ('headings','Files','Files', True),
@@ -96,17 +96,18 @@ rcParts= [
    ]
 
 
+# Class to manage all program options
 class OptionManager:
-    rcFileName = None
-    parser = None
-    cmdLineArgs = None
-    options = {}
+    rcFileName = None   # Path to.rc file
+    parser = None       # Handle for SafeConfigParser
+    cmdLineArgs = None  # Command line arguments, passed from parse_args()
+    options = {}        # List of all available program options
 
     def __init__(self):
         return None
 
     def openRcFile(self, rcFileSpec):
-
+        globs.log.write(1,'options.openRcFile({})'.format(rcFileSpec))
         if self.rcFileName:     # Rc file already initiailzed. Something is wrong.
             globs.log.write(2, 'RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, filespec))
             return False
@@ -115,8 +116,8 @@ class OptionManager:
             self.parser = configparser.SafeConfigParser()
             self.parser.read(rcFileSpec)
         except configparser.ParsingError as err:
-            globs.log.err('RC file parsing error: {}\n'.format(rcFileSpec))
-            globs.log.write(1, 'RC file parsing error: {}\n'.format(rcFileSpec))
+            globs.log.err('RC file parsing error: {} {}\n'.format(rcFileSpec, err))
+            globs.log.write(1, 'RC file parsing error: {} {}\n'.format(rcFileSpec, err))
             return False
 
         self.rcFileName = rcFileSpec
@@ -125,6 +126,7 @@ class OptionManager:
     # Check if need to upgrade RC file version
     # Returns True if need to upgrade RC file, False if at current version
     def checkRcFileVersion(self):
+        globs.log.write(1,'options.checkRcFileVersion()')
         needToUpgrade = False
         # Get current RC version, if available. 
         if self.parser.has_option('main','version'):
@@ -134,13 +136,16 @@ class OptionManager:
             verParts = rcVersion.split('.')
             currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
             newVerNum = (globs.version[0] * 100) + (globs.version[1] * 10) + globs.version[2]
+            globs.log.write(3,'RC file versions: current={} new={}.'.format(currVerNum, newVerNum))
             if currVerNum < newVerNum: # Need an upgrade
                 needToUpgrade = True
             else:   # current version is OK
                 needToUpgrade = False
-        else:       # Current RC version not available. Using a really old version of the program, so need to upgrade
+        else:
+            # Current RC version not available. Using a really old version of the program, so need to upgrade
             needToUpgrade = True
 
+        globs.log.write(1,'Need to upgrade rc file? {}'.format(needToUpgrade))
         return needToUpgrade, currVerNum
 
     # See if RC file has all the parts needed before proceeding with the rest of the program
@@ -149,6 +154,7 @@ class OptionManager:
     # <newRC> = True if enough RC info has changed to require user config & restart
     # <newRC> = False if program can continue without restart
     def setRcDefaults(self):
+        globs.log.write(1,'options.setRcDefaults()')
         if not self.parser:
             globs.log.err('RC file not yet opened. Can not set defaults')
             return False
@@ -169,23 +175,23 @@ class OptionManager:
                     newRc=True
 
         self.updateRc()
+        globs.log.write(3,'newRc={}'.format(newRc))
         return newRc
 
     # Read .rc file options
     # Many command line options have .rc equivalents. 
     # Command line options take precedence over .rc file options
-    # returns <restart>, <option list>
+    # returns <restart>
     # restart =   False if OK to continue
     # restart =  True if need to restart
-    # Message = additional information
     def readRcOptions(self):
         restart = False
 
-        globs.log.write(1, 'Startup.parseRcFile({})'.format(self.rcFileName))
+        globs.log.write(1, 'options.readRcOptions({})'.format(self.rcFileName))
     
         # Extract sections and options from .rc file
-        # Only need main, incoming, and outgoing sections
-        # report and headings sections will be parsed when report object is initiated (report.py)
+        # Only need [main], [incoming], and [outgoing] sections
+        # [report] and [headings] sections will be parsed when report object is initiated (report.py)
         for section in ('main', 'incoming', 'outgoing'):
             for name, value in self.parser.items(section):
                 self.options[name] = value
@@ -197,6 +203,7 @@ class OptionManager:
         self.options['logappend'] = self.options['logappend'].lower() in ('true')   # boolean
         self.options['warnoncollect'] = self.options['warnoncollect'].lower() in ('true')   # boolean
         self.options['applyutcoffset'] = self.options['applyutcoffset'].lower() in ('true')   # boolean
+        self.options['show24hourtime'] = self.options['show24hourtime'].lower() in ('true')   # boolean
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
@@ -228,7 +235,9 @@ class OptionManager:
         self.options['version'] = self.cmdLineArgs.Version
         self.options['collect'] = self.cmdLineArgs.collect
         self.options['report'] = self.cmdLineArgs.report
+        self.options['nomail'] = self.cmdLineArgs.nomail
 
+        # Roll back database?
         self.options['rollback'] = self.cmdLineArgs.rollback
         if self.options['rollback']:
             ret = drdatetime.toTimestamp(self.options['rollback'], self.options['dateformat'], self.options['timeformat'])
@@ -236,25 +245,26 @@ class OptionManager:
                 globs.log.err('Invalid rollback date specification: {}.'.format(self.options['rollback']))
                 restart = True
 
-        if self.cmdLineArgs.verbose != None:            # Only override if specified on command line
+        if self.cmdLineArgs.verbose != None:
             self.options['verbose'] = self.cmdLineArgs.verbose
         self.options['logappend'] = self.cmdLineArgs.append
         self.options['initdb'] = self.cmdLineArgs.initdb
         
         # Store output files for later use
         self.options['file'] = self.cmdLineArgs.file
-        self.options['filex'] = self.cmdLineArgs.filex
         if self.options['file']:
             globs.ofileList = self.options['file']
-        elif self.options['filex']:
-            globs.ofileList = self.options['filex']
 
         globs.log.write(3, 'Parsed config options=[{}]'.format(self.options))
+        globs.log.write(1, 'Need to restart? {}'.format(restart))
+
         return restart
 
 
-    # save updated RC configuration to a file
+    # save updated RC configuration to .rc file
     def updateRc(self):
+        globs.log.write(1, 'options.updateRc()')
+
         with open(self.rcFileName, 'w') as configfile:
             self.parser.write(configfile)
         return None
@@ -262,7 +272,7 @@ class OptionManager:
     # Get operating parameters from .rc file, overlay with command line options
     def processCmdLineArgs(self):
 
-        globs.log.write(1, 'OptionManager.readCmdLine()')
+        globs.log.write(1, 'options.processCmdLineArgs()')
 
         # Parse command line options with ArgParser library
         argParser = argparse.ArgumentParser(description='dupReport options.')
@@ -278,10 +288,8 @@ class OptionManager:
             Same as [main]sizedisplay= in rc file.", action="store", choices=['mega','giga','byte'])
         argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
         argParser.add_argument("-b","--rollback", help="Roll back datebase to specified date. Format is -b <datetimespec>", action="store")
-
-        fileGroup = argParser.add_mutually_exclusive_group()
-        fileGroup.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
-        fileGroup.add_argument("-F", "--filex", help="Send output to file or stdout instead of email. Format is -F <filespec>,<type>", action="append")
+        argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
+        argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
 
         opGroup = argParser.add_mutually_exclusive_group()
         opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
@@ -308,6 +316,7 @@ class OptionManager:
 
     # Get individual .rc file option
     def getRcOption(self, section, option):
+        globs.log.write(3, 'options.getRcOption({}, {})'.format(section, option))
         if self.parser.has_option(section, option):
             return self.parser.get(section, option)
         else:
@@ -315,20 +324,24 @@ class OptionManager:
 
     # Set individual .rc file option
     def setRcOption(self, section, option, value):
+        globs.log.write(1, 'options.setRcOption({}, {}, {})'.format(section, option, value))
         self.parser.set(section, option, value)
         return None
 
     # Clear individual option in .rc file
     def clearRcOption(self, section, option):
+        globs.log.write(1, 'options.clearRcOption({}, {})'.format(section, option))
         self.parser.remove_option(section, option)
         return None
 
     # Add a new section to the .rc file
     def addRcSection(self, section):
+        globs.log.write(1, 'options.addRcSection({})'.format(section))
         self.parser.add_section(section)
         return None
 
     def getSection(self, section):
+        globs.log.write(1, 'options.getSection({})'.format(section))
         vals = {}
 
         if self.parser.has_section(section):
@@ -341,6 +354,7 @@ class OptionManager:
         return vals
 
     def getSectionDateTimeFmt(self, src, dest):
+        globs.log.write(1, 'options.getSectionDateTimeFmt({}, {})'.format(src, dest))
 
         # Set defaults to global options
         dtfmt = globs.opts['dateformat']
@@ -349,12 +363,15 @@ class OptionManager:
         # Set name for section
         section = '{}{}{}'.format(src, globs.opts['srcdestdelimiter'],dest)
 
+        # Does [src-dest] dateformat= exist?
         if self.parser.has_option(section, 'dateformat'):
             tmp = self.parser.get(section, 'dateformat')
             if tmp in drdatetime.dtFmtDefs: # Is it a legal date format?
                 dtfmt = tmp
             else:
                 globs.log.write(2, 'Invalid date format in .rc file, [{}{}{}]: dateformat={}'.format(src, globs.opts['srcdestdelimiter'], dest, tmp))
+
+        # Does [src-dest] timeformat= exist?
         if self.parser.has_option(section, 'timeformat'):
             tmp = self.parser.get(section, 'timeformat')
             if tmp in drdatetime.dtFmtDefs: # Is it a legal time format?

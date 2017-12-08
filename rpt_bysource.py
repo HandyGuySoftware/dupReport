@@ -76,6 +76,7 @@ def runReport(startTime):
         # Add Source title
         subHead = globs.optionManager.getRcOption('report', 'subheading')
         if subHead is not None:
+            # Substitute subheading keywords
             subHead = subHead.replace('#SOURCE#', srcKey[0])
         if subHead is None or subHead == '':
             msgHtml += '<tr><td colspan={} align="center" bgcolor="{}"><b>{}:</b> {}</b></td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['source'], srcKey[0])
@@ -154,7 +155,7 @@ def runReport(startTime):
                 # Each of these spans all the table columns
                 for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                     if ((fld != '') and (reportOpts[opt] == True)):
-                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}: {}</td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                         msgText += '{}: {}\n'.format(rptTits[tit], fld)
                         msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
        

@@ -25,30 +25,29 @@ import globs
 #       problems I had with date string recoznition, this makes time strings
 #       more flexible should the need arise in the future.
 dtFmtDefs={
-    # Format Str    Delimiter   Y/H Col     M/Mn Col    D/S Col     Regex
-    'YYYY/MM/DD':   ('/',       0,          1,          2,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'YYYY/DD/MM':   ('/',       0,          2,          1,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'MM/DD/YYYY':   ('/',       2,          0,          1,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'DD/MM/YYYY':   ('/',       2,          1,          0,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'YYYY-MM-DD':   ('-',       0,          1,          2,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'YYYY-DD-MM':   ('-',       0,          2,          1,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'MM-DD-YYYY':   ('-',       2,          0,          1,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'DD-MM-YYYY':   ('-',       2,          1,          0,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'YYYY.MM.DD':   ('.',       0,          1,          2,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'YYYY.DD.MM':   ('.',       0,          2,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'MM.DD.YYYY':   ('.',       2,          0,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'DD.MM.YYYY':   ('.',       2,          1,          0,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'HH:MM:SS'  :   (':',       0,          1,          2,          '(\d)+[:](\d+)[:](\d+)')
+    # Format Str    [0]Delimiter    [1]Y/H Col  [2]M/Mn Col [3]D/S Col  [4]Regex
+    'YYYY/MM/DD':   ('/',           0,          1,          2,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    'YYYY/DD/MM':   ('/',           0,          2,          1,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    'MM/DD/YYYY':   ('/',           2,          0,          1,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    'DD/MM/YYYY':   ('/',           2,          1,          0,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
+    'YYYY-MM-DD':   ('-',           0,          1,          2,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    'YYYY-DD-MM':   ('-',           0,          2,          1,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    'MM-DD-YYYY':   ('-',           2,          0,          1,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    'DD-MM-YYYY':   ('-',           2,          1,          0,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
+    'YYYY.MM.DD':   ('.',           0,          1,          2,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    'YYYY.DD.MM':   ('.',           0,          2,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    'MM.DD.YYYY':   ('.',           2,          0,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    'DD.MM.YYYY':   ('.',           2,          1,          0,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    'HH:MM:SS'  :   (':',           0,          1,          2,          '(\d)+[:](\d+)[:](\d+)')
     }
 
 # Convert a date/time string to a timestamp
-# Input string = YYYY/MM/DD HH:MM:SS AM/PM (epochDate). 
+# Input string = YYYY/MM/DD HH:MM:SS AM/PM (epochDate)."
 # May also be variants of the above. Must check for all cases
 # dtStr = date/time string
 # dfmt is date format - defaults to user-defined date format in .rc file
 # tfmt is time format - - defaults to user-defined time format in .rc file
 # utcOffset is UTC offset info as extracted from the incoming email message.
-# NOTE: The program doesn't do anything with the utcOffset info right now. It probably should at some point. ;-)
 def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     globs.log.write(1,'drDateTime.toTimestamp({}, {}, {}, {})'.format(dtStr, dfmt, tfmt, utcOffset))
 
@@ -126,6 +125,7 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
         dfmt = globs.opts['dateformat']
     if (tfmt is None):
         tfmt = globs.opts['timeformat']
+    globs.log.write(1, 'drdatetime.fromTimestamp({}, {}, {})'.format(ts, dfmt, tfmt))
 
     # Get datetime object from incoming timestamp
     dt = datetime.datetime.fromtimestamp(ts)
@@ -148,11 +148,20 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
     mnCol = dtFmtDefs[tfmt][2] # Which field holds the minute?
     seCol = dtFmtDefs[tfmt][3] # Which field holds the seconds?
 
-    x[hrCol] = '%H'
+    if not globs.opts['show24hourtime']:
+        x[hrCol] = '%I'
+        if dt.hour < 12:
+            ampm = ' AM'
+        else:
+            ampm = ' PM'
+    else:
+        x[hrCol] = '%H'
+        ampm = ''
+
     x[mnCol] = '%M'
     x[seCol] = '%S'
-    retTime = dt.strftime('{}{}{}{}{}'.format(x[0],delim,x[1],delim,x[2]))
+    retTime = dt.strftime('{}{}{}{}{}{}'.format(x[0],delim,x[1],delim,x[2], ampm))
+    globs.log.write(3, 'Converted [{}] to [{} {}]'.format(ts, retDate, retTime))
 
-    globs.log.write(3, 'drdatetime.fromTimestamp(): dfmt=[{}]  tfmt=[{}].  converted [{}] to [{} {}]'.format(dfmt, tfmt, ts, retDate, retTime))
     
     return retDate, retTime

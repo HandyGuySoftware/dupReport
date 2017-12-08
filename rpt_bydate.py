@@ -71,9 +71,9 @@ def runReport(startTime):
     highestTs = dbCursor.fetchone()[0]
 
     while currentTs <= highestTs:
-        currentDate, currentTime = drdatetime.fromTimestamp(currentTs, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')
-        currentDateBeginTs = drdatetime.toTimestamp(currentDate + ' 00:00:00', dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
-        currentDateEndTs = drdatetime.toTimestamp(currentDate + ' 23:59:59', dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
+        currentDate, currentTime = drdatetime.fromTimestamp(currentTs, dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+        currentDateBeginTs = drdatetime.toTimestamp(currentDate + ' 00:00:00', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
+        currentDateEndTs = drdatetime.toTimestamp(currentDate + ' 23:59:59', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
         
         sqlStmt = "SELECT source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
             addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors \
@@ -92,6 +92,7 @@ def runReport(startTime):
         if len(reportRows) != 0:
             subHead = globs.optionManager.getRcOption('report', 'subheading')
             if subHead is not None:
+                    # Substitute subheading keywords
                     subHead = subHead.replace('#DATE#', currentDate)
             if subHead is None or subHead == '':
                 msgHtml += '<tr><td colspan={} align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['date'], currentDate)
@@ -135,7 +136,7 @@ def runReport(startTime):
             # Each of these spans all the table columns
             for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                 if ((fld != '') and (reportOpts[opt] == True)):
-                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}: {}</td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                     msgText += '{}: {}\n'.format(rptTits[tit], fld)
                     msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
 

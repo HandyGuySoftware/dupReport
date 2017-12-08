@@ -76,6 +76,7 @@ def runReport(startTime):
         # Add Destination title
         subHead = globs.optionManager.getRcOption('report', 'subheading')
         if subHead is not None:
+            # Substitute subheading keywords
             subHead = subHead.replace('#DESTINATION#', destKey[0])
         if subHead is None or subHead == '':
             msgHtml += '<tr><td colspan={} align="center" bgcolor="{}"><b>{}:</b> {}</b></td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['destination'], destKey[0])
@@ -87,7 +88,6 @@ def runReport(startTime):
             msgCsv += '\"***** {} *****\",\n'.format(subHead)
 
         dbCursor = globs.db.execSqlStmt("SELECT source, lastTimestamp, lastFileCount, lastFileSize FROM backupsets WHERE destination = '{}'".format(destKey[0]))
-        #srcDestSets = dbCursor.fetchone()
         source, lastTimestamp, lastFileCount, lastFileSize = dbCursor.fetchone()
         globs.log.write(2, 'source=[{}] lastTimestamp=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, lastTimestamp, lastFileCount, lastFileSize))
 
@@ -155,7 +155,7 @@ def runReport(startTime):
                 # Each of these spans all the table columns
                 for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                     if ((fld != '') and (reportOpts[opt] == True)):
-                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}: {}</td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                         msgText += '{}: {}\n'.format(rptTits[tit], fld)
                         msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
 

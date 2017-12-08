@@ -11,11 +11,13 @@
 import sys
 import globs
 
+# Class to handle log management
 class LogHandler:
     def __init__(self):
-        self.logFile = None
-        self.suppressFlag = False
-        self.tmpFile = None
+        self.logFile = None         # Handle to log file, when opened
+        self.suppressFlag = False   # Do we want to suppress log output? (Relic from older versions)
+        self.tmpFile = None         # Temp file to hold log output before log file is opened.
+        self.defLogLevel = 3        # Default logging level. Will get updated when log is opened
         return None
 
     def openLog(self, path = None, append = False, level = 1):
@@ -29,12 +31,13 @@ class LogHandler:
                 else:
                     self.logFile = open(path,'w')
                 # Now,copy any existing data from the temp file
-                self.tmpFile.close()
-                self.tmpFile = open(globs.tmpName, 'r')
-                tmpData = self.tmpFile.read()
-                self.logFile.write(tmpData)
-                self.tmpFile.close()
-                self.tmpFile = None
+                if self.tmpFile is not None:
+                    self.tmpFile.close()
+                    self.tmpFile = open(globs.tmpName, 'r')
+                    tmpData = self.tmpFile.read()
+                    self.logFile.write(tmpData)
+                    self.tmpFile.close()
+                    self.tmpFile = None
             except (OSError, IOError):
                 sys.stderr.write('Error opening log file: {}\n'.format(path))
 
@@ -68,11 +71,10 @@ class LogHandler:
         if self.logFile is not None:
             logTarget = self.logFile
         else:
-            # Log file hasn't been opened yet. 
+            # Log file hasn't been opened yet. Send output to temp file
             if self.tmpFile is None:
                 # Open a temp file to hold the output
                 self.tmpFile = open(globs.tmpName, 'w')
-                self.defLogLevel = 3
             logTarget = self.tmpFile
 
         if (msg is not None) and (msg != ''):   # Non-empty message. Good to go...
@@ -83,6 +85,9 @@ class LogHandler:
         return None
 
     # Temporarily suppress all logging
+    # This is useful if info gets sent to the log before the log file is opened.
+    # This was made obsolete in V2.1 with the creation of the temporary file
+    # Kept around in case it becomes useful later
     def suppress(self):
         self.suppressFlag = True
         return None

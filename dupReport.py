@@ -22,9 +22,6 @@ import report
 import options
 import dremail
 
-# test imports
-#import drdatetime
-
 # Print program verersion info
 def versionInfo():
     globs.log.out('\n-----\ndupReport: A summary email report generator for Duplicati.')
@@ -35,33 +32,20 @@ def versionInfo():
     globs.log.out('\nFollow dupReport on Twitter @dupreport\n-----\n')
     return None
 
-def closeEverything():
-    globs.log.write(1,'Closing everything...')
-
-    
-    if globs.inServer is not None:
-        globs.inServer.close()
-    if globs.outServer is not None:
-        globs.outServer.close()
-    if globs.db is not None:
-        globs.db.dbClose()
-    if globs.log is not None:
-        globs.log.closeLog()
-
-    sys.exit(0)
-
 # Initialize options in the program
 # Return True if program can continue
 # Return False if enough changed in the .rc file that program needs to stop
 def initOptions():
-    globs.log.write(1, 'Startup.initOptions()')
+    globs.log.write(1, 'initOptions()')
 
     # Set program path
     globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
+    globs.log.write(3,'progPath={}'.format(globs.progPath))
 
     # Create OptionManager instance
     oMgr = options.OptionManager()
     # Parse command line options
+    globs.log.write(1,'Processing command line...')
     oMgr.processCmdLineArgs()
     # Prepare the .rc file for processing
     oMgr.openRcFile(oMgr.options['rcfilename'])   
@@ -69,7 +53,7 @@ def initOptions():
     # Check if .rc file needs upgrading
     needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
     if needToUpgrade is True:
-        globs.log.out('RC file {} is out of date. Needs update to latest version.'.format(oMgr.options['rcfilename']))
+        globs.log.out('RC file {} is out of date. Needs update from version {} to version {}{}{}.'.format(oMgr.options['rcfilename'], currRcVersion, globs.version[0], globs.version[1], globs.version[2]))
         import convert
         convert.convertRc(oMgr, currRcVersion)
         globs.log.out('RC file {} has been updated to the latest version.'.format(oMgr.rcFileName))
@@ -80,7 +64,7 @@ def initOptions():
         return False
 
     # RC file is structurally correct. Now need to parse rc options for global use. 
-    if oMgr.readRcOptions() is True:
+    if oMgr.readRcOptions() is True:  # Need to restart program (.rc file needs editing)
         return False
 
     # Set global variables for OptionManager and program options
@@ -88,14 +72,15 @@ def initOptions():
     globs.optionManager = oMgr
     globs.opts = oMgr.options
 
-   # If output files are specified on the command line (-f or -F), make sure their specification is correct
+   # If output files are specified on the command line (-f), make sure their specification is correct
     if validateOutputFiles() is False:
         return False
 
-    # Check if the DB exists or needs initializin
-    # Either db file does not yet exist or forced db initialization
+    # Check if the DB exists or needs initializion
+    # Check if either db file does not yet exist or forced db initialization
     globs.db = db.Database(globs.opts['dbpath'])
-    if globs.opts['initdb'] is True:
+    if globs.opts['initdb'] is True:    
+        # Forced initialization from command line
         globs.log.write(1, 'Database {} needs initializing.'.format(globs.opts['dbpath']))
         globs.db.dbInitialize()
         globs.log.write(1, 'Database {} initialized. Continue processing.'.format(globs.opts['dbpath']))
@@ -103,6 +88,7 @@ def initOptions():
         needToUpgrade, currDbVersion = globs.db.checkDbVersion()
         if needToUpgrade is True:
             import convert
+            globs.log.out(1, 'Need to upgrade database {} from version {} to version {}{}{}'.format(globs.opts['dbpath'], currDbVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
             convert.convertDb(currDbVersion)
             globs.db.dbClose()
             globs.log.out('Databae file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
@@ -112,13 +98,16 @@ def initOptions():
 
     return True
 
+# Determine if output files specified on command line (-f or -F) have proper format spec
+# Specification is -f <file>,<format>
+# <format> can be 'html', 'txt', or 'csv'
 def validateOutputFiles():
     canContinue = True
 
     # See where the output files are going
-    if globs.ofileList:    # Potential output files specified
+    if globs.ofileList:    # Potential list of output files specified on command line
         for fspec in globs.ofileList:
-            fsplit = fspec.split(',')
+            fsplit = fspec.split(',')   
             if len(fsplit) != 2:
                 globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
                 canContinue = False
@@ -130,32 +119,41 @@ def validateOutputFiles():
 
 
 if __name__ == "__main__":
+    # Open a LogHandler object. 
+    # We don't have a log file named yet, but we still need to capture output information
+    # See LogHandler class description for more details
     globs.log = log.LogHandler()
+    globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
     
+    # This routine suppresses log output until proper log file is established. 
+    # Used for debugging before the use of a tmp file in LogHandler was implemented
+    # Kept around because it doesn't take up much space and it might come in useful again
     #globs.log.suppress()
 
     # Start Program Timer
     startTime = time.time()
 
-    canContinue = initOptions() # Initialize program options
-    if not canContinue:
-        closeEverything()
+    # Initialize program options
+    # This includes command line options and .rc file options
+    canContinue = initOptions() 
+    if not canContinue: # Something changed in the .rc file that needs manual editing
+        globs.closeEverythingAndExit(0)
 
-    globs.log.unSuppress()
+    # If we're not suppressing, we don't need to unsupress
+    #globs.log.unSuppress()
 
     # Looking for version info on command line? (-V)
     if globs.opts['version']:   # Print version info & exit
         versionInfo()
-        closeEverything()
+        globs.closeEverythingAndExit(0)
 
-    # Open log file
+    # Open log file (finally!)
     globs.log.openLog(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose'])
 
     # Open SQLITE database
     globs.db = db.Database(globs.opts['dbpath'])
 
     # Write startup information to log file
-    globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
     globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose']))
     globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.opts['dbpath'], globs.opts['rcfilename']))
 
@@ -163,18 +161,19 @@ if __name__ == "__main__":
     if globs.opts['rollback']:
         globs.db.rollback(globs.opts['rollback'])
 
-
     # Open email servers
     globs.inServer = dremail.EmailServer()
     retVal = globs.inServer.connect(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], globs.opts['inpassword'], globs.opts['inencryption'])
+    globs.log.write(3,'Open incoming server. retVal={}'.format(retVal))
     retVal = globs.inServer.setFolder(globs.opts['infolder'])
+    globs.log.write(3,'Set folder. retVal={}'.format(retVal))
 
     globs.outServer = dremail.EmailServer()
     retVal = globs.outServer.connect('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], globs.opts['outpassword'], globs.opts['outencryption'])
+    globs.log.write(3,'Open outgoing server. retVal={}'.format(retVal))
 
-    # Either we're just collecting or not just reporting
     if (globs.opts['collect'] or not globs.opts['report']):
-   
+        # Either we're just collecting or not just reporting
         # Get new messages on server
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
@@ -200,6 +199,7 @@ if __name__ == "__main__":
             import rpt_bydate as rpt
         else:
             globs.log.err('Invalid report specification: Style:{}  Please check .rc file for correct configuration.'.format(globs.report.reportOpts['style']))
+            globs.closeEverythingAndExit(1)
 
         # Run selected report
         msgHtml, msgText, msgCsv = rpt.runReport(startTime)
@@ -207,15 +207,15 @@ if __name__ == "__main__":
         globs.log.write(1,msgText)
 
     # Do we need to send output to file(s)?
-    if globs.opts['file'] or globs.opts['filex']:
+    if globs.opts['file']:
         report.sendReportToFile(msgHtml, msgText, msgCsv)
    
     # Are we forbidden from sending report to email?
-    if not globs.opts['filex']: 
+    if not globs.opts['nomail']: 
         # Send email to SMTP server
         globs.outServer.sendEmail(msgHtml, msgText)
 
     globs.log.write(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
 
     # Bye, bye, bye, BYE, BYE!
-    closeEverything()
+    globs.closeEverythingAndExit(0)

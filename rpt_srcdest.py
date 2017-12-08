@@ -87,6 +87,7 @@ def runReport(startTime):
         # Add title for source/dest pair
         subHead = globs.optionManager.getRcOption('report', 'subheading')
         if subHead is not None:
+            # Substitute subheading keywords
             subHead = subHead.replace('#SOURCE#',source).replace('#DESTINATION#', destination)
         if subHead is None or subHead == '':
             msgHtml += '<tr><td colspan={} align="center" bgcolor="{}"><b>{}:</b> {} <b>{}:</b> {}</b></td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['source'], source, \
@@ -146,12 +147,11 @@ def runReport(startTime):
                 options = ['displaymessages', 'displaywarnings', 'displayerrors']
                 backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg']
                 titles = ['jobmessages', 'jobwarnings', 'joberrors']
-
                 # Print message/warning/error fields
                 # Each of these spans all the table columns
                 for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                     if ((fld != '') and (reportOpts[opt] == True)):
-                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}: {}</td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary><p>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                         msgText += '{}: {}\n'.format(rptTits[tit], fld)
                         msgCsv += '\"{}: {}\"\n'.format(rptTits[tit], fld)
 

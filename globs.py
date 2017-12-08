@@ -6,8 +6,6 @@
 #####
 
 
-# Import dupReport modules
-
 # Define version info
 version=[2,1,0]     # Program Version
 status='Beta 1'
@@ -36,3 +34,24 @@ emailFormat=[]    # Corresponding list of emial components print formats
 log = None              # Log file handling
 inServer = None      # Inbound email server
 outServer =  None     # Outbound email server
+
+# Close everything and exit cleanly
+def closeEverythingAndExit(errcode):
+    log.write(1,'Closing everything...')
+
+    if inServer is not None:
+        log.write(1,'Closing inbound email server...')
+        inServer.close()
+    if outServer is not None:
+        log.write(1,'Closing outbound email server...')
+        outServer.close()
+    if db is not None:
+        log.write(1,'Closing database file...')
+        db.dbClose()
+    if log is not None:
+        log.write(1,'Closing log file...')
+        log.closeLog()
+
+    exit(errcode)
+
+

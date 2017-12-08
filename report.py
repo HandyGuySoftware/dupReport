@@ -94,12 +94,12 @@ def printField(fld, val, fmt):
             v = val / 1000000000.00
             outFmt = fldDefs[fld][7]
         
-        # Create HTML and text versions of the format string
+        # Create HTML, text, and csv versions of the format string
         outHtml = '<td align=\"{}\">{:{fmt}}</td>'.format(fldDefs[fld][2], v, fmt=outFmt)
         outTxt = '{:{fmt}}'.format(v, fmt=outFmt)
         outCsv = '\"{:{fmt}}\",'.format(v, fmt=outFmt)
     else:
-        # Create HTML and text versions of the format string
+        # Create HTML, text, and csv versions of the format string
         outHtml = '<td align=\"{}\">{}</td>'.format(fldDefs[fld][2], val)
         outTxt = '{:{fmt}}'.format(val, fmt=fldDefs[fld][5])
         outCsv = '\"{:{fmt}}\",'.format(val, fmt=fldDefs[fld][5])
@@ -111,7 +111,10 @@ def printField(fld, val, fmt):
     elif fmt == 'csv':
         return outCsv
 
-
+# Send report to an output file
+# msgH = HTML message
+# msgT = Text message
+# msgC = CSV message
 def sendReportToFile(msgH, msgT, msgC = None):
 
     # See where the output files are going
@@ -143,6 +146,7 @@ def sendReportToFile(msgH, msgT, msgC = None):
     return
 
 
+# Class for report management
 class Report:
 
     def __init__(self):
@@ -168,20 +172,22 @@ class Report:
         rptName = globs.progPath + '/rpt_' + self.reportOpts['style'] + '.py'
         validReport = os.path.isfile(rptName)
         if not validReport:
-            globs.log.err('Invalid RC file option in [report] section: style cannot be \'{}\''.format(self.reportOpts['style']))
-            sys.exit(1)
+            globs.log.err('Invalid RC report style option in [report] section: style cannot be \'{}\''.format(self.reportOpts['style']))
+            globs.closeEverythingAndExit(1)
 
         if self.reportOpts['sortby'] not in ('source', 'destination', 'date', 'time'):
-            globs.log.err('Invalid RC file option in [report] section: sortorder cannot be \'{}\''.format(self.reportOpts['sortby']))
-            sys.exit(1)
-        if self.reportOpts['sizedisplay'].lower()[:4] not in ('byte', 'mega', 'giga'):
-            globs.log.err('Invalid RC file option in [report] section: sizedisplay cannot be \'{}\''.format(self.reportOpts['sizedisplay']))
-            sys.exit(1)
+            globs.log.err('Invalid RC file sorting option in [report] section: sortby cannot be \'{}\''.format(self.reportOpts['sortby']))
+            globs.closeEverythingAndExit(1)
 
+        if self.reportOpts['sizedisplay'].lower()[:4] not in ('byte', 'mega', 'giga'):
+            globs.log.err('Invalid RC file size display option in [report] section: sizedisplay cannot be \'{}\''.format(self.reportOpts['sizedisplay']))
+            globs.closeEverythingAndExit(1)
+
+        # Get list of existing headers in [headings] section
         titTmp = globs.optionManager.getSection('headings')
         if titTmp is not None:
             for name in titTmp:
-                if titTmp[name] != '':
+                if titTmp[name] != '':      # Empty string means column is not to be displayed
                     self.reportTits[name] = titTmp[name]
                     rptColumns.append(name)
 
@@ -206,11 +212,6 @@ class Report:
 
         # Select source/destination pairs from database
         sqlStmt = "SELECT source, destination, lastTimestamp, lastFileCount, lastFileSize FROM backupsets ORDER BY source, destination"
-        # How should report be sorted?
-        #if self.reportOpts['sortby'] == 'source':
-        #    sqlStmt = sqlStmt + ""
-        #else:
-        #    sqlStmt = sqlStmt + " order by destination, source"
 
         # Loop through backupsets table and then get latest activity for each src/dest pair
         dbCursor = globs.db.execSqlStmt(sqlStmt)

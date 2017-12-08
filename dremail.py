@@ -73,7 +73,7 @@ class EmailServer:
         self.accountname = None
         self.passwd = None
         self.server = None
-        self.newEmails = None   # List[] of new emails on server. Activated by connect()
+        self.newEmails = None      # List[] of new emails on server. Activated by connect()
         self.numEmails = None      # Number of emails in list
         self.nextEmail = None      # index into list of next email to be retrieved
 
@@ -95,40 +95,48 @@ class EmailServer:
         globs.log.write(1, 'EmailServer.Connect({})'.format(self.dump()))
 
         if self.protocol == 'pop3':
+            globs.log.write(1,'Using POP3')
             try:
                 if self.encryption is not None:
                     self.server = poplib.POP3_SSL(self.address,self.port)
                 else:
                     self.server = poplib.POP3(self.address,self.port)
                 retVal = self.server.user(self.accountname)
+                globs.log.write(3,'Logged in. retVal={}'.format(retVal))
                 retVal = self.server.pass_(self.passwd)
+                globs.log.write(3,'Entered password. retVal={}'.format(retVal))
                 return retVal.decode()
             except Exception:
                 return None
         elif self.protocol == 'imap':
+            globs.log.write(1,'Using IMAP')
             try:
                 if self.encryption is not None:
                     self.server = imaplib.IMAP4_SSL(self.address,self.port)
                 else:
                     self.server = imaplib.IMAP4(self.address,self.port)
                 retVal, data = self.server.login(self.accountname, self.passwd)
+                globs.log.write(3,'Logged in. retVal={} data={}'.format(retVal, data))
                 return retVal
             except imaplib.IMAP4.error:
                 return None
             except imaplib.socket.gaierror:
                 return None
         elif self.protocol == 'smtp':
+            globs.log.write(1,'Using SMTP')
             try:
                 self.server = smtplib.SMTP('{}:{}'.format(self.address,self.port))
                 if self.encryption is not None:   # Do we need to use SSL/TLS?
                     self.server.starttls()
                 retVal, retMsg = self.server.login(self.accountname, self.passwd)
+                globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
                 return retMsg.decode()
             except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
                 return None
         else:
             return None
 
+    # Close email server connection
     def close(self):
         if self.protocol == 'pop3':
             self.server.quit()
@@ -139,11 +147,14 @@ class EmailServer:
 
         return None
 
+    # Set the folder for retrieving incoming email.
+    # Only useful for IMAP servers. POP3 doesn't use folders
     def setFolder(self, fname):
         # Folder only valid on IMAP. Need a valid connection. Need a valid folder name. Handle pathological cases
         if ((self.protocol != 'imap') or (self.server is None) or (fname is None) or (fname == '')):
             return None
         retVal, data = self.server.select(fname)
+        globs.log.write(3,'Setting folder. retVal={} data={}'.format(retVal, data))
         return retVal
 
     # Check if there are new messages waiting on the server
@@ -151,19 +162,20 @@ class EmailServer:
     # Return None if empty
     def checkForMessages(self):
         if self.protocol == 'pop3':
-            globs.log.write(1,'process_mailbox_pop()')
+            globs.log.write(1,'checkForMessages(POP3)')
             self.numEmails = len(self.server.list()[1])  # Get list of new emails
+            globs.log.write(3,'Number of new emails: {}'.format(self.numEmails))
             if self.numEmails == 0:     # No new emails
                 self.newEmails = None 
-                self.numEmails = 0
                 self.nextEmail = 0
                 return None
             self.newEmails = list(range(self.numEmails))
             self.nextEmail = 0
             return self.numEmails
         elif self.protocol == 'imap':
-            globs.log.write(1,'process_mailbox_imap()')
+            globs.log.write(1,'checkForMessages(IMAP)')
             retVal, data = self.server.search(None, "ALL")
+            globs.log.write(3,'Searching folder. retVal={} data={}'.format(retVal, data))
             if retVal != 'OK':          # No new emails
                 self.newEmails = None
                 self.numEmails = 0
@@ -180,8 +192,7 @@ class EmailServer:
     # Returns body of message (type str) if more messages in queue
     # Returns None if no more messages
     def getNextMessage(self):
-
-        globs.log.write(1, 'EmailServer.getNextMessage()')
+        globs.log.write(1, 'dremail.getNextMessage()')
         if self.newEmails == None:  # No new emails to get
             return None
         if self.nextEmail == self.numEmails: # Past last email on list
@@ -201,10 +212,9 @@ class EmailServer:
             if retVal != 'OK':
                 globs.log.write(1, 'ERROR getting message: {}'.format(self.nextEmail))
                 return None
-
             globs.log.write(3,'data[0][1]=[{}]'.format(data[0][1]))
             retMessage = email.message_from_string(data[0][1].decode('utf-8'))  # Get message body
-            globs.log.write(2, 'msg=[{}]'.format(retMessage))        
+            globs.log.write(2, 'retMessage=[{}]'.format(retMessage))        
             self.nextEmail += 1
             return retMessage
         else:
@@ -323,11 +333,12 @@ class EmailServer:
             # Set date into a parseable string
             # It doesn't matter what date/time format we pass in (as long as it's valid)
             # When it comes back out, it'll be parsed into a user-defined format
+            # For now, we'll use YYYY/MM/DD HH:MM:SS
             xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])  
             dtTimStmp = drdatetime.toTimestamp(xDate, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
             msgParts['emailTimestamp'] = dtTimStmp
 
-            globs.log.write(3, 'emailDate=[{}]'.format( drdatetime.fromTimestamp(dtTimStmp)))
+            globs.log.write(3, 'emailDate=[{}]-[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
 
         # See if it's a message of interest
         # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...'
@@ -411,12 +422,9 @@ class EmailServer:
 
             globs.outServer.sendErrorEmail(errMsg)
 
-
         globs.log.write(3, 'endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
             
         sqlStmt = self.buildEmailSql(msgParts, statusParts, dateParts)
-        globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
-
         globs.db.execSqlStmt(sqlStmt)
         globs.db.dbCommit()
 
@@ -424,7 +432,7 @@ class EmailServer:
 
     # Send final email result
     def sendEmail(self, msgHtml, msgText = None):
-        globs.log.write(2, 'Send_email()')
+        globs.log.write(2, 'sendEmail()')
 
         # Build email message
         msg = MIMEMultipart('alternative')
@@ -434,8 +442,8 @@ class EmailServer:
 
         # Record the MIME types of both parts - text/plain and text/html.
         # Attach parts into message container.
-        # According to RFC 2046, the last part of a multipart message
-        # is best and preferred.
+        # According to RFC 2046, the last part of a multipart message is best and preferred.
+        # So attach text first, then HTML
         if msgText is not None:
             msgPart = MIMEText(msgText, 'plain')
             msg.attach(msgPart)
@@ -457,10 +465,7 @@ class EmailServer:
         msg['From'] = globs.opts['outsender']
         msg['To'] = globs.opts['outreceiver']
 
-        # Record the MIME types of both parts - text/plain and text/html.
-        # Attach parts into message container.
-        # According to RFC 2046, the last part of a multipart message
-        # is best and preferred.
+        # Record the MIME type. Only need text type
         msgPart = MIMEText(errText, 'plain')
         msg.attach(msgPart)
 
