@@ -125,6 +125,10 @@ if __name__ == "__main__":
     globs.log = log.LogHandler()
     globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
     globs.log.write(1,'Python version {}'.format(sys.version))
+    # Check if we're running a compatible version of Python. Must be 3.0 or higher
+    if sys.version_info.major < 3:
+        globs.log.err('dupReport requires Python 3.0 or higher to run. Your installation is on version {}.{}.{}.\nPlease install a newer version of Python.'.format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
+        globs.closeEverythingAndExit(1)
     
     # This routine suppresses log output until proper log file is established. 
     # Used for debugging before the use of a tmp file in LogHandler was implemented
