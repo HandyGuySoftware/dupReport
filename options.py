@@ -128,13 +128,12 @@ class OptionManager:
     def checkRcFileVersion(self):
         globs.log.write(1,'options.checkRcFileVersion()')
         needToUpgrade = False
+        rcVersion = self.parser.get('main','version')
+        verParts = rcVersion.split('.')
         currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
         # Get current RC version, if available. 
         if self.parser.has_option('main','version'):
-            rcVersion = self.parser.get('main','version')
-
             # Split RC version into component parts
-            verParts = rcVersion.split('.')
             newVerNum = (globs.version[0] * 100) + (globs.version[1] * 10) + globs.version[2]
             globs.log.write(3,'RC file versions: current={} new={}.'.format(currVerNum, newVerNum))
             if currVerNum < newVerNum: # Need an upgrade
