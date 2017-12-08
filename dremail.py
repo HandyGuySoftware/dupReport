@@ -60,7 +60,8 @@ lineParts = [
     ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('details','Details: .*', re.MULTILINE|re.DOTALL, 1),
-    ('failed', 'Failed: .*', 0, 1),
+    #('failed', 'Failed: .*', 0, 1),
+    ('failed', 'Failed: .*', re.MULTILINE|re.DOTALL, 1),
     ]
 
 
