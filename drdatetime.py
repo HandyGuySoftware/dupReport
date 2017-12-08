@@ -128,7 +128,7 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
     globs.log.write(1, 'drdatetime.fromTimestamp({}, {}, {})'.format(ts, dfmt, tfmt))
 
     # Get datetime object from incoming timestamp
-    dt = datetime.datetime.fromtimestamp(ts)
+    dt = datetime.datetime.fromtimestamp(float(ts))
 
     # Get date column positions
     delim = dtFmtDefs[dfmt][0] # Get the Date delimeter

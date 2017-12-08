@@ -212,11 +212,11 @@ if __name__ == "__main__":
         globs.log.write(1,msgText)
 
     # Do we need to send output to file(s)?
-    if globs.opts['file']:
+    if globs.opts['file'] and not globs.opts['collect']:
         report.sendReportToFile(msgHtml, msgText, msgCsv)
    
     # Are we forbidden from sending report to email?
-    if not globs.opts['nomail']: 
+    if not globs.opts['nomail'] and not globs.opts['collect']: 
         # Send email to SMTP server
         globs.outServer.sendEmail(msgHtml, msgText)
 
