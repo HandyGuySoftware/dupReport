@@ -11,7 +11,7 @@
 - Easy modification of date/time formats for international use (dateformat= and timeformat= .rc options)
 - Date/time format can be specified per src/dest pair, if jobs are running in different locales.
 - Dates can now be displayed in 12- or 24-hour format (display24hourtime= .rc option)
-- Report can now use keyword substitution for subheading titles (???? .rc option ????)
+- Report can now use keyword substitution for subheading titles
 - Reports can now be sent to one or more files in HTML, txt, or csv formats (-f command line option)
 - Can prevent sending report email if only saving to output file (-x command line option)
 - Option to email job warnings/errors if in collect mode (-c command line option, warnoncollect= .rc option)

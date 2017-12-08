@@ -88,10 +88,10 @@ def initOptions():
         needToUpgrade, currDbVersion = globs.db.checkDbVersion()
         if needToUpgrade is True:
             import convert
-            globs.log.out(1, 'Need to upgrade database {} from version {} to version {}{}{}'.format(globs.opts['dbpath'], currDbVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+            globs.log.out('Need to upgrade database {} from version {} to version {}{}{}'.format(globs.opts['dbpath'], currDbVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
             convert.convertDb(currDbVersion)
             globs.db.dbClose()
-            globs.log.out('Databae file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
+            globs.log.out('Database file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
 
     globs.db.dbClose() # Done with DB for now. We'll reopen it properly later.
     globs.log.write(1, 'Program initialization complete. Continuing program.')
