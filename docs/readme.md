@@ -14,7 +14,7 @@ The GitHub "master" branch contains the latest production (stable...mostly) code
 
 Other GitHub branches may contain the latest beta releases, test code, development features, and other potentially unstable code. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. 
 
-Bug reports and feature requests can be made on GitHub in the [Issues Section](https://github.com/HandyGuySoftware/dupReport/issues)
+Bug reports and feature requests can be made on GitHub in the [Issues Section](https://github.com/HandyGuySoftware/dupReport/issuesdupReport)
 
 The discussion group for dupReport is on the Duplicati Forum in [this thread](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)
 
@@ -83,23 +83,11 @@ subjectregex=^Duplicati Backup report for
 
 If you change the subjectregex option, be sure that it will match the text specified in the Duplicati send-mail-subject advanced option or you will not be able to properly match incoming emails.
 
-Several users on the Duplicati Forum have found different ways to modify subjectregex= to get more control over finding Emails of Interest. 
-
-[This link]: https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116/15
-
- shows one way to specify what types of report emails you are looking for. 
-
-[This post]: https://forum.duplicati.com/t/how-to-configure-automatic-email-notifications-via-gmail-for-every-backup-job/869
-
-  shows another approach. 
+Several users on the Duplicati Forum have found different ways to modify subjectregex= to get more control over finding Emails of Interest. [This idea from dcurrey](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116/15) shows one way to specify what types of report emails you are looking for.  [This post from Marc_Aronson](https://forum.duplicati.com/t/how-to-configure-automatic-email-notifications-via-gmail-for-every-backup-job/869) shows another approach. 
 
 ## System Requirements
 
-dupReport has been formally tested on Linux (Debian 8) and Windows 10 and is officially supported on those platforms. However, users posting on the 
-
-[dupReport announcement page]: https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116
-
- on the Duplicati Forum have stated they’ve installed and run the program on a wide variety of operating systems. 
+dupReport has been formally tested on Linux (Debian 8) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)  on the Duplicati Forum have stated they’ve installed and run the program on a wide variety of operating systems. 
 
 In addition to the dupReport program files, the only other software dupReport needs is Python3. Installation instructions for Python are beyond our scope here, but instructions are widely available on the Internet.
 
