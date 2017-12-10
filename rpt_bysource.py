@@ -7,7 +7,6 @@
 #
 #####
 
-
 # Import system modules
 import datetime
 import time
@@ -23,7 +22,8 @@ import db
 import drdatetime
 import report
 
-# Report grouped by destination
+
+# Report grouped by source
 def runReport(startTime):
     globs.log.write(1, 'rpt_bysource()')
 
@@ -36,30 +36,30 @@ def runReport(startTime):
 
     # Start HTML and text messages
     # Table border and padding settings
-    msgHtml='<html><head></head><body><table border={} cellpadding="{}">'.format(reportOpts['border'], reportOpts['padding'])
+    msgHtml = '<html><head></head><body><table border={} cellpadding="{}">'.format(reportOpts['border'], reportOpts['padding'])
     msgText = ''
     msgCsv = ''
     
     # Add report title
     msgHtml += '<tr><td align="center" colspan = "{}" bgcolor="{}"><b>{}</b></td></tr>'.format(nFields, reportOpts['titlebg'], reportOpts['reporttitle'])
     msgText += reportOpts['reporttitle'] + '\n'
-    msgCsv += '\"' + reportOpts['reporttitle'] + '\"\n'
+    msgCsv += '\"' + reportOpts['reporttitle'] + '\",\n'
     
-    # Column headings - HTML Message
+    # Start column headings for HTML Message
     msgHtml += '<tr>'
 
     # Remove columns we don't need for this report
     # These are already part of the report logic processing & subheaders
     # We won't need to loop through them for the report fields
     rptCols.remove('source')
-   
+
+  
     # Now, generate headings for the columns that are left
     # Some may have been removed in the .rc file configuration, [headings] section
     for col in rptCols:
         msgHtml += report.printTitle(col, 'html')
         msgText += report.printTitle(col, 'text')
         msgCsv += report.printTitle(col, 'csv')
-
 
     # End of column headings row
     msgHtml += '</tr>'
@@ -150,7 +150,6 @@ def runReport(startTime):
                 options = ['displaymessages', 'displaywarnings', 'displayerrors']
                 backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg']
                 titles = ['jobmessages', 'jobwarnings', 'joberrors']
-
                 # Print message/warning/error fields
                 # Each of these spans all the table columns
                 for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
@@ -166,6 +165,7 @@ def runReport(startTime):
     msgText += runningTime + '\n'
     msgCsv += '\"' + runningTime + '\"\n'
 
+    # Return text & HTML messages to main program. It can decide which one it wants to use.
     return msgHtml, msgText, msgCsv
 
 

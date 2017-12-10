@@ -51,6 +51,7 @@ rptColumns = []
 # Provide a field format specification for the titles in the report
 def printTitle(fld, typ):
     outStr = None
+    globs.log.write(3, 'report.printTitle({}, {})'.format(fld, typ))
 
     # Need to see if we should add the size display after the heading  (e.g. '(MB)' or '(GB)')
     # This is kind of a cheat, but there is no other more elegant way of doing it
@@ -71,6 +72,7 @@ def printTitle(fld, typ):
     elif typ == 'csv':
         outStr = '\"{:{fmt}}\",'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][4])
 
+    globs.log.write(3, 'outStr = {}'.format(outStr))
     return outStr
 
 # Provide a field format specification for the data fields (cells) in the report

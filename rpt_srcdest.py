@@ -23,9 +23,9 @@ import drdatetime
 import report
 import options
 
-
+# Report grouped by source/destination
 def runReport(startTime):
-    globs.log.write(1, 'report1()')
+    globs.log.write(1, 'rpt_srcdest()')
 
     # Get header and column info
     nFields = len(report.rptColumns)        # Number of fields used in this report
@@ -49,7 +49,7 @@ def runReport(startTime):
     msgHtml += '<tr>'
 
     # Remove columns we don't need for this report
-    # These are already part of the report logic processing & subheaders, so
+    # These are already part of the report logic processing & subheaders
     # we won't need to loop through them for the report fields
     rptCols.remove('source')
     rptCols.remove('destination')
