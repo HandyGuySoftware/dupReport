@@ -46,7 +46,7 @@ fldDefs = {
     }
 
 # List of columns in the report
-rptColumns = []
+rptColumns = ['source', 'destination', 'date', 'time', 'files', 'filesplusminus', 'size',  'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result', 'jobmessages', 'jobwarnings', 'joberrors']
 
 # Provide a field format specification for the titles in the report
 def printTitle(fld, typ):
@@ -159,7 +159,7 @@ class Report:
         titTmp = {}
         
         # Read name/value pairs from [report] section
-        self.reportOpts = globs.optionManager.getSection('report')
+        self.reportOpts = globs.optionManager.getRcSection('report')
 
         # Fix some of the data field types
         self.reportOpts['border'] = int(self.reportOpts['border'])    # integer
@@ -186,12 +186,13 @@ class Report:
             globs.closeEverythingAndExit(1)
 
         # Get list of existing headers in [headings] section
-        titTmp = globs.optionManager.getSection('headings')
+        titTmp = globs.optionManager.getRcSection('headings')
         if titTmp is not None:
             for name in titTmp:
-                if titTmp[name] != '':      # Empty string means column is not to be displayed
+                if titTmp[name] == '':  # Empty string means column is not to be displayed
+                    rptColumns.remove(name)
+                else:
                     self.reportTits[name] = titTmp[name]
-                    rptColumns.append(name)
 
         # Remove these columns from the column list. We deal with these separately in the reports
         rptColumns.remove('jobmessages')

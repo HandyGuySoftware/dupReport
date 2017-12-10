@@ -339,8 +339,8 @@ class OptionManager:
         self.parser.add_section(section)
         return None
 
-    def getSection(self, section):
-        globs.log.write(1, 'options.getSection({})'.format(section))
+    def getRcSection(self, section):
+        globs.log.write(1, 'options.getRcSection({})'.format(section))
         vals = {}
 
         if self.parser.has_section(section):
@@ -352,8 +352,8 @@ class OptionManager:
 
         return vals
 
-    def getSectionDateTimeFmt(self, src, dest):
-        globs.log.write(1, 'options.getSectionDateTimeFmt({}, {})'.format(src, dest))
+    def getRcSectionDateTimeFmt(self, src, dest):
+        globs.log.write(1, 'options.getRcSectionDateTimeFmt({}, {})'.format(src, dest))
 
         # Set defaults to global options
         dtfmt = globs.opts['dateformat']

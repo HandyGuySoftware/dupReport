@@ -386,7 +386,7 @@ class EmailServer:
                 dateParts['endTimestamp'] = statusParts['endTimeStr'][match.regs[0][0]+1:match.regs[0][1]-1]
             else:  # No timestamp found. Calculate timestamp
                 #dt, tm = drdatetime.getDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
-                dt, tm = globs.optionManager.getSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
+                dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
                 dateParts['endTimestamp'] = drdatetime.toTimestamp(statusParts['endTimeStr'], dfmt=dt, tfmt=tm, utcOffset=msgParts['timezone'])
 
             match = re.search(pat, statusParts['beginTimeStr'])
