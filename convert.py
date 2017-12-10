@@ -56,12 +56,28 @@ def convertRc(oMgr, fromVersion):
         ]
 
     # Now, start adding back in secitons
+    if oMgr.parser.has_section('main') is False:
+        globs.log.write(1, 'Adding [main] section.')
+        oMgr.addRcSection('main')
     globs.log.write(1, 'Updating version number.')
     oMgr.setRcOption('main', 'version', '{}.{}.{}'.format(globs.version[0],globs.version[1],globs.version[2]))
-    globs.log.write(1, 'Adding [report] section.')
-    oMgr.addRcSection('report')
-    globs.log.write(1, 'Adding [headings] section.')
-    oMgr.addRcSection('headings')
+
+    if oMgr.parser.has_section('incoming') is False:
+        globs.log.write(1, 'Adding [incoming] section.')
+        oMgr.addRcSection('incoming')
+
+    if oMgr.parser.has_section('outgoing') is False:
+        globs.log.write(1, 'Adding [outgoing] section.')
+        oMgr.addRcSection('outgoing')
+
+    if oMgr.parser.has_section('report') is False:
+        globs.log.write(1, 'Adding [report] section.')
+        oMgr.addRcSection('report')
+
+    if oMgr.parser.has_section('headings') is False:
+        globs.log.write(1, 'Adding [headings] section.')
+        oMgr.addRcSection('headings')
+
     for fromsection, fromoption, tosection, tooption in optList:
         globs.log.write(1, 'Updating [{}] {} to: [{}] {}'.format(fromsection, fromoption, tosection, tooption))
         value = oMgr.getRcOption(fromsection, fromoption)

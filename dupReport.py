@@ -52,7 +52,7 @@ def initOptions():
     
     # Check if .rc file needs upgrading
     needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
-    if needToUpgrade is True:
+    if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
         globs.log.out('RC file {} is out of date. Needs update from version {} to version {}{}{}.'.format(oMgr.options['rcfilename'], currRcVersion, globs.version[0], globs.version[1], globs.version[2]))
         import convert
         convert.convertRc(oMgr, currRcVersion)
