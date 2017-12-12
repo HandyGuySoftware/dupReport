@@ -28,43 +28,17 @@ def runReport(startTime):
     globs.log.write(1, 'rpt_bydate()')
 
     # Get header and column info
-    nFields = len(report.rptColumns)        # Number of fields used in this report
-    fldDefs = report.fldDefs                # Field definitions table
-    reportOpts = globs.report.reportOpts    # Report Options
-    rptCols = report.rptColumns             # Columns used in this report
-    rptTits = globs.report.reportTits       # Titles for columns in report
+    nFields, fldDefs, reportOpts, rptCols, rptTits = report.initReportVars()
 
-    # Start HTML and text messages
-    # Table border and padding settings
-    msgHtml = '<html><head></head><body><table border={} cellpadding="{}">'.format(reportOpts['border'], reportOpts['padding'])
-    msgText = ''
-    msgCsv = ''
-
-    # Add report title
-    msgHtml += '<tr><td align="center" colspan = "{}" bgcolor="{}"><b>{}</b></td></tr>'.format(nFields, reportOpts['titlebg'], reportOpts['reporttitle'])
-    msgText += reportOpts['reporttitle'] + '\n'
-    msgCsv += '\"' + reportOpts['reporttitle'] + '\",\n'
-
-    # Start column headings for HTML Message
-    msgHtml += '<tr>'
-
+    # Print the report title
+    msgHtml, msgText, msgCsv = report.rptTop(reportOpts, nFields)
+    
     # Remove columns we don't need for this report
     # These are already part of the report logic processing & subheaders
     # We won't need to loop through them for the report fields
     rptCols.remove('date')
-
-
-    # Now, generate headings for the columns that are left
-    # Some may have been removed in the .rc file configuration, [headings] section
-    for col in rptCols:
-        msgHtml += report.printTitle(col, 'html')
-        msgText += report.printTitle(col, 'text')
-        msgCsv += report.printTitle(col, 'csv')
-
-    # End of column headings row
-    msgHtml += '</tr>'
-    msgText += '\n'
-    msgCsv += '\n'
+    # Print column titles
+    msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
     # Get earliest & latest timestamps in the report table
     dbCursor = globs.db.execSqlStmt("SELECT min(timestamp) FROM report")    # Smallest timestamp in the report table
@@ -97,13 +71,13 @@ def runReport(startTime):
                     # Substitute subheading keywords
                     subHead = subHead.replace('#DATE#', currentDate)
             if subHead is None or subHead == '':
-                msgHtml += '<tr><td colspan={} align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['date'], currentDate)
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['date'], currentDate)
                 msgText += '***** {}: {} *****\n'.format(rptTits['date'], currentDate)
                 msgCsv += '\"***** {}: {} *****\"\n'.format(rptTits['date'], currentDate)
             else:
-                msgHtml += '<tr><td colspan={} align="center" bgcolor="{}">{}</td></tr>'.format(nFields, reportOpts['subheadbg'], subHead)
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>'.format(nFields, reportOpts['subheadbg'], subHead)
                 msgText += '***** {} *****\n'.format(subHead)
-                msgCsv += '\"***** {} *****\",\n'.format(subHead)
+                msgCsv += '\"***** {} *****\"\n'.format(subHead)
 
         for source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
             addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
@@ -139,7 +113,7 @@ def runReport(startTime):
                 if ((fld != '') and (reportOpts[opt] == True)):
                     msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                     msgText += '{}: {}\n'.format(rptTits[tit], fld)
-                    msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
+                    msgCsv += '\"{}: {}\"\n'.format(rptTits[tit], fld)
 
 
         # Move current timestamp ahead 1 second
@@ -158,7 +132,7 @@ def runReport(startTime):
         globs.log.write(3, 'seenRows=[{}]'.format(seenRows))
         if seenRows == 0:   # Didn't get any rows for source/Destination pair. Add to report
             if hdrFlag == 0:
-                msgHtml += '<tr><td colspan={} align="center" bgcolor="{}"><b>Missing Backup Sets</b></td></tr>'.format(nFields, reportOpts['subheadbg'])
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>Missing Backup Sets</b></td></tr>'.format(nFields, reportOpts['subheadbg'])
                 msgText += 'Missing Back Sets\n'
                 msgCsv += '\"Missing Back Sets\"\n'
                 hdrFlag = 1
@@ -169,16 +143,12 @@ def runReport(startTime):
             diff = (now-then).days
 
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr><td colspan={} align="center">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>'.format(nFields, source, destination, lastDateStr, lastTimeStr, diff)
+            msgHtml += '<tr><td colspan="{}" align="center">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>'.format(nFields, source, destination, lastDateStr, lastTimeStr, diff)
             msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
             msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
 
-    # Add final rows & close
-    runningTime = 'Running Time: {:.3f} seconds.'.format(time.time() - startTime)
-    msgHtml += '<tr><td colspan={} align="center"><b>{}</b></td></tr>'.format(nFields, runningTime)
-    msgHtml += '</table></body></html>'
-    msgText += runningTime + '\n'
-    msgCsv += '\"' + runningTime + '\"\n'
+    # Add report footer
+    msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)
 
     # Return text & HTML messages to main program. It can decide which one it wants to use.
     return msgHtml, msgText, msgCsv

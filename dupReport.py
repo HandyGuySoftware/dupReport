@@ -39,8 +39,6 @@ def initOptions():
     globs.log.write(1, 'initOptions()')
 
     # Set program path
-    globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
-    globs.log.write(3,'progPath={}'.format(globs.progPath))
 
     # Create OptionManager instance
     oMgr = options.OptionManager()
@@ -119,12 +117,17 @@ def validateOutputFiles():
 
 
 if __name__ == "__main__":
+
+    # Set program home directory
+    globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
+
     # Open a LogHandler object. 
     # We don't have a log file named yet, but we still need to capture output information
     # See LogHandler class description for more details
     globs.log = log.LogHandler()
     globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
     globs.log.write(1,'Python version {}'.format(sys.version))
+    globs.log.write(3,'Program Path={}'.format(globs.progPath))
     # Check if we're running a compatible version of Python. Must be 3.0 or higher
     if sys.version_info.major < 3:
         globs.log.err('dupReport requires Python 3.0 or higher to run. Your installation is on version {}.{}.{}.\nPlease install a newer version of Python.'.format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))

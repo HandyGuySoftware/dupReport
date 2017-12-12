@@ -84,6 +84,12 @@ def convertRc(oMgr, fromVersion):
         oMgr.clearRcOption(fromsection, fromoption)
         oMgr.setRcOption(tosection, tooption, value)
 
+    # Adjusted format of sizeDisplay in version 2.1
+    szDisp = oMgr.getRcOption('report', 'sizedisplay')
+    if szDisp == 'none':
+        oMgr.setRcOption('report', 'sizedisplay', 'byte')
+        
+
     globs.log.write(1, 'Writing new .rc file.')
     oMgr.updateRc()
 
@@ -97,7 +103,7 @@ def convertDb(fromVersion):
     globs.db.execSqlStmt("UPDATE version SET major = 1, minor = 0, subminor = 1 WHERE desc = 'database'")
 
     sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, examinedFiles int, examinedFilesDelta int, \
-    sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult int, messages varchar(255), \
+    sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
     warnings varchar(255), errors varchar(255), failedMsg varchar(100))"
     globs.db.execSqlStmt(sqlStmt)
     

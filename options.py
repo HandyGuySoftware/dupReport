@@ -228,7 +228,7 @@ class OptionManager:
         if self.cmdLineArgs.logpath != None:  #logPath specified on command line
             self.options['logpath'] = '{}/{}'.format(self.cmdLineArgs.logpath, globs.logName)
         elif self.options['logpath'] == '':  # No command line & not specified in RC file
-            self.options['logpath'] = '{}/{}'.format(os.path.dirname(path, globs.rcName), globs.logName)
+            self.options['logpath'] = '{}/{}'.format(globs.progPath, globs.logName)
         else:  # Path specified in rc file. Add dbname for full path
             self.options['logpath'] = '{}/{}'.format(self.options['logpath'], globs.logName)
 

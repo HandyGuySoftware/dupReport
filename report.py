@@ -147,6 +147,55 @@ def sendReportToFile(msgH, msgT, msgC = None):
 
     return
 
+# Initialize bacic report varibles for individual reports
+def initReportVars():
+    # Get header and column info
+    return len(rptColumns), fldDefs, globs.report.reportOpts, rptColumns, globs.report.reportTits
+
+def rptTop(rOpts, nFlds):
+    # Start HTML and text messages
+    # Table border and padding settings
+    msgHtml = '<html><head></head><body><table border={} cellpadding="{}">'.format(rOpts['border'], rOpts['padding'])
+    msgText = ''
+    msgCsv = ''
+
+    # Add report title
+    msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>'.format(nFlds, rOpts['titlebg'], rOpts['reporttitle'])
+    msgText += '{}\n'.format(rOpts['reporttitle'])
+    msgCsv += '\"{}\"\n'.format(rOpts['reporttitle'])
+
+    return msgHtml, msgText, msgCsv
+    
+
+def rptPrintTitles(html, text, csv, cols):
+    # Start column headings for HTML Message
+    html += '<tr>'
+
+    # Now, generate headings for the columns that are left
+    # Some may have been removed in the .rc file configuration, [headings] section
+    for col in cols:
+        html += printTitle(col, 'html')
+        text += printTitle(col, 'text')
+        csv += printTitle(col, 'csv')
+
+    # End of column headings row
+    html += '</tr>'
+    text += '\n'
+    csv += '\n'
+
+    return html, text, csv
+
+def rptBottom(html, text, csv, start, nfld):
+
+    # Add final rows & close
+    runningTime = 'Running Time: {:.3f} seconds.'.format(time.time() - start)
+    html += '<tr><td colspan={} align="center"><b>{}</b></td></tr>'.format(nfld, runningTime)
+    html += '</table></body></html>'
+    text += runningTime + '\n'
+    csv += '\"' + runningTime + '\"\n'
+
+    return html, text, csv
+
 
 # Class for report management
 class Report:

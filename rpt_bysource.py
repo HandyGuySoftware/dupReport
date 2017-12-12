@@ -28,43 +28,18 @@ def runReport(startTime):
     globs.log.write(1, 'rpt_bysource()')
 
     # Get header and column info
-    nFields = len(report.rptColumns)        # Number of fields used in this report
-    fldDefs = report.fldDefs                # Field definitions table
-    reportOpts = globs.report.reportOpts    # Report Options
-    rptCols = report.rptColumns             # Columns used in this report
-    rptTits = globs.report.reportTits       # Titles for columns in report
+    nFields, fldDefs, reportOpts, rptCols, rptTits = report.initReportVars()
 
-    # Start HTML and text messages
-    # Table border and padding settings
-    msgHtml = '<html><head></head><body><table border={} cellpadding="{}">'.format(reportOpts['border'], reportOpts['padding'])
-    msgText = ''
-    msgCsv = ''
+    # Print the report title
+    msgHtml, msgText, msgCsv = report.rptTop(reportOpts, nFields)
     
-    # Add report title
-    msgHtml += '<tr><td align="center" colspan = "{}" bgcolor="{}"><b>{}</b></td></tr>'.format(nFields, reportOpts['titlebg'], reportOpts['reporttitle'])
-    msgText += reportOpts['reporttitle'] + '\n'
-    msgCsv += '\"' + reportOpts['reporttitle'] + '\",\n'
-    
-    # Start column headings for HTML Message
-    msgHtml += '<tr>'
-
     # Remove columns we don't need for this report
     # These are already part of the report logic processing & subheaders
     # We won't need to loop through them for the report fields
     rptCols.remove('source')
 
-  
-    # Now, generate headings for the columns that are left
-    # Some may have been removed in the .rc file configuration, [headings] section
-    for col in rptCols:
-        msgHtml += report.printTitle(col, 'html')
-        msgText += report.printTitle(col, 'text')
-        msgCsv += report.printTitle(col, 'csv')
-
-    # End of column headings row
-    msgHtml += '</tr>'
-    msgText += '\n'
-    msgCsv += '\n'
+    # Print column titles
+    msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
     # Select sources from database
     dbCursor = globs.db.execSqlStmt("SELECT DISTINCT source FROM backupsets ORDER BY source")
@@ -79,13 +54,13 @@ def runReport(startTime):
             # Substitute subheading keywords
             subHead = subHead.replace('#SOURCE#', srcKey[0])
         if subHead is None or subHead == '':
-            msgHtml += '<tr><td colspan={} align="center" bgcolor="{}"><b>{}:</b> {}</b></td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['source'], srcKey[0])
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['source'], srcKey[0])
             msgText += '***** {}: {}*****\n'.format(rptTits['source'], srcKey[0])
             msgCsv += '\"***** {}: {}*****\"\n'.format(rptTits['source'], srcKey[0])
         else:
-            msgHtml += '<tr><td colspan={} align="center" bgcolor="{}">{}</td></tr>'.format(nFields, reportOpts['subheadbg'], subHead)
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>'.format(nFields, reportOpts['subheadbg'], subHead)
             msgText += '***** {} *****\n'.format(subHead)
-            msgCsv += '\"***** {} *****\",\n'.format(subHead)
+            msgCsv += '\"***** {} *****\"\n'.format(subHead)
 
         dbCursor = globs.db.execSqlStmt("SELECT destination, lastTimestamp, lastFileCount, lastFileSize FROM backupsets WHERE source = '{}'".format(srcKey[0]))
         destination, lastTimestamp, lastFileCount, lastFileSize = dbCursor.fetchone()
@@ -112,7 +87,7 @@ def runReport(startTime):
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
             msgHtml += '<tr>'
             msgHtml += report.printField('destination', destination, 'html')
-            msgHtml += '<td colspan={} align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, lastDateStr, lastTimeStr, diff)
+            msgHtml += '<td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, lastDateStr, lastTimeStr, diff)
             msgHtml += '</tr>'
 
             msgText += report.printField('destination', destination, 'text')
@@ -158,12 +133,8 @@ def runReport(startTime):
                         msgText += '{}: {}\n'.format(rptTits[tit], fld)
                         msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
        
-    # Add final rows & close
-    runningTime = 'Running Time: {:.3f} seconds.'.format(time.time() - startTime)
-    msgHtml += '<tr><td colspan={} align="center"><b>{}</b></td></tr>'.format(nFields, runningTime)
-    msgHtml += '</table></body></html>'
-    msgText += runningTime + '\n'
-    msgCsv += '\"' + runningTime + '\"\n'
+    # Add report footer
+    msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)
 
     # Return text & HTML messages to main program. It can decide which one it wants to use.
     return msgHtml, msgText, msgCsv

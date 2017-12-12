@@ -16,8 +16,9 @@ class LogHandler:
     def __init__(self):
         self.logFile = None         # Handle to log file, when opened
         self.suppressFlag = False   # Do we want to suppress log output? (Relic from older versions)
-        self.tmpFile = None         # Temp file to hold log output before log file is opened.
         self.defLogLevel = 3        # Default logging level. Will get updated when log is opened
+        self.tmpFile = None         # Temp file to hold log output before log file is opened.
+        self.tmpLogPath = '{}/{}'.format(globs.progPath, globs.tmpName)    # Path fo rtemp log
         return None
 
     def openLog(self, path = None, append = False, level = 1):
@@ -33,7 +34,7 @@ class LogHandler:
                 # Now,copy any existing data from the temp file
                 if self.tmpFile is not None:
                     self.tmpFile.close()
-                    self.tmpFile = open(globs.tmpName, 'r')
+                    self.tmpFile = open(self.tmpLogPath, 'r')
                     tmpData = self.tmpFile.read()
                     self.logFile.write(tmpData)
                     self.tmpFile.close()
@@ -74,7 +75,7 @@ class LogHandler:
             # Log file hasn't been opened yet. Send output to temp file
             if self.tmpFile is None:
                 # Open a temp file to hold the output
-                self.tmpFile = open(globs.tmpName, 'w')
+                self.tmpFile = open(self.tmpLogPath, 'w')
             logTarget = self.tmpFile
 
         if (msg is not None) and (msg != ''):   # Non-empty message. Good to go...
