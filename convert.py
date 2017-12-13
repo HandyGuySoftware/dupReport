@@ -88,6 +88,7 @@ def convertRc(oMgr, fromVersion):
     szDisp = oMgr.getRcOption('report', 'sizedisplay')
     if szDisp == 'none':
         oMgr.setRcOption('report', 'sizedisplay', 'byte')
+    oMgr.setRcOption('report', 'showsizedisplay', 'true')
         
 
     globs.log.write(1, 'Writing new .rc file.')
