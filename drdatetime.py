@@ -106,8 +106,11 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     ts = datetime.datetime(year, month, day, hour, minute, second).timestamp()
 
     # Apply email's UTC offset to date/time
-    if globs.opts['applyutcoffset'] and utcOffset is not None:
-        ts += float(utcOffset)
+    # Need to separate the two 'if' statements because the init routines crash otherwise
+    # (Referencing globs.opts[] before they're set)
+    if utcOffset is not None:
+        if globs.opts['applyutcoffset']:
+            ts += float(utcOffset)
 
     globs.log.write(1,'Date/Time converted to [{}]'.format(ts))
 

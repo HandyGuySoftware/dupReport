@@ -46,8 +46,9 @@ def runReport(startTime):
     srcSet = dbCursor.fetchall()
     globs.log.write(2, 'srcSet=[{}]'.format(srcSet))
         
-    # Loop through backupsets table and get all the potential sources
+    # Loop through backupsets table and get all the potential destinations
     for srcKey in srcSet:
+
         # Add Source title
         subHead = globs.optionManager.getRcOption('report', 'subheading')
         if subHead is not None:
@@ -56,19 +57,14 @@ def runReport(startTime):
         if subHead is None or subHead == '':
             msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], rptTits['source'], srcKey[0])
             msgText += '***** {}: {}*****\n'.format(rptTits['source'], srcKey[0])
-            msgCsv += '\"***** {}: {}*****\"\n'.format(rptTits['source'], srcKey[0])
+            msgCsv += '\"***** {}: {}*****\",\n'.format(rptTits['source'], srcKey[0])
         else:
             msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
             msgText += '***** {} *****\n'.format(subHead)
             msgCsv += '\"***** {} *****\"\n'.format(subHead)
 
-        dbCursor = globs.db.execSqlStmt("SELECT destination, lastTimestamp, lastFileCount, lastFileSize FROM backupsets WHERE source = '{}'".format(srcKey[0]))
-        destination, lastTimestamp, lastFileCount, lastFileSize = dbCursor.fetchone()
-        globs.log.write(2, 'destination=[{}] lastTime=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(destination, lastTimestamp, lastFileCount, lastFileSize))
-
-        sqlStmt = "SELECT destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-            addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors \
-            FROM report WHERE source=\'{}\'".format(srcKey[0])
+        sqlStmt = "SELECT destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, \
+            parsedResult, messages, warnings, errors FROM report WHERE source=\'{}\'".format(srcKey[0])
         if reportOpts['sortby'] == 'destination':
             sqlStmt += ' ORDER BY destination'
         else:
@@ -77,64 +73,73 @@ def runReport(startTime):
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         reportRows = dbCursor.fetchall()
         globs.log.write(3, 'reportRows=[{}]'.format(reportRows))
-        if not reportRows: # No rows found = no recent activity
-            # Calculate days since last activity
-            nowTimestamp = datetime.datetime.now().timestamp()
-            now = datetime.datetime.fromtimestamp(nowTimestamp)
-            then = datetime.datetime.fromtimestamp(lastTimestamp)
-            diff = (now-then).days
 
-            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr>'
-            msgHtml += report.printField('destination', destination, 'html')
-            msgHtml += '<td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, lastDateStr, lastTimeStr, diff)
-            msgHtml += '</tr>\n'
-
-            msgText += report.printField('destination', destination, 'text')
-            msgText += '{}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, lastDateStr, lastTimeStr, diff)
-
-            msgCsv += report.printField('destination', destination, 'csv')
-            msgCsv += '\"{}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, lastDateStr, lastTimeStr, diff)
-        else:
-            # Loop through each new activity for the source/destination and add to report
-            for destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-                addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
-                warnings, errors in reportRows:
+        # Loop through each new activity for the source/destination and add to report
+        for destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+            addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
+            warnings, errors in reportRows:
             
-                # Get date and time from timestamp
-                dateStr, timeStr = drdatetime.fromTimestamp(timestamp)
+            # Get date and time from timestamp
+            dateStr, timeStr = drdatetime.fromTimestamp(timestamp)
 
-                # Print report fields
-                # Each field takes up one column/cell in the table
+            # Print report fields
+            # Each field takes up one column/cell in the table
+            msgHtml += '<tr>'
+
+            # The fill list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
+            titles = ['destination', 'date','time', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added','deleted',  'modified', 'errors', 'result']
+            fields = [destination, dateStr, timeStr, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
+
+            for ttl, fld in zip(titles, fields):
+                msgHtml += report.printField(ttl, fld, 'html')
+                msgText += report.printField(ttl, fld, 'text')
+                msgCsv += report.printField(ttl, fld, 'csv')
+
+            msgHtml += '</tr>\n'
+            msgText += '\n'
+            msgCsv += '\n'
+
+            fields = [messages, warnings, errors ]
+            options = ['displaymessages', 'displaywarnings', 'displayerrors']
+            backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg']
+            titles = ['jobmessages', 'jobwarnings', 'joberrors']
+            # Print message/warning/error fields
+            # Each of these spans all the table columns
+            for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
+                if ((fld != '') and (reportOpts[opt] == True)):
+                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>\n'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                    msgText += '{}: {}\n'.format(rptTits[tit], fld)
+                    msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
+
+
+        # Show inactivity - Look for missing source/dest pairs in report
+        dbCursor = globs.db.execSqlStmt("SELECT destination, lastTimestamp, lastFileCount, lastFileSize FROM backupsets WHERE source = '{}' ORDER BY source".format(srcKey[0]))
+        missingRows = dbCursor.fetchall()
+        for destination, lastTimestamp, lastFileCount, lastFileSize in missingRows:
+            dbCursor = globs.db.execSqlStmt('SELECT count(*) FROM report WHERE source=\"{}\" AND destination=\"{}\"'.format(srcKey[0], destination))
+            countRows = dbCursor.fetchone()
+            if countRows[0] == 0:
+                # Calculate days since last activity
+                nowTimestamp = datetime.datetime.now().timestamp()
+                now = datetime.datetime.fromtimestamp(nowTimestamp)
+                then = datetime.datetime.fromtimestamp(lastTimestamp)
+                diff = (now-then).days
+
+                lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
                 msgHtml += '<tr>'
-
-                # The fill list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
-                titles = ['destination', 'date','time', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added','deleted',  'modified', 'errors', 'result']
-                fields = [destination, dateStr, timeStr, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
-
-                for ttl, fld in zip(titles, fields):
-                    msgHtml += report.printField(ttl, fld, 'html')
-                    msgText += report.printField(ttl, fld, 'text')
-                    msgCsv += report.printField(ttl, fld, 'csv')
-
+                msgHtml += report.printField('destination', destination, 'html')
+                msgHtml += '<td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, lastDateStr, lastTimeStr, diff)
                 msgHtml += '</tr>\n'
-                msgText += '\n'
-                msgCsv += '\n'
 
-                fields = [messages, warnings, errors ]
-                options = ['displaymessages', 'displaywarnings', 'displayerrors']
-                backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg']
-                titles = ['jobmessages', 'jobwarnings', 'joberrors']
-                # Print message/warning/error fields
-                # Each of these spans all the table columns
-                for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
-                    if ((fld != '') and (reportOpts[opt] == True)):
-                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>\n'.format(nFields, reportOpts[bg], rptTits[tit], fld)
-                        msgText += '{}: {}\n'.format(rptTits[tit], fld)
-                        msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
-       
+                msgText += report.printField('destination', destination, 'text')
+                msgText += '{}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(destination, lastDateStr, lastTimeStr, diff)
+
+                msgCsv += report.printField('destination', destination, 'csv')
+                msgCsv += '\"{}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(destination, lastDateStr, lastTimeStr, diff)
+
     # Add report footer
     msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)
+
 
     # Return text & HTML messages to main program. It can decide which one it wants to use.
     return msgHtml, msgText, msgCsv

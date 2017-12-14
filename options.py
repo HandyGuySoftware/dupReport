@@ -237,7 +237,7 @@ class OptionManager:
         self.options['report'] = self.cmdLineArgs.report
         self.options['nomail'] = self.cmdLineArgs.nomail
 
-        # Roll back database?
+        # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
         if self.options['rollback']:
             ret = drdatetime.toTimestamp(self.options['rollback'], self.options['dateformat'], self.options['timeformat'])
