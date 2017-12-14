@@ -570,20 +570,20 @@ dupReport has several formats for reporting that are specified in the “style�
 
 The ‘srcdest’ report, also known as the “classic” report, displays backup jobs in groups of source/destination pairs. Here is an example of the ‘srcdest’ report:
 
-![report_srcdest](report_srcdest.jpg)
+![report_srcdest](/docs/report_srcdest.jpg)
 
 
 
 The 'bydest' report displays backup jobs grouped by destination. Here is an example of the ‘bydest’ report:
-![report_bydest](report_bydest.jpg)
+![report_bydest](/docs/report_bydest.jpg)
 
 
 
 The ‘bysource’ report displays backup jobs grouped by source. Here is an example of the ‘bysource’ report:
-![report_bysource](report_bysource.jpg)
+![report_bysource](/docs/report_bysource.jpg)
 
 
 
 The ‘bydate’ report displays backup jobs grouped by the date the jobs were run. Here is an example of the ‘bydate’ report:
-![report_bydate](report_bydate.jpg)
+![report_bydate](/docs/report_bydate.jpg)
 
