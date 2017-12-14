@@ -54,11 +54,11 @@ def runReport(startTime):
             # Substitute subheading keywords
             subHead = subHead.replace('#DESTINATION#', destKey[0])
         if subHead is None or subHead == '':
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['destination'], destKey[0])
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], rptTits['destination'], destKey[0])
             msgText += '***** {}: {}*****\n'.format(rptTits['destination'], destKey[0])
             msgCsv += '\"***** {}: {}*****\",\n'.format(rptTits['destination'], destKey[0])
         else:
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>'.format(nFields, reportOpts['subheadbg'], subHead)
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
             msgText += '***** {} *****\n'.format(subHead)
             msgCsv += '\"***** {} *****\"\n'.format(subHead)
 
@@ -88,7 +88,7 @@ def runReport(startTime):
             msgHtml += '<tr>'
             msgHtml += report.printField('source', source, 'html')
             msgHtml += '<td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, lastDateStr, lastTimeStr, diff)
-            msgHtml += '</tr>'
+            msgHtml += '</tr>\n'
 
             msgText += report.printField('source', source, 'text')
             msgText += '{}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, lastDateStr, lastTimeStr, diff)
@@ -117,7 +117,7 @@ def runReport(startTime):
                     msgText += report.printField(ttl, fld, 'text')
                     msgCsv += report.printField(ttl, fld, 'csv')
 
-                msgHtml += '</tr>'
+                msgHtml += '</tr>\n'
                 msgText += '\n'
                 msgCsv += '\n'
 
@@ -129,7 +129,7 @@ def runReport(startTime):
                 # Each of these spans all the table columns
                 for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                     if ((fld != '') and (reportOpts[opt] == True)):
-                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>\n'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                         msgText += '{}: {}\n'.format(rptTits[tit], fld)
                         msgCsv += '\"{}: {}\",\n'.format(rptTits[tit], fld)
 

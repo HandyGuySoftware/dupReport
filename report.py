@@ -160,7 +160,7 @@ def rptTop(rOpts, nFlds):
     msgCsv = ''
 
     # Add report title
-    msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>'.format(nFlds, rOpts['titlebg'], rOpts['reporttitle'])
+    msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(nFlds, rOpts['titlebg'], rOpts['reporttitle'])
     msgText += '{}\n'.format(rOpts['reporttitle'])
     msgCsv += '\"{}\"\n'.format(rOpts['reporttitle'])
 
@@ -179,7 +179,7 @@ def rptPrintTitles(html, text, csv, cols):
         csv += printTitle(col, 'csv')
 
     # End of column headings row
-    html += '</tr>'
+    html += '</tr>\n'
     text += '\n'
     csv += '\n'
 
@@ -189,7 +189,7 @@ def rptBottom(html, text, csv, start, nfld):
 
     # Add final rows & close
     runningTime = 'Running Time: {:.3f} seconds.'.format(time.time() - start)
-    html += '<tr><td colspan={} align="center"><b>{}</b></td></tr>'.format(nfld, runningTime)
+    html += '<tr><td colspan={} align="center"><b>{}</b></td></tr>\n'.format(nfld, runningTime)
     html += '</table></body></html>'
     text += runningTime + '\n'
     csv += '\"' + runningTime + '\"\n'

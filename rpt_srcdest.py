@@ -66,12 +66,12 @@ def runReport(startTime):
             # Substitute subheading keywords
             subHead = subHead.replace('#SOURCE#',source).replace('#DESTINATION#', destination)
         if subHead is None or subHead == '':
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {} <b>{}:</b> {}</td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['source'], source, \
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {} <b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], rptTits['source'], source, \
                 rptTits['destination'], destination)
             msgText += '***** {}: {}    {}: {} *****\n'.format(rptTits['source'], source, rptTits['destination'], destination)
             msgCsv += '\"***** {}: {}    {}: {} *****\"\n'.format(rptTits['source'], source, rptTits['destination'], destination)
         else:
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>'.format(nFields, reportOpts['subheadbg'], subHead)
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
             msgText += '***** {} *****\n'.format(subHead)
             msgCsv += '\"***** {} *****\"\n'.format(subHead)
 
@@ -90,7 +90,7 @@ def runReport(startTime):
             diff = (now-then).days
 
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr><td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>'.format(nFields, lastDateStr, lastTimeStr, diff)
+            msgHtml += '<tr><td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, lastDateStr, lastTimeStr, diff)
             msgText += 'No new activity. Last activity on {} at {} ({} days ago)\n'.format(lastDateStr, lastTimeStr, diff)
             msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(lastDateStr, lastTimeStr, diff)
         else:
@@ -115,7 +115,7 @@ def runReport(startTime):
                     msgText += report.printField(ttl, fld, 'text')
                     msgCsv += report.printField(ttl, fld, 'csv')
 
-                msgHtml += '</tr>'
+                msgHtml += '</tr>\n'
                 msgText += '\n'
                 msgCsv += '\n'
 
@@ -127,7 +127,7 @@ def runReport(startTime):
                 # Each of these spans all the table columns
                 for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                     if ((fld != '') and (reportOpts[opt] == True)):
-                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary><p>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary><p>{}</details></td></tr>\n'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                         msgText += '{}: {}\n'.format(rptTits[tit], fld)
                         csvLine = '\"{}: {}\"\n'.format(rptTits[tit], fld).replace('\n', ' ').replace('\r', '') # Need to remove \n & \r because csv truncates after these characters
                         msgCsv += csvLine

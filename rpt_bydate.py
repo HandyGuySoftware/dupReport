@@ -71,11 +71,11 @@ def runReport(startTime):
                     # Substitute subheading keywords
                     subHead = subHead.replace('#DATE#', currentDate)
             if subHead is None or subHead == '':
-                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>'.format(nFields, reportOpts['subheadbg'], rptTits['date'], currentDate)
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], rptTits['date'], currentDate)
                 msgText += '***** {}: {} *****\n'.format(rptTits['date'], currentDate)
                 msgCsv += '\"***** {}: {} *****\"\n'.format(rptTits['date'], currentDate)
             else:
-                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>'.format(nFields, reportOpts['subheadbg'], subHead)
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
                 msgText += '***** {} *****\n'.format(subHead)
                 msgCsv += '\"***** {} *****\"\n'.format(subHead)
 
@@ -99,7 +99,7 @@ def runReport(startTime):
                 msgText += report.printField(ttl, fld, 'text')
                 msgCsv += report.printField(ttl, fld, 'csv')
 
-            msgHtml += '</tr>'
+            msgHtml += '</tr>\n'
             msgText += '\n'
             msgCsv += '\n'
 
@@ -111,7 +111,7 @@ def runReport(startTime):
             # Each of these spans all the table columns
             for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                 if ((fld != '') and (reportOpts[opt] == True)):
-                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>\n'.format(nFields, reportOpts[bg], rptTits[tit], fld)
                     msgText += '{}: {}\n'.format(rptTits[tit], fld)
                     msgCsv += '\"{}: {}\"\n'.format(rptTits[tit], fld)
 
@@ -132,7 +132,7 @@ def runReport(startTime):
         globs.log.write(3, 'seenRows=[{}]'.format(seenRows))
         if seenRows == 0:   # Didn't get any rows for source/Destination pair. Add to report
             if hdrFlag == 0:
-                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>Missing Backup Sets</b></td></tr>'.format(nFields, reportOpts['subheadbg'])
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>Missing Backup Sets</b></td></tr>\n'.format(nFields, reportOpts['subheadbg'])
                 msgText += 'Missing Back Sets\n'
                 msgCsv += '\"Missing Back Sets\"\n'
                 hdrFlag = 1
@@ -143,7 +143,7 @@ def runReport(startTime):
             diff = (now-then).days
 
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr><td colspan="{}" align="center">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>'.format(nFields, source, destination, lastDateStr, lastTimeStr, diff)
+            msgHtml += '<tr><td colspan="{}" align="center">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, source, destination, lastDateStr, lastTimeStr, diff)
             msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
             msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
 
