@@ -39,10 +39,9 @@ dupReport identifies backup jobs as a series of Source/Destination pairs. dupRep
 Note that spaces in job names are not supported, at least by the default pattern matching.
 Source/Destination pairs are specified in dupReport in the following format: 
 
-> ```
-> <Source><delimiter><Destination>
-> ```
-
+```
+<Source><delimiter><Destination>
+```
  
 
 Where:
@@ -135,22 +134,22 @@ Command line options alter the way dupReport operates. Many command line options
 
 dupReport has the following command line options:
 
-| Short Version               | Long Version                    | Description                              |
-| --------------------------- | ------------------------------- | ---------------------------------------- |
-| -h                          | --help                          | Display command line options.            |
-| -r \<rcpath\>               | --rcpath \<rcpath\>             | Sets \<rcpath\> as the directory where the dupReport.rc file is located. \<rcpath\> should point to the directory only, not a full file path specification. |
-| -d \<dbpath\>               | --dbpath \<dbpath\>             | Sets \<dbpath\> as the directory where the dupReport.rc file is located. Overrides the [main] dbpath= option in dupReport.rc file. \<dbpath\> should point to the directory only, not a full file path specification. |
-| -l \<logpath\>              | --logpath \<logpath\>           | Sets \<logpath\> as the directory where the dupReport.log file is located. Overrides the [main] logpath= option in dupReport.rc file. \<logpath\> should point to the directory only, not a full file path specification. |
-| -v {0,1,2, 3}               | --verbose {0,1,2, 3}            | Sets the verbosity of the information in the log file. 1=General program execution info. 2=Program flow and status information. 3=Full debugging output |
-| -a                          | --append                        | Append new logs to existing log file. Overrides [main] logappend= in dupReport.rc file. |
-| -s {‘byte’, ‘mega’, ‘giga’} | --size {‘byte’, ‘mega’, ‘giga’} | Display file sizes in bytes, megabytes, or gigabytes |
-| -i                          | --initdb                        | Erase all information from the database and resets the tables. |
-| -c                          | --collect                       | Collect new emails only and don't run summary report. -c and -t options can not be used together. |
-| -t                          | --report                        | Run summary report only and don't collect emails. -c and -t options can not be used together. |
-| -b \<DateTimeSpec\>         | --rollback \<DateTimeSpec\>     | Roll back database to a specified date and time. \<DateTimeSpec\> must be in one of the following formats: “MM/DD/YY” or “MM/DD/YY HH:MM:SS” The date and time portions of the \<DateTimeSpec\> must be in the format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. See the discussion of the dateformat= and timeformat= options below. |
-| -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>    | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
-| -x                          | --nomail                        | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
-| -m <source> <destination>   | --remove <source> <destination> | Remove a source/destination pair from the database. |
+| Short Version               | Long Version                      | Description                              |
+| --------------------------- | --------------------------------- | ---------------------------------------- |
+| -h                          | --help                            | Display command line options.            |
+| -r \<rcpath\>               | --rcpath \<rcpath\>               | Sets \<rcpath\> as the directory where the dupReport.rc file is located. \<rcpath\> should point to the directory only, not a full file path specification. |
+| -d \<dbpath\>               | --dbpath \<dbpath\>               | Sets \<dbpath\> as the directory where the dupReport.rc file is located. Overrides the [main] dbpath= option in dupReport.rc file. \<dbpath\> should point to the directory only, not a full file path specification. |
+| -l \<logpath\>              | --logpath \<logpath\>             | Sets \<logpath\> as the directory where the dupReport.log file is located. Overrides the [main] logpath= option in dupReport.rc file. \<logpath\> should point to the directory only, not a full file path specification. |
+| -v {0,1,2, 3}               | --verbose {0,1,2, 3}              | Sets the verbosity of the information in the log file. 1=General program execution info. 2=Program flow and status information. 3=Full debugging output |
+| -a                          | --append                          | Append new logs to existing log file. Overrides [main] logappend= in dupReport.rc file. |
+| -s {‘byte’, ‘mega’, ‘giga’} | --size {‘byte’, ‘mega’, ‘giga’}   | Display file sizes in bytes, megabytes, or gigabytes |
+| -i                          | --initdb                          | Erase all information from the database and resets the tables. |
+| -c                          | --collect                         | Collect new emails only and don't run summary report. -c and -t options can not be used together. |
+| -t                          | --report                          | Run summary report only and don't collect emails. -c and -t options can not be used together. |
+| -b \<DateTimeSpec>          | --rollback \<DateTimeSpec>        | Roll back database to a specified date and time. \<DateTimeSpec\> must be in one of the following formats: “MM/DD/YY” or “MM/DD/YY HH:MM:SS” The date and time portions of the \<DateTimeSpec\> must be in the format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. See the discussion of the dateformat= and timeformat= options below. |
+| -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>      | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
+| -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
+| -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source/destination pair from the database. |
 
 
 
