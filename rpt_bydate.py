@@ -37,8 +37,11 @@ def runReport(startTime):
     # These are already part of the report logic processing & subheaders
     # We won't need to loop through them for the report fields
     rptCols.remove('date')
-    # Print column titles
-    msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
+
+    # Print column titles if not printing for each section
+    if reportOpts['repeatheaders'] is False:
+        msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
+
 
     # Get earliest & latest timestamps in the report table
     dbCursor = globs.db.execSqlStmt("SELECT min(timestamp) FROM report")    # Smallest timestamp in the report table
@@ -78,6 +81,11 @@ def runReport(startTime):
                 msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
                 msgText += '***** {} *****\n'.format(subHead)
                 msgCsv += '\"***** {} *****\"\n'.format(subHead)
+
+            # Print column titles if printing for each section
+            if reportOpts['repeatheaders'] is True:
+                msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
+
 
         for source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
             addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \

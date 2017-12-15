@@ -75,6 +75,7 @@ rcParts= [
     ('report','jobmessagebg','#FFFFFF', True),
     ('report','jobwarningbg','#FFFF00', True),
     ('report','joberrorbg','#FF0000', True),
+    ('report','repeatheaders','false', True),
 
     # [headings] section defaults
     ('headings','Source','Source', True),

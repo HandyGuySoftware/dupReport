@@ -38,8 +38,9 @@ def runReport(startTime):
     # We won't need to loop through them for the report fields
     rptCols.remove('destination')
 
-    # Print column titles
-    msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
+    # Print column titles if not printing for each section
+    if reportOpts['repeatheaders'] is False:
+        msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
     # Select destinations from database
     dbCursor = globs.db.execSqlStmt("SELECT DISTINCT destination FROM backupsets ORDER BY destination")
@@ -62,6 +63,10 @@ def runReport(startTime):
             msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
             msgText += '***** {} *****\n'.format(subHead)
             msgCsv += '\"***** {} *****\"\n'.format(subHead)
+
+        # Print column titles if printing for each section
+        if reportOpts['repeatheaders'] is True:
+            msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
         sqlStmt = "SELECT source, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, \
             parsedResult, messages, warnings, errors FROM report WHERE destination=\'{}\'".format(destKey[0])

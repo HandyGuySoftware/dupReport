@@ -217,6 +217,7 @@ class Report:
         self.reportOpts['displaymessages'] = self.reportOpts['displaymessages'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displaywarnings'] = self.reportOpts['displaywarnings'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displayerrors'] = self.reportOpts['displayerrors'].lower() in ('true')         # Convert to boolean
+        self.reportOpts['repeatheaders'] = self.reportOpts['repeatheaders'].lower() in ('true')         # Convert to boolean
 
         # Basic field value checking
         # See if valid report name

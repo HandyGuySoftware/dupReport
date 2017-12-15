@@ -470,6 +470,12 @@ showsizedisplay=true
 Determine whether to show the size indicator ('MB' or 'GB') in the size columns.
 
 ```
+repeatheaders=true
+```
+
+Indicates whether to repeat the column headers for each report section (true) or only at the beginning of the report (false). Default is 'false'
+
+```
 titlebg=#FFFFFF
 ```
 
