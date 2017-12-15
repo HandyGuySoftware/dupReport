@@ -165,6 +165,11 @@ if __name__ == "__main__":
     globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose']))
     globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.opts['dbpath'], globs.opts['rcfilename']))
 
+    # Remove source/destination from database?
+    if globs.opts['remove']:
+        globs.db.removeSrcDest(globs.opts['remove'][0], globs.opts['remove'][1])
+        globs.closeEverythingAndExit(0)
+
     # Roll back the database to a specific date?
     if globs.opts['rollback']:
         globs.db.rollback(globs.opts['rollback'])

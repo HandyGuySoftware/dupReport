@@ -150,6 +150,7 @@ dupReport has the following command line options:
 | -b \<DateTimeSpec\>         | --rollback \<DateTimeSpec\>     | Roll back database to a specified date and time. \<DateTimeSpec\> must be in one of the following formats: “MM/DD/YY” or “MM/DD/YY HH:MM:SS” The date and time portions of the \<DateTimeSpec\> must be in the format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. See the discussion of the dateformat= and timeformat= options below. |
 | -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>    | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
 | -x                          | --nomail                        | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
+| -m <source> <destination>   | --remove <source> <destination> | Remove a source/destination pair from the database. |
 
 
 

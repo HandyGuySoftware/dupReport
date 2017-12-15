@@ -237,6 +237,7 @@ class OptionManager:
         self.options['collect'] = self.cmdLineArgs.collect
         self.options['report'] = self.cmdLineArgs.report
         self.options['nomail'] = self.cmdLineArgs.nomail
+        self.options['remove'] = self.cmdLineArgs.remove
 
         # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
@@ -291,6 +292,7 @@ class OptionManager:
         argParser.add_argument("-b","--rollback", help="Roll back datebase to specified date. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
+        argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
 
         opGroup = argParser.add_mutually_exclusive_group()
         opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")

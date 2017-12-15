@@ -139,7 +139,7 @@ class Database:
 
         return False
 
-    def searchSrcDestPair(self, src, dest):
+    def searchSrcDestPair(self, src, dest, add2Db = True):
         globs.log.write(1, 'Database.searchSrcDestPair({}, {})'.format(src, dest))
         sqlStmt = "SELECT source, destination FROM backupsets WHERE source=\'{}\' AND destination=\'{}\'".format(src, dest)
         dbCursor = self.execSqlStmt(sqlStmt)
@@ -148,12 +148,13 @@ class Database:
             globs.log.write(2, "Source/Destination pair [{}/{}] already in database.".format(src, dest))
             return True
 
-        sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTimestamp) \
-            VALUES ('{}', '{}', 0, 0, 0)".format(src, dest)
-        globs.log.write(3, '{}'.format(sqlStmt))
-        self.execSqlStmt(sqlStmt)
-        self.dbCommit()
-        globs.log.write(2, "Source/Destination pair [{}/{}] added to database".format(src, dest))
+        if add2Db is True:
+            sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTimestamp) \
+                VALUES ('{}', '{}', 0, 0, 0)".format(src, dest)
+            globs.log.write(3, '{}'.format(sqlStmt))
+            self.execSqlStmt(sqlStmt)
+            self.dbCommit()
+            globs.log.write(2, "Source/Destination pair [{}/{}] added to database".format(src, dest))
 
         return False
 
@@ -186,3 +187,25 @@ class Database:
         self.dbCommit()
         
         return None
+
+    # Remove a source/destination pair from the database
+    def removeSrcDest(self, source, destination):
+        globs.log.write(1, 'db.removeSrcDest({}, {})'.format(source, destination))
+
+        exists = self.searchSrcDestPair(source, destination, False)
+        if not exists:
+            globs.log.err('Pair {}{}{} does not exist in database. Check spelling and capitalization then try again.'.format(source, globs.opts['srcdestdelimiter'], destination))
+            return False
+
+        sqlStmt = "DELETE FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"".format(source, destination)
+        dbCursor = self.execSqlStmt(sqlStmt)
+
+        sqlStmt = "DELETE FROM emails WHERE sourceComp = \"{}\" AND destComp = \"{}\"".format(source, destination)
+        dbCursor = self.execSqlStmt(sqlStmt)
+
+        self.dbCommit()
+
+        globs.log.out('Pair {}{}{} removed from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
+
+        return True
+        
