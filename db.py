@@ -10,6 +10,7 @@
 # Import system modules
 import sqlite3
 import sys
+import os
 
 # Import dupReport modules
 import globs
@@ -19,6 +20,10 @@ class Database:
     dbConn = None
     def __init__(self, dbPath):
         globs.log.write(1, 'Database.__init__({})'.format(dbPath))
+
+        # First, see if the database is there. If not, need to create it
+        isThere = os.path.isfile(dbPath)
+
         if self.dbConn:
             globs.log.err('SQLite3 error: trying to reinitialize the database connection. Exiting program.')
             globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
@@ -28,6 +33,9 @@ class Database:
         except sqlite3.Error as err:
             globs.log.err('SQLite3 error connecting to {}: {}. Exiting program.'.format(dbPath, err.args[0]))
             globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
+
+        if not isThere:
+            self.dbInitialize()
         return None
 
     # Close database connection
@@ -109,7 +117,7 @@ class Database:
             modifiedFolders int, modifiedSymlinks int, addedSymlinks int, deletedSymlinks int, partialBackup varchar(30), \
             dryRun varchar(30), mainOperation varchar(30), parsedResult varchar(30), verboseOutput varchar(30), \
             verboseErrors varchar(30), endTimestamp real, \
-            beginTimestamp real, duration varchar(30), messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100))"
+            beginTimestamp real, duration varchar(30), messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100), dbSeen int)"
         self.execSqlStmt(sqlStmt)
         self.execSqlStmt("create index emailindx on emails (messageId)")
         self.execSqlStmt("create index srcdestindx on emails (sourceComp, destComp)")
@@ -208,4 +216,26 @@ class Database:
         globs.log.out('Pair {}{}{} removed from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
 
         return True
+
+    # Purge database of old emails
+    def purgeOldEmails(self):
+        globs.log.write(1, 'db.purgeOldEmails()')
+
+        globs.log.write(2, 'Purging unseen emails')
+        self.execSqlStmt('DELETE FROM emails WHERE dbSeen = 0')
+
+        globs.log.write(2, 'Compacting database')
+        # Need to reset connection isolation level in order to compress database
+        # Why? Not sure, but see https://github.com/ghaering/pysqlite/issues/109 for details
+        isoTmp = self.dbConn.isolation_level
+        self.dbConn.isolation_level = None
+        self.execSqlStmt('VACUUM')
+        self.dbConn.isolation_level = isoTmp    # Re-set isolation level back to previous value
+
+        self.dbCommit()
+
+        return None
+
+
+
         

@@ -112,6 +112,7 @@ def convertDb(fromVersion):
     globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN emailTimestamp real")
     globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN endTimestamp real")
     globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN beginTimestamp real")
+    globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN dbSeen int")
 
     # Clean up bad data left from older versions. Not sure how this happened, but it really screws things up
     globs.db.execSqlStmt("DELETE FROM emails WHERE beginTime > '23:59:59' or endTime > '23:59:59'")

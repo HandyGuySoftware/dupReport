@@ -60,7 +60,6 @@ lineParts = [
     ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('details','Details: .*', re.MULTILINE|re.DOTALL, 1),
-    #('failed', 'Failed: .*', 0, 1),
     ('failed', 'Failed: .*', re.MULTILINE|re.DOTALL, 1),
     ]
 
@@ -263,10 +262,10 @@ class EmailServer:
             sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, \
             modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, \
             dryRun, mainOperation, parsedResult, verboseOutput, verboseErrors, endTimestamp, \
-            beginTimestamp, duration, messages, warnings, errors) \
+            beginTimestamp, duration, messages, warnings, errors, dbSeen) \
             VALUES \
             ('{}', '{}', '{}', {}, {}, {}, {}, {}, {}, {}, {},{},{},{},{},{},{},{},{},{},{}, \
-            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\")".format(mParts['messageId'], \
+            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\", 1)".format(mParts['messageId'], \
             mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
             sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
             sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
@@ -303,7 +302,6 @@ class EmailServer:
 
         # Get Message ID
         decode = email.header.decode_header(msg['Message-Id'])[0]
-        #globs.log.write(3, 'decode=[{}]'.format(decode))
         msgParts['messageId'] = decode[0]
         if (type(msgParts['messageId']) is not str):  # Email encoded as a byte object - See Issue #14
             msgParts['messageId'] = msgParts['messageId'].decode('utf-8')
@@ -311,6 +309,9 @@ class EmailServer:
 
         # See if the record is already in the database, meaning we've seen it before
         if globs.db.searchForMessage(msgParts['messageId']):    # Is message already in database?
+            # Mark the email as being seen in the database
+            globs.db.execSqlStmt('UPDATE emails SET dbSeen = 1 WHERE messageId = \"{}\"'.format(msgParts['messageId']))
+            globs.db.dbCommit()
             return None, None
 
         # Message not yet in database. Proceed

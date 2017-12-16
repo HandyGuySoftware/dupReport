@@ -40,6 +40,7 @@ rcParts= [
     ('main','warnoncollect','false', True),
     ('main','applyutcoffset','false', True),
     ('main','show24hourtime', 'true', True),
+    ('main','purgedb', 'false', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -205,6 +206,7 @@ class OptionManager:
         self.options['warnoncollect'] = self.options['warnoncollect'].lower() in ('true')   # boolean
         self.options['applyutcoffset'] = self.options['applyutcoffset'].lower() in ('true')   # boolean
         self.options['show24hourtime'] = self.options['show24hourtime'].lower() in ('true')   # boolean
+        self.options['purgedb'] = self.options['purgedb'].lower() in ('true')   # boolean
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
@@ -217,6 +219,7 @@ class OptionManager:
             restart = True
 
         # Now, override with command line options
+        #
         # Database Path - default stored in globs.dbName
         if self.cmdLineArgs.dbpath != None:  # dbPath specified on command line
             self.options['dbpath'] = '{}/{}'.format(args.dbpath, globs.dbName) 
@@ -249,6 +252,8 @@ class OptionManager:
 
         if self.cmdLineArgs.verbose != None:
             self.options['verbose'] = self.cmdLineArgs.verbose
+        if self.cmdLineArgs.purgedb == True:
+            self.options['purgedb'] = self.cmdLineArgs.purgedb
         self.options['logappend'] = self.cmdLineArgs.append
         self.options['initdb'] = self.cmdLineArgs.initdb
         
@@ -293,6 +298,7 @@ class OptionManager:
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
         argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
+        argParser.add_argument("-p", "--purgedb", help="Purge emails that are no longer on the server from the database. Same as [main]purgedb=true in rc file.", action="store_true")
 
         opGroup = argParser.add_mutually_exclusive_group()
         opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")

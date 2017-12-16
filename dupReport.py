@@ -74,24 +74,6 @@ def initOptions():
     if validateOutputFiles() is False:
         return False
 
-    # Check if the DB exists or needs initializion
-    # Check if either db file does not yet exist or forced db initialization
-    globs.db = db.Database(globs.opts['dbpath'])
-    if globs.opts['initdb'] is True:    
-        # Forced initialization from command line
-        globs.log.write(1, 'Database {} needs initializing.'.format(globs.opts['dbpath']))
-        globs.db.dbInitialize()
-        globs.log.write(1, 'Database {} initialized. Continue processing.'.format(globs.opts['dbpath']))
-    else:   # Check for DB version
-        needToUpgrade, currDbVersion = globs.db.checkDbVersion()
-        if needToUpgrade is True:
-            import convert
-            globs.log.out('Need to upgrade database {} from version {} to version {}{}{}'.format(globs.opts['dbpath'], currDbVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
-            convert.convertDb(currDbVersion)
-            globs.db.dbClose()
-            globs.log.out('Database file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
-
-    globs.db.dbClose() # Done with DB for now. We'll reopen it properly later.
     globs.log.write(1, 'Program initialization complete. Continuing program.')
 
     return True
@@ -160,6 +142,18 @@ if __name__ == "__main__":
 
     # Open SQLITE database
     globs.db = db.Database(globs.opts['dbpath'])
+    if globs.opts['initdb'] is True:    
+        # Forced initialization from command line
+        globs.log.write(1, 'Database {} needs initializing.'.format(globs.opts['dbpath']))
+        globs.db.dbInitialize()
+        globs.log.write(1, 'Database {} initialized. Continue processing.'.format(globs.opts['dbpath']))
+    else:   # Check for DB version
+        needToUpgrade, currDbVersion = globs.db.checkDbVersion()
+        if needToUpgrade is True:
+            import convert
+            globs.log.out('Need to upgrade database {} from version {} to version {}{}{}'.format(globs.opts['dbpath'], currDbVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+            convert.convertDb(currDbVersion)
+            globs.log.out('Database file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
 
     # Write startup information to log file
     globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose']))
@@ -187,6 +181,11 @@ if __name__ == "__main__":
 
     if (globs.opts['collect'] or not globs.opts['report']):
         # Either we're just collecting or not just reporting
+
+        # Prep email list for potential purging (-p option or [main]purgedb=true)
+        globs.db.execSqlStmt('UPDATE emails SET dbSeen = 0')
+        globs.db.dbCommit()
+
         # Get new messages on server
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
@@ -195,8 +194,8 @@ if __name__ == "__main__":
                 globs.inServer.processMessage(nxtMsg)
                 nxtMsg = globs.inServer.getNextMessage()
 
-    # Either we're just reporting or not just collecting
     if (globs.opts['report'] or not globs.opts['collect']):
+        # Either we're just reporting or not just collecting
         # All email has been collected. Create the report
         globs.report = report.Report()
         globs.report.extractReportData()
@@ -227,6 +226,10 @@ if __name__ == "__main__":
     if not globs.opts['nomail'] and not globs.opts['collect']: 
         # Send email to SMTP server
         globs.outServer.sendEmail(msgHtml, msgText)
+
+    # Do we need to purge the database?
+    if globs.opts['purgedb'] == True:
+        globs.db.purgeOldEmails()
 
     globs.log.write(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
 

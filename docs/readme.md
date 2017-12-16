@@ -42,7 +42,7 @@ Source/Destination pairs are specified in dupReport in the following format:
 ```
 <Source><delimiter><Destination>
 ```
- 
+
 
 Where:
 
@@ -150,6 +150,7 @@ dupReport has the following command line options:
 | -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>      | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
 | -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
 | -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source/destination pair from the database. |
+| -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
 
 
 
@@ -266,6 +267,12 @@ show24hourtime=false
 ```
 
  If true, times will be displayed in 24-hour notation. Otherwise, dupReport will use 12-hour, AM/PM notation.
+
+```
+purgedb=true
+```
+
+If true, emails in the database that are no longer found on the incoming email server will be purged from the database and the database will be compacted. **NOTE:** Any source-destination pairs referenced in purged emails will remain in the database in case future emails for those pairs come in. To remove obsolete source-destination pairs from the database, use the -m option.
 
 ### [incoming] section
 
