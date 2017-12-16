@@ -151,12 +151,12 @@ class Database:
             return True
 
         if add2Db is True:
-            sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTimestamp) \
-                VALUES ('{}', '{}', 0, 0, 0)".format(src, dest)
+            sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTimestamp, noBackupWarn) \
+                VALUES ('{}', '{}', 0, 0, 0)".format(src, dest,)
             globs.log.write(3, '{}'.format(sqlStmt))
             self.execSqlStmt(sqlStmt)
             self.dbCommit()
-            globs.log.write(2, "Source/Destination pair [{}/{}] added to database".format(src, dest))
+            globs.log.write(2, "Source/Destination pair [{}/{}] added to database".format(src, dest, globs.opts['nobackupwarn']))
 
         return False
 
