@@ -10,6 +10,7 @@
 # Import system modules
 import re
 import datetime
+import time
 
 # Import dupReport modules
 import globs
