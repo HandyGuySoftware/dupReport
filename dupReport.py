@@ -231,7 +231,7 @@ if __name__ == "__main__":
         globs.outServer.sendEmail(msgHtml, msgText)
         
     # DC Check for backups that are inactive.
-    if int(globs.opts['nobackupwarn']) > 0:
+    if globs.opts['nobackupwarn'] > 0:
         globs.db.create_no_backup_warn()
 
     # DC Purge database emails entries.
