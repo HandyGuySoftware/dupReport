@@ -170,6 +170,11 @@ if __name__ == "__main__":
         globs.db.removeSrcDest(globs.opts['remove'][0], globs.opts['remove'][1])
         globs.closeEverythingAndExit(0)
 
+    # Update backupset with new nobackupwarn
+    if globs.opts['upnobackupwarn']:
+         globs.db.update_backupset_nobackupwarn(globs.opts['upnobackupwarn'][0], globs.opts['upnobackupwarn'][1], globs.opts['upnobackupwarn'][2])
+         globs.closeEverythingAndExit(0)
+
     # Roll back the database to a specific date?
     if globs.opts['rollback']:
         globs.db.rollback(globs.opts['rollback'])
