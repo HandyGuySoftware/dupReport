@@ -190,6 +190,8 @@ if __name__ == "__main__":
         # Get new messages on server
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
+            # DC Reset purgedbemail flag
+            sqlStmt="UPDATE emails SET emailFound = 0"
             nxtMsg = globs.inServer.getNextMessage()
             while nxtMsg is not None:
                 globs.inServer.processMessage(nxtMsg)
@@ -227,6 +229,14 @@ if __name__ == "__main__":
     if not globs.opts['nomail'] and not globs.opts['collect']: 
         # Send email to SMTP server
         globs.outServer.sendEmail(msgHtml, msgText)
+        
+    # DC Check for backups that are inactive.
+    if int(globs.opts['nobackupwarn']) > 0:
+        globs.db.create_no_backup_warn()
+
+    # DC Purge database emails entries.
+    if globs.opts['purgedbemail'] == 'true':
+        globs.db.purgedbemail()
 
     globs.log.write(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
 
