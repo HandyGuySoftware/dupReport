@@ -109,7 +109,7 @@ class Database:
             modifiedFolders int, modifiedSymlinks int, addedSymlinks int, deletedSymlinks int, partialBackup varchar(30), \
             dryRun varchar(30), mainOperation varchar(30), parsedResult varchar(30), verboseOutput varchar(30), \
             verboseErrors varchar(30), endTimestamp real, \
-            beginTimestamp real, duration varchar(30), messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100))"
+            beginTimestamp real, duration varchar(30), messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100), emailFound int)"
         self.execSqlStmt(sqlStmt)
         self.execSqlStmt("create index emailindx on emails (messageId)")
         self.execSqlStmt("create index srcdestindx on emails (sourceComp, destComp)")
@@ -121,7 +121,7 @@ class Database:
 
         # backup sets contains information on all source-destination pairs in the backups
         self.execSqlStmt("create table backupsets (source varchar(20), destination varchar(20), lastFileCount integer, lastFileSize integer, \
-            lastTimestamp real)")
+            lastTimestamp real, lastBackupstamp real, noBackupwarn int)")
 
         self.dbCommit()
         return None
@@ -134,6 +134,8 @@ class Database:
         dbCursor = self.execSqlStmt(sqlStmt)
         idExists = dbCursor.fetchone()
         if idExists:
+            sqlStmt = "UPDATE emails SET emailFound = 1 WHERE messageId=\'{}\'".format(msgID)
+            self.execSqlStmt(sqlStmt)           
             globs.log.write(2,'Message [{}] already in email database'.format(msgID))
             return True
 
@@ -208,4 +210,58 @@ class Database:
         globs.log.out('Pair {}{}{} removed from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
 
         return True
-        
+    # Create create_no_backup_warn section
+    def create_no_backup_warn(self):
+    # Check database for inactive backups
+        # Get all source / dest pairs with backup warning enabled
+        sqlStmt="SELECT source, destination, noBackupwarn FROM backupsets WHERE noBackupwarn > 0"
+        dbCursor = self.execSqlStmt(sqlStmt)
+        results = dbCursor.fetchall()
+        for row in results:
+             source = row[0]
+             dest = row[1]
+             nobackup = row[2]
+             # Now lets see who isn't being backed up
+             sqlStmt="SELECT lastBackupstamp FROM backupsets WHERE source = '{}' AND destination ='{}' AND lastBackupstamp <= {} - {} * 86400".format(source,dest,drdatetime.currenttimestamp(),nobackup)
+             dbCursor = self.execSqlStmt(sqlStmt)
+             results2 = dbCursor.fetchall()
+             # Compile emsil reports and send
+             for row2 in results2:
+                  timesincebackup = int((drdatetime.currenttimestamp() - row2[0]) / 86000)
+                  msgText=''
+                  subj = "BACKUP WARNING {}{}{} not being backed up".format(source,globs.opts['srcdestdelimiter'],dest)
+                  msgHtml='<html><head></head><body><table border={} cellpadding="{}">\n'.format(1,5)
+                  msgHtml += '<tr><td bgcolor="#FF0000" align="center" colspan = "11"><b>Backup Warning for {}{}{}</b></td></tr>\n'.format(source,globs.opts['srcdestdelimiter'],dest)
+                  msgHtml += '<tr><td align="center"> System has not been backed up in the last {} days!<br>'.format(timesincebackup)
+                  msgHtml += "If this computer hasn't been used in {} days, no action is required.</td></tr>\n".format(timesincebackup)
+                  msgHtml += '<tr><td bgcolor="#E6E6E6" align="center">Last Backup was on {} {}!</td></tr>\n'.format(drdatetime.fromTimestamp(row2[0])[0],drdatetime.fromTimestamp(row2[0])[1])
+                  msgHtml += '</table></body></html>'
+                  msgText += 'Backup Warning for {}{}{}!\n\n'.format(source,globs.opts['srcdestdelimiter'],dest)
+                  msgText += 'System has not been backed up in the last {} days!\n'.format(timesincebackup)
+                  msgText += 'Last Backup was on {}!\n\n'.format(drdatetime.fromTimestamp(row2[0])[0],drdatetime.fromTimestamp(row2[0])[1])
+                  msgText += "If this computer hasn't been used in {} days, no action is required.\n".format(timesincebackup)
+                  globs.outServer.sendnobackupEmail(subj, msgHtml, msgText)
+
+    # DC Delete all emails flagged as not on mail server!
+
+    def purgedbemail(self):
+         sqlStmt="DELETE FROM emails WHERE emailFound = 0"
+         self.execSqlStmt(sqlStmt)
+         self.dbCommit()
+
+    def update_backupset_nobackupwarn(self, source, destination, update_noBackupwarn):
+        globs.log.write(1, 'db.update_backupset_nobackupwarn({}, {})'.format(source, destination))
+
+        exists = self.searchSrcDestPair(source, destination, False)
+        if not exists:
+            globs.log.err('Pair {}{}{} does not exist in database. Check spelling and capitalization then try again.'.format(source, globs.opts['srcdestdelimiter'], destination,updaet_noBackupwarn))
+            return False
+
+        sqlStmt = "UPDATE backupsets SET noBackupwarn = {} WHERE source = \"{}\" AND destination = \"{}\"".format(update_noBackupwarn,source, destination)
+        dbCursor = self.execSqlStmt(sqlStmt)
+
+        self.dbCommit()
+
+        globs.log.out('No backup Warning as been updated for {}{}{}..'.format(source, globs.opts['srcdestdelimiter'], destination))
+
+        return True		 
