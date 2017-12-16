@@ -263,10 +263,10 @@ class EmailServer:
             sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, \
             modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, \
             dryRun, mainOperation, parsedResult, verboseOutput, verboseErrors, endTimestamp, \
-            beginTimestamp, duration, messages, warnings, errors) \
+            beginTimestamp, duration, messages, warnings, errors, emailFound) \
             VALUES \
             ('{}', '{}', '{}', {}, {}, {}, {}, {}, {}, {}, {},{},{},{},{},{},{},{},{},{},{}, \
-            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\")".format(mParts['messageId'], \
+            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\",1)".format(mParts['messageId'], \
             mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
             sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
             sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
@@ -275,6 +275,9 @@ class EmailServer:
             sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
             sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
             sParts['duration'], sParts['messages'], sParts['warnings'], sParts['errors'])
+        # DC 
+        if (globs.opts['collect'] is True):
+             globs.db.execSqlStmt("UPDATE backupsets SET lastBackupstamp=\'{}\' WHERE source=\'{}\' AND destination=\'{}\'".format( mParts['emailTimestamp'],  mParts['sourceComp'], mParts['destComp']))
                 
         globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
         return sqlStmt
@@ -474,3 +477,26 @@ class EmailServer:
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
         self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
 
+ # DC Send no backupwarn email warning
+    def sendnobackupEmail(self, subj, msgHtml, msgText = None):
+
+        # Build email message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subj
+        msg['From'] = globs.opts['outsender']
+        msg['To'] = globs.opts['outreceiver']
+
+        # Record the MIME types of both parts - text/plain and text/html.
+        # Attach parts into message container.
+        # According to RFC 2046, the last part of a multipart message is best and preferred.
+        # So attach text first, then HTML
+        if msgText is not None:
+             msgPart = MIMEText(msgText, 'plain')
+             msg.attach(msgPart)
+        if msgHtml is not None:
+             msgPart = MIMEText(msgHtml, 'html')
+             msg.attach(msgPart)
+
+        # Send the message via local SMTP server.
+        # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
+        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
