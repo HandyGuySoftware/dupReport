@@ -168,3 +168,12 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
 
     
     return retDate, retTime
+
+# Return current timestamp 
+def currenttimestamp():
+    curtimestamp = int(time.time())
+    return curtimestamp
+# Return full date time
+def currentdatereal(curtimestamp):
+    curdatereal = time.strftime("%Y/%m/%d %I:%M:%S %p",time.localtime(curtimestamp))
+    return curdatereal
