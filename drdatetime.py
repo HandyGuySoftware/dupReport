@@ -168,3 +168,7 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
 
     
     return retDate, retTime
+# Return current timestamp
+def currenttimestamp():
+    curtimestamp = int(time.time())
+    return curtimestamp
