@@ -40,6 +40,8 @@ rcParts= [
     ('main','warnoncollect','false', True),
     ('main','applyutcoffset','false', True),
     ('main','show24hourtime', 'true', True),
+    ('main','purgedbemail','false', True),  # DC
+    ('main','nobackupwarn','0', True),  # DC
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
