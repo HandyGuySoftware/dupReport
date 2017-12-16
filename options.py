@@ -40,6 +40,8 @@ rcParts= [
     ('main','warnoncollect','false', True),
     ('main','applyutcoffset','false', True),
     ('main','show24hourtime', 'true', True),
+    ('main','purgedbemail','false', True),
+    ('main','nobackupwarn','0', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -201,6 +203,7 @@ class OptionManager:
         self.options['verbose'] = int(self.options['verbose'])  # integer
         self.options['inport'] = int(self.options['inport'])    # integer
         self.options['outport'] = int(self.options['outport'])  # integer
+        self.options['nobackupwarn'] = int(self.options['nobackupwarn'])  # integer
         self.options['logappend'] = self.options['logappend'].lower() in ('true')   # boolean
         self.options['warnoncollect'] = self.options['warnoncollect'].lower() in ('true')   # boolean
         self.options['applyutcoffset'] = self.options['applyutcoffset'].lower() in ('true')   # boolean
@@ -238,7 +241,8 @@ class OptionManager:
         self.options['report'] = self.cmdLineArgs.report
         self.options['nomail'] = self.cmdLineArgs.nomail
         self.options['remove'] = self.cmdLineArgs.remove
-
+        self.options['upnobackupwarn'] = self.cmdLineArgs.upnobackupwarn
+        
         # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
         if self.options['rollback']:
@@ -293,7 +297,8 @@ class OptionManager:
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
         argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
-
+        argParser.add_argument("-n", "--upnobackupwarn", help="Update a source/destination pair from the database. Format is -m <source> <destination> <days>", nargs=3, action="store")
+        
         opGroup = argParser.add_mutually_exclusive_group()
         opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
         opGroup.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
