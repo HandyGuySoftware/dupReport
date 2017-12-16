@@ -251,3 +251,20 @@ class Database:
          sqlStmt="DELETE FROM emails WHERE emailFound = 0"
          self.execSqlStmt(sqlStmt)
          self.dbCommit()
+
+    def update_backupset_nobackupwarn(self, source, destination, update_noBackupwarn):
+        globs.log.write(1, 'db.update_backupset_nobackupwarn({}, {})'.format(source, destination))
+
+        exists = self.searchSrcDestPair(source, destination, False)
+        if not exists:
+            globs.log.err('Pair {}{}{} does not exist in database. Check spelling and capitalization then try again.'.format(source, globs.opts['srcdestdelimiter'], destination,updaet_noBackup$
+            return False
+
+        sqlStmt = "UPDATE backupsets SET noBackupwarn = {} WHERE source = \"{}\" AND destination = \"{}\"".format(update_noBackupwarn,source, destination)
+        dbCursor = self.execSqlStmt(sqlStmt)
+
+        self.dbCommit()
+
+        globs.log.out('No backup Warning as been updated for {}{}{}..'.format(source, globs.opts['srcdestdelimiter'], destination))
+
+        return True
