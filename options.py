@@ -241,7 +241,7 @@ class OptionManager:
         self.options['report'] = self.cmdLineArgs.report
         self.options['nomail'] = self.cmdLineArgs.nomail
         self.options['remove'] = self.cmdLineArgs.remove
-
+        self.options['upnobackupwarn'] = self.cmdLineArgs.upnobackupwarn
         # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
         if self.options['rollback']:
@@ -296,7 +296,7 @@ class OptionManager:
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
         argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
-
+        argParser.add_argument("-n", "--upnobackupwarn", help="Update a source/destination pair from the database. Format is -m <source> <destination> <days>", nargs=3, action="store")
         opGroup = argParser.add_mutually_exclusive_group()
         opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
         opGroup.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
