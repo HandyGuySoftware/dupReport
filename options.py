@@ -203,6 +203,7 @@ class OptionManager:
         self.options['verbose'] = int(self.options['verbose'])  # integer
         self.options['inport'] = int(self.options['inport'])    # integer
         self.options['outport'] = int(self.options['outport'])  # integer
+        self.options['nobackupwarn'] = int(self.options['nobackupwarn'])  # integer
         self.options['logappend'] = self.options['logappend'].lower() in ('true')   # boolean
         self.options['warnoncollect'] = self.options['warnoncollect'].lower() in ('true')   # boolean
         self.options['applyutcoffset'] = self.options['applyutcoffset'].lower() in ('true')   # boolean
