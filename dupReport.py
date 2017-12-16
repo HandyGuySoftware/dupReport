@@ -169,7 +169,12 @@ if __name__ == "__main__":
     if globs.opts['remove']:
         globs.db.removeSrcDest(globs.opts['remove'][0], globs.opts['remove'][1])
         globs.closeEverythingAndExit(0)
-
+        
+    # Update backupset with new nobackupwarn
+    if globs.opts['upnobackupwarn']:
+         globs.db.update_backupset_nobackupwarn(globs.opts['upnobackupwarn'][0], globs.opts['upnobackupwarn'][1], globs.opts['upnobackupwarn'][2])
+         globs.closeEverythingAndExit(0)
+        
     # Roll back the database to a specific date?
     if globs.opts['rollback']:
         globs.db.rollback(globs.opts['rollback'])
@@ -190,8 +195,11 @@ if __name__ == "__main__":
         # Get new messages on server
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
+            sqlStmt="UPDATE emails SET emailFound = 0"
+            globs.db.execSqlStmt(sqlStmt)
             nxtMsg = globs.inServer.getNextMessage()
             while nxtMsg is not None:
+                globs.db.execSqlStmt(sqlStmt)
                 globs.inServer.processMessage(nxtMsg)
                 nxtMsg = globs.inServer.getNextMessage()
 
@@ -227,7 +235,14 @@ if __name__ == "__main__":
     if not globs.opts['nomail'] and not globs.opts['collect']: 
         # Send email to SMTP server
         globs.outServer.sendEmail(msgHtml, msgText)
+        
+    # DC Check for backups that are inactive.
+    if globs.opts['nobackupwarn'] > 0:
+        globs.db.create_no_backup_warn()
 
+    # DC Purge database emails entries.
+    if globs.opts['purgedbemail'] == 'true':
+        globs.db.purgedbemail()
     globs.log.write(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
 
     # Bye, bye, bye, BYE, BYE!
