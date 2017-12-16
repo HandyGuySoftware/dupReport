@@ -10,6 +10,7 @@
 # Import system modules
 import re
 import datetime
+import time
 
 # Import dupReport modules
 import globs
@@ -168,3 +169,7 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
 
     
     return retDate, retTime
+# Return current timestamp
+def currenttimestamp():
+    curtimestamp = int(time.time())
+    return curtimestamp
