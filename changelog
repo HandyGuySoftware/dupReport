@@ -27,6 +27,7 @@
 - Changed bahavior of -i option (again!). After initialization, if program can continue, it will. Also eliminated undocumented -I option.
 - Ability to remove a source/destination pair from the database if it is no longer in use (-m option)
 - Purge emails that are no longer on the server from the database. (-p option or [main] purgedb in .rc file)
+- Send separate warning email when a backupset has not been seen in a certain number of days ([report] nobackupwarn options)
 
 
 2.0.4

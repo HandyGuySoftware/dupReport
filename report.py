@@ -23,6 +23,7 @@ import os
 import globs
 import db
 import drdatetime
+import options
 
 # fldDefs = Dictionary of field definitions
 fldDefs = {
@@ -196,6 +197,64 @@ def rptBottom(html, text, csv, start, nfld):
 
     return html, text, csv
 
+def pastBackupWarningThreshold(src, dest, nDays, opts):
+    globs.log.write(1,'report.pastBackupWarningThreshold({}, {}, {})'.format(src, dest, nDays))
+
+    srcDest = '{}{}{}'.format(src, globs.opts['srcdestdelimiter'], dest)
+
+    # Look for nobackup warning threshold
+    # First look in pair-specific section
+    # Then look in main section
+    nbwVal = globs.optionManager.getRcOption(srcDest, 'nobackupwarn')
+    if nbwVal is not None:
+        nbwVal = int(nbwVal)    # getRcOption returns a string, we need an int
+    else:   # No pair-specific option. Use the global option from [main]
+        nbwVal = opts['nobackupwarn']
+
+    globs.log.write(3,'nbwVal={}'.format(nbwVal))
+
+    if nbwVal == 0:     # 0 = do not warn on missing backups
+        retVal = False
+    else:
+        if nDays >= nbwVal:     # Past threshold - need to warn
+            retVal = True
+        else:
+            retVal = False
+
+    globs.log.write(3,'retVal={}'.format(retVal))
+    return retVal
+
+
+def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
+    lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
+    srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+
+    subj = globs.optionManager.getRcOption(srcDest, 'nbwsubject')
+    if subj is None:
+        subj = opts['nbwsubject']
+    subj = subj.replace('#SOURCE#',source).replace('#DESTINATION#', destination).replace('#DELIMITER#', globs.opts['srcdestdelimiter']).replace('#DAYS#', str(nDays)).replace('#DATE#', lastDateStr).replace('#TIME#', lastTimeStr)
+
+    warnHtml='<html><head></head><body><table border=\"{}\" cellpadding=\"{}\">\n'.format(opts['border'],opts['padding'])
+    warnHtml += '<tr><td bgcolor="#FF0000" align="center"><b>Backup Warning for {}{}{}</b></td></tr>\n'.format(source, globs.opts['srcdestdelimiter'], destination)
+    warnHtml += '<tr><td bgcolor="#E6E6E6" align="center">Your last backup from {} to {} was on {} at {} - {} days ago.</td></tr>\n'.format(source, destination, lastDateStr,lastTimeStr, nDays)
+    warnHtml += '<tr><td align="center"> {} has not been backed up in the last {} days!<br>'.format(source, nDays)
+    warnHtml += "If {} has been powered off or has been offline for the last {} days, no further action is required.<br>\n".format(source, nDays)
+    warnHtml += 'Your backups will resume the next time {} is brought back online.<br>'.format(source)
+    warnHtml += 'Otherwise, please make sure your Duplicati service is running and/or manually run a backup as soon as possible!</td></tr>\n'
+    warnHtml += '</table></body></html>'
+
+    warnText = 'Backup Warning for {}{}{}!\n\n'.format(source,globs.opts['srcdestdelimiter'],destination)
+    warnText += 'Your last backup from {} to {} was on {} at {} - {} days ago.\n\n'.format(source, destination, lastDateStr,lastTimeStr, nDays)
+    warnText += "If {} has been powered off or has been offline for the last {} days, no further action is required.\n".format(source, nDays)
+    warnText += 'Your backups will resume the next time {} is brought back online.\n'.format(source)
+    warnText += 'Otherwise, please make sure your Duplicati service is running and/or manually run a backup as soon as possible!\n'
+    
+    sender = globs.opts['outsender']
+    receiver = globs.optionManager.getRcOption(srcDest, 'receiver')
+    if receiver is None:
+        receiver = globs.opts['outreceiver']
+
+    return warnHtml, warnText, subj, sender, receiver
 
 # Class for report management
 class Report:
@@ -218,6 +277,8 @@ class Report:
         self.reportOpts['displaywarnings'] = self.reportOpts['displaywarnings'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displayerrors'] = self.reportOpts['displayerrors'].lower() in ('true')         # Convert to boolean
         self.reportOpts['repeatheaders'] = self.reportOpts['repeatheaders'].lower() in ('true')         # Convert to boolean
+        self.reportOpts['nobackupwarn'] = int(self.reportOpts['nobackupwarn'])  # integer
+
 
         # Basic field value checking
         # See if valid report name
@@ -287,7 +348,7 @@ class Report:
                 for endTimeStamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                     filesWithError, parsedResult, warnings, errors, messages in emailRows:
             
-                    # Determine file count & size diffeence from last run
+                    # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount
                     globs.log.write(3, 'examinedFilesDelta = {} - {} = {}'.format(examinedFiles, lastFileCount, examinedFilesDelta))
                     fileSizeDelta = sizeOfExaminedFiles - lastFileSize

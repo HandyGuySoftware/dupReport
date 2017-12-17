@@ -125,11 +125,7 @@ def runReport(startTime):
             countRows = dbCursor.fetchone()
             if countRows[0] == 0:
                 # Calculate days since last activity
-                nowTimestamp = datetime.datetime.now().timestamp()
-                now = datetime.datetime.fromtimestamp(nowTimestamp)
-                then = datetime.datetime.fromtimestamp(lastTimestamp)
-                diff = (now-then).days
-
+                diff = drdatetime.daysSince(lastTimestamp)
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
                 msgHtml += '<tr>'
                 msgHtml += report.printField('source', source, 'html')
@@ -141,6 +137,11 @@ def runReport(startTime):
 
                 msgCsv += report.printField('source', source, 'csv')
                 msgCsv += '\"{}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, lastDateStr, lastTimeStr, diff)
+
+                # See if we need to send a warning email for missing backups
+                if report.pastBackupWarningThreshold(source, destKey[0], diff, reportOpts) is True:
+                    warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destKey[0], diff, lastTimestamp, reportOpts)
+                    globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
 
     # Add report footer
     msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)

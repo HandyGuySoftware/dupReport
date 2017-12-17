@@ -146,7 +146,7 @@ dupReport has the following command line options:
 | -i                          | --initdb                          | Erase all information from the database and resets the tables. |
 | -c                          | --collect                         | Collect new emails only and don't run summary report. -c and -t options can not be used together. |
 | -t                          | --report                          | Run summary report only and don't collect emails. -c and -t options can not be used together. |
-| -b \<DateTimeSpec>          | --rollback \<DateTimeSpec>        | Roll back database to a specified date and time. \<DateTimeSpec\> must be in one of the following formats: “MM/DD/YY” or “MM/DD/YY HH:MM:SS” The date and time portions of the \<DateTimeSpec\> must be in the format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. See the discussion of the dateformat= and timeformat= options below. |
+| -b \<DateTimeSpec>          | --rollback \<DateTimeSpec>        | Roll back database to a specified date and time. \<DateTimeSpec\> must be in the following format: “\<datespec> \<timespec>”, where \<datespec> and \<timespec> are in the same format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. For example, if dateformat="MM/DD/YYYY" and timeformat="HH:MM:SS" \<DateTimeSpec> should be set to "12/17/2017 12:37:45". See the discussion of the dateformat= and timeformat= options below. To roll back the database to the beginning of a day, use "00:00:00" for \<timespec>. |
 | -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>      | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
 | -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
 | -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source/destination pair from the database. |
@@ -512,6 +512,27 @@ joberrorbg=#FF0000
 
 HTML background color for job error messages. (HTML only)
 
+```
+nobackupwarn=5
+```
+
+Sets the threshold of the number of days to go without a backup from a source-destination pair before sending a separate email warning. If nobackupwarn is set to 0 no email notices will be sent. The warning email will be sent to the email address specified by the "outreceiver" option in the [outgoing] section unless overridden by a "receiver=" option in a [source-destination] section. 
+
+```
+nbwsubject = Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days
+```
+
+If the threshold defined by nobackupwarn is reached, the string specified by nbwsubject will be used as the subject of the warning email. This can be overridden on a per backupset basis by adding a nbwsubject= option in a [source-destination] section. 
+
+**Keyword Substitution**: You can supply keywords within the nbwsubject option to customize the way it looks. Available keywords are: 
+
+- \#SOURCE# - The source in a source-destination pair
+- \#DESTINATION# - The destination in a source-destination pair
+- \#DELIMITER# - The delimiter used in a source-destination pair (specified in [main] srcdestdelimiter)
+- \#DAYS# - The number of days since the last backup
+- \#DATE# - The date of the last backup
+- \#TIME# - The time of the last backup
+
 ### [headings] section
 
 The [headings] section contains the default column titles for the fields used in all the dupReport reports. You can alter the headings to suit your tastes. For example, to change the heading for the “size” column from “Size” to “How Big?”, change:
@@ -563,19 +584,39 @@ Specific options can also be set for each source/destination pair in the system.
 [Client-Server]
 ```
 
+Note that the section name must match the Source/Destination pair name ***exactly***, including capitalization and delimiter characters. If there is any difference between the source/destination name and the [source-destination] section name, the program will not be able to match the proper parameters to the correct backup job.
 
-Note that the section name must match the Source/Destination pair name ***exactly***, including capitalization and delimiter characters. If there is any difference between the source/destination name and the .rc file section name, the program will not be able to match the proper parameters to the correct backup job.
-The only options currently recognized in the [source-destination] section are the following:
+Because [source-destination] sections are optional, they must be manually added to the .rc file if they are needed. 
+
+The options currently recognized in the [source-destination] section are:
 
 ```
-[Client-Server]
 dateformat=
 timeformat=
 ```
 
-The allowable values for these options are the same as the dateformat= and timeformat= options in the [main] section. Specifying date and time formats on a per-job basis allows the program to properly parse and sort date and time results from backups that may be running in different locales and using different date/time display formats. If a job-specific report section is not present in the .rc file, the default [main] options will be used.
+The allowable values for these options are the same as the dateformat= and timeformat= options in the [main] section. Specifying date and time formats on a per-job basis allows the program to properly parse and sort date and time results from backups that may be running in different locales and using different date/time display formats. If any of these options are not specified in a [source-destination] section the following fallback options will be used:
 
-The job-specific report section is only applied to the parsing of incoming emails. Dates and times produced in the final report are always formatted according to the default dateformat= and timeformat= options in the [main] section.
+| Option      | Fallback Option    |
+| ----------- | ------------------ |
+| dateformat= | [main] dateformat= |
+| timeformat= | [main] timeformat= |
+
+**NOTE:** dateformat= and timeformat= in a [source-destination] section are only applied to the parsing of incoming emails. Dates and times produced in the final report are always formatted according to the default dateformat= and timeformat= options in the [main] section.
+
+```
+nobackupwarn = 3
+nbwsubject = BACKUP WARNING: #SOURCE##DELIMITER##DESTINATION# not being backed up!
+receiver = person@mailserver.com
+```
+
+These options specify the parameters for warning emails if a backup has not been seen for a period of time. See the descriptions for the [report] section above for allowable values for these options. If any of these options are not specified in a [source-destination] section the following fallback options will be used:
+
+| Option      | Fallback Option         |
+| ----------- | ----------------------- |
+| nobackwarn= | [report] nobackupwarn=  |
+| nbwsubject= | [report] nbwsubject=    |
+| receiver=   | [outgoing] outreceiver= |
 
 ## Report Formats
 

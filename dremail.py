@@ -433,14 +433,26 @@ class EmailServer:
         return msgParts, statusParts
 
     # Send final email result
-    def sendEmail(self, msgHtml, msgText = None):
+    def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):
         globs.log.write(2, 'sendEmail()')
 
         # Build email message
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = globs.report.reportOpts['reporttitle']
-        msg['From'] = globs.opts['outsender']
-        msg['To'] = globs.opts['outreceiver']
+
+        if subject is None:
+            msg['Subject'] = globs.report.reportOpts['reporttitle']
+        else:
+            msg['Subject'] = subject
+
+        if sender is None:
+            msg['From'] = globs.opts['outsender']
+        else:
+            msg['From'] = sender
+
+        if receiver is None:
+            msg['To'] = globs.opts['outreceiver']
+        else:
+            msg['To'] = receiver
 
         # Record the MIME types of both parts - text/plain and text/html.
         # Attach parts into message container.
@@ -455,7 +467,7 @@ class EmailServer:
 
         # Send the message via local SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
+        self.server.sendmail(sender, receiver, msg.as_string().encode('utf-8'))
 
     # Send email for errors
     def sendErrorEmail(self, errText):

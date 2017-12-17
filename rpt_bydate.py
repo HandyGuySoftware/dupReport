@@ -145,15 +145,16 @@ def runReport(startTime):
                 msgCsv += '\"Missing Back Sets\"\n'
                 hdrFlag = 1
 
-            nowTimestamp = datetime.datetime.now().timestamp()
-            now = datetime.datetime.fromtimestamp(nowTimestamp)
-            then = datetime.datetime.fromtimestamp(lastTimestamp)
-            diff = (now-then).days
-
+            diff = drdatetime.daysSince(lastTimestamp)
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
             msgHtml += '<tr><td colspan="{}" align="center">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, source, destination, lastDateStr, lastTimeStr, diff)
             msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
             msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
+
+            # See if we need to send a warning email for missing backups
+            if report.pastBackupWarningThreshold(source, destination, diff, reportOpts) is True:
+                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, lastTimestamp, reportOpts)
+                globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
 
     # Add report footer
     msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)

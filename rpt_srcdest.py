@@ -89,15 +89,17 @@ def runReport(startTime):
         globs.log.write(3, 'reportRows=[{}]'.format(reportRows))
         if not reportRows: # No rows found = no recent activity
             # Calculate days since last activity
-            nowTimestamp = datetime.datetime.now().timestamp()
-            now = datetime.datetime.fromtimestamp(nowTimestamp)
-            then = datetime.datetime.fromtimestamp(lastTimestamp)
-            diff = (now-then).days
+            diff = drdatetime.daysSince(lastTimestamp)
 
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
             msgHtml += '<tr><td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, lastDateStr, lastTimeStr, diff)
             msgText += 'No new activity. Last activity on {} at {} ({} days ago)\n'.format(lastDateStr, lastTimeStr, diff)
             msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(lastDateStr, lastTimeStr, diff)
+
+            # See if we need to send a warning email for missing backups
+            if report.pastBackupWarningThreshold(source, destination, diff, reportOpts) is True:
+                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, lastTimestamp, reportOpts)
+                globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
         else:
             # Loop through each new job email and report
             for timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \

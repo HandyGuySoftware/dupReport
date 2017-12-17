@@ -40,7 +40,6 @@ rcParts= [
     ('main','warnoncollect','false', True),
     ('main','applyutcoffset','false', True),
     ('main','show24hourtime', 'true', True),
-    ('main','purgedb', 'false', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -77,6 +76,8 @@ rcParts= [
     ('report','jobwarningbg','#FFFF00', True),
     ('report','joberrorbg','#FF0000', True),
     ('report','repeatheaders','false', True),
+    ('report','nobackupwarn', '0', True),
+    ('report','nbwsubject', 'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
 
     # [headings] section defaults
     ('headings','Source','Source', True),

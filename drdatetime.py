@@ -168,3 +168,16 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
 
     
     return retDate, retTime
+
+# Calculate # of days since some arbitrary date
+def daysSince(tsIn):
+    # Get the current time (timestamp)
+    nowTimestamp = datetime.datetime.now().timestamp()
+    now = datetime.datetime.fromtimestamp(nowTimestamp)
+
+    then = datetime.datetime.fromtimestamp(tsIn)
+    
+    diff = (now-then).days
+
+    return diff
+
