@@ -226,13 +226,16 @@ def pastBackupWarningThreshold(src, dest, nDays, opts):
 
 
 def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
+    globs.log.write(1,'buildWarningMessage({}, {}, {}, {})'.format(source, destination, nDays, lastTimestamp))
     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
     srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
 
     subj = globs.optionManager.getRcOption(srcDest, 'nbwsubject')
     if subj is None:
         subj = opts['nbwsubject']
+    globs.log.write(3,'subj(original)={}'.format(subj))
     subj = subj.replace('#SOURCE#',source).replace('#DESTINATION#', destination).replace('#DELIMITER#', globs.opts['srcdestdelimiter']).replace('#DAYS#', str(nDays)).replace('#DATE#', lastDateStr).replace('#TIME#', lastTimeStr)
+    globs.log.write(3,'subj(modified)={}'.format(subj))
 
     warnHtml='<html><head></head><body><table border=\"{}\" cellpadding=\"{}\">\n'.format(opts['border'],opts['padding'])
     warnHtml += '<tr><td bgcolor="#FF0000" align="center"><b>Backup Warning for {}{}{}</b></td></tr>\n'.format(source, globs.opts['srcdestdelimiter'], destination)
@@ -254,6 +257,7 @@ def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     if receiver is None:
         receiver = globs.opts['outreceiver']
 
+    globs.log.write(3, 'Sending message to {}'.format(receiver))
     return warnHtml, warnText, subj, sender, receiver
 
 # Class for report management
