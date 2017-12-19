@@ -434,7 +434,7 @@ class EmailServer:
 
     # Send final email result
     def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):
-        globs.log.write(2, 'sendEmail()')
+        globs.log.write(2, 'sendEmail({}, {}, {}, {}, {})'.format(msgHtml, msgText, subject, sender, receiver))
 
         # Build email message
         msg = MIMEMultipart('alternative')
