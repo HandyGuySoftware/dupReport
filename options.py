@@ -40,6 +40,7 @@ rcParts= [
     ('main','warnoncollect','false', True),
     ('main','applyutcoffset','false', True),
     ('main','show24hourtime', 'true', True),
+    ('main','purgedb', 'false', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
