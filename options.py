@@ -72,6 +72,7 @@ rcParts= [
     ('report','displayerrors','true', True),
     ('report','titlebg','#FFFFFF', True),
     ('report','subheadbg','#D3D3D3', True),
+    ('report','noactivitybg','#FF0000', True),
     ('report','jobmessagebg','#FFFFFF', True),
     ('report','jobwarningbg','#FFFF00', True),
     ('report','joberrorbg','#FF0000', True),

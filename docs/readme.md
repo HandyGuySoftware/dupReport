@@ -495,6 +495,12 @@ subheadbg=#D3D3D3
 Background color for report subheadings. (HTML only)
 
 ```
+noactivitybg=#FF0000
+```
+
+Background color for "No activity in X days" message in email report. (HTML only)
+
+```
 jobmessagebg=#FFFFFF
 ```
 

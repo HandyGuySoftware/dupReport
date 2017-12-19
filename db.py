@@ -186,7 +186,13 @@ class Database:
             sqlStmt = 'select max(endTimeStamp), examinedFiles, sizeOfExaminedFiles from emails where sourceComp = \'{}\' and destComp= \'{}\''.format(source, destination)
             dbCursor = self.execSqlStmt(sqlStmt)
             emailTimestamp, examinedFiles, sizeOfExaminedFiles = dbCursor.fetchone()
-            globs.log.write(2, 'Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp)))
+            if emailTimestamp is None:  # This was a new src/dest entry. Not going to find anything in emails
+                emailTimestamp = 0
+                examinedFiles = 0
+                sizeOfExaminedFiles = 0
+                globs.log.write(2, 'Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, 0))
+            else:
+                globs.log.write(2, 'Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp)))
 
             # Update backupset table to reflect rolled-back date
             sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTimestamp={} where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, source, destination)

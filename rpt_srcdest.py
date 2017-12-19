@@ -92,7 +92,7 @@ def runReport(startTime):
             diff = drdatetime.daysSince(lastTimestamp)
 
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr><td colspan="{}" align="center"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, lastDateStr, lastTimeStr, diff)
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, reportOpts['noactivitybg'], lastDateStr, lastTimeStr, diff)
             msgText += 'No new activity. Last activity on {} at {} ({} days ago)\n'.format(lastDateStr, lastTimeStr, diff)
             msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(lastDateStr, lastTimeStr, diff)
 

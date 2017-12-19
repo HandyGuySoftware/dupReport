@@ -440,19 +440,16 @@ class EmailServer:
         msg = MIMEMultipart('alternative')
 
         if subject is None:
-            msg['Subject'] = globs.report.reportOpts['reporttitle']
-        else:
-            msg['Subject'] = subject
+            subject = globs.report.reportOpts['reporttitle']
+        msg['Subject'] = subject
 
         if sender is None:
-            msg['From'] = globs.opts['outsender']
-        else:
-            msg['From'] = sender
+            sender = globs.opts['outsender']
+        msg['From'] = sender
 
         if receiver is None:
-            msg['To'] = globs.opts['outreceiver']
-        else:
-            msg['To'] = receiver
+            receiver = globs.opts['outreceiver']
+        msg['To'] = receiver
 
         # Record the MIME types of both parts - text/plain and text/html.
         # Attach parts into message container.
