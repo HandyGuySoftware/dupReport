@@ -21,6 +21,7 @@ import log
 import report
 import options
 import dremail
+import drdatetime
 
 # Print program verersion info
 def versionInfo():
@@ -97,6 +98,21 @@ def validateOutputFiles():
 
     return canContinue
 
+def sendNoBackupWarnings():
+    globs.log.write(1, 'sendNoBackupWarnings()')
+
+    # Get all source/destination pairs
+    sqlStmt = "SELECT source, destination FROM backupsets ORDER BY source, destination"
+    dbCursor = globs.db.execSqlStmt(sqlStmt)
+    srcDestRows = dbCursor.fetchall()
+    if srcDestRows:
+        for source, destination in srcDestRows:
+            latestTimeStamp = report.getLatestTimestamp(source, destination)
+            diff = drdatetime.daysSince(latestTimeStamp)
+            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.reportOpts) is True:
+                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.reportOpts)
+                globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
+    return None
 
 if __name__ == "__main__":
 
@@ -165,8 +181,11 @@ if __name__ == "__main__":
         globs.closeEverythingAndExit(0)
 
     # Roll back the database to a specific date?
-    if globs.opts['rollback']:
+    if globs.opts['rollback']: # Roll back & continue
         globs.db.rollback(globs.opts['rollback'])
+    elif  globs.opts['rollbackx']:  # Roll back and exit
+        globs.db.rollback(globs.opts['rollbackx'])
+        globs.closeEverythingAndExit(0)
 
     # Open email servers
     globs.inServer = dremail.EmailServer()
@@ -179,8 +198,8 @@ if __name__ == "__main__":
     retVal = globs.outServer.connect('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], globs.opts['outpassword'], globs.opts['outencryption'])
     globs.log.write(3,'Open outgoing server. retVal={}'.format(retVal))
 
+    # Are we just collecting or not just reporting?
     if (globs.opts['collect'] or not globs.opts['report']):
-        # Either we're just collecting or not just reporting
 
         # Prep email list for potential purging (-p option or [main]purgedb=true)
         globs.db.execSqlStmt('UPDATE emails SET dbSeen = 0')
@@ -194,10 +213,13 @@ if __name__ == "__main__":
                 globs.inServer.processMessage(nxtMsg)
                 nxtMsg = globs.inServer.getNextMessage()
 
+    # Open report object and initialize report options
+    # We may not be running reports, but the options will be needed later in the program 
+    globs.report = report.Report()
+
+    # Are we just reporting or not just collecting?
     if (globs.opts['report'] or not globs.opts['collect']):
-        # Either we're just reporting or not just collecting
         # All email has been collected. Create the report
-        globs.report = report.Report()
         globs.report.extractReportData()
 
         # Select report module based on config parameters
@@ -217,6 +239,10 @@ if __name__ == "__main__":
         msgHtml, msgText, msgCsv = rpt.runReport(startTime)
     
         globs.log.write(1,msgText)
+
+    # Do we need to send any "backup not seen" warning messages?
+    if not globs.opts['stopbackupwarn']:
+        sendNoBackupWarnings()
 
     # Do we need to send output to file(s)?
     if globs.opts['file'] and not globs.opts['collect']:

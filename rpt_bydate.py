@@ -151,11 +151,6 @@ def runReport(startTime):
             msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
             msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
 
-            # See if we need to send a warning email for missing backups
-            if report.pastBackupWarningThreshold(source, destination, diff, reportOpts) is True:
-                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, lastTimestamp, reportOpts)
-                globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
-
     # Add report footer
     msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)
 

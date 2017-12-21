@@ -67,8 +67,8 @@ def runReport(startTime):
             # Substitute subheading keywords
             subHead = subHead.replace('#SOURCE#',source).replace('#DESTINATION#', destination)
         if subHead is None or subHead == '':
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {} <b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], rptTits['source'], source, \
-                rptTits['destination'], destination)
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {} <b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], \
+                rptTits['source'], source, rptTits['destination'], destination)
             msgText += '***** {}: {}    {}: {} *****\n'.format(rptTits['source'], source, rptTits['destination'], destination)
             msgCsv += '\"***** {}: {}    {}: {} *****\"\n'.format(rptTits['source'], source, rptTits['destination'], destination)
         else:
@@ -95,11 +95,6 @@ def runReport(startTime):
             msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, reportOpts['noactivitybg'], lastDateStr, lastTimeStr, diff)
             msgText += 'No new activity. Last activity on {} at {} ({} days ago)\n'.format(lastDateStr, lastTimeStr, diff)
             msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(lastDateStr, lastTimeStr, diff)
-
-            # See if we need to send a warning email for missing backups
-            if report.pastBackupWarningThreshold(source, destination, diff, reportOpts) is True:
-                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, lastTimestamp, reportOpts)
-                globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
         else:
             # Loop through each new job email and report
             for timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \

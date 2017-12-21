@@ -260,6 +260,33 @@ def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     globs.log.write(3, 'Sending message to {}'.format(receiver))
     return warnHtml, warnText, subj, sender, receiver
 
+
+def getLatestTimestamp(src, dest):
+    globs.log.write(1, 'getLatestTimestamp({}, {})'.format(src, dest))
+
+    # Get last timestamp from backupsets
+    sqlStmt = 'SELECT lastTimestamp FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"'.format(src, dest)
+    dbCursor = globs.db.execSqlStmt(sqlStmt)
+    lastTimestamp = dbCursor.fetchone()
+    if lastTimestamp[0]:
+            # See if there is a later timestamp waiting in the email table
+            sqlStmt = 'SELECT max(endTimeStamp) FROM emails WHERE sourceComp = \'{}\' AND destComp= \'{}\' AND endTimeStamp > {}'.format(src, dest, lastTimestamp[0])
+            dbCursor = globs.db.execSqlStmt(sqlStmt)
+            lastEmailStamp = dbCursor.fetchone()
+            if lastEmailStamp[0]:
+                # Found one - this is the latest timestamp for that srcDest pair
+                globs.log.write(2, 'Returning email timestamp: {}'.format(lastEmailStamp[0]))
+                return lastEmailStamp[0]
+            else:
+                # Nothing newer in database - return latest time from backupsets
+                globs.log.write(2, 'Returning backupsets timestamp: {}'.format(lastTimestamp[0]))
+                return lastTimestamp[0]
+    else:
+        # This should never happen
+        globs.log.write(2, 'Didn\'t find any timestamp for {}-{}: something is wrong!'.format(src, dest))
+        return None
+
+
 # Class for report management
 class Report:
 
@@ -358,7 +385,7 @@ class Report:
                     fileSizeDelta = sizeOfExaminedFiles - lastFileSize
                     globs.log.write(3, 'fileSizeDelta = {} - {} = {}'.format(sizeOfExaminedFiles, lastFileSize, fileSizeDelta))
 
-                    # Convert frmo timestamp to date & time strings
+                    # Convert from timestamp to date & time strings
                     dateStr, timeStr = drdatetime.fromTimestamp(endTimeStamp)
 
                     sqlStmt = "INSERT INTO report (source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
@@ -377,3 +404,6 @@ class Report:
                     # Set last file count & size the latest information
                     lastFileCount = examinedFiles
                     lastFileSize = sizeOfExaminedFiles
+
+
+

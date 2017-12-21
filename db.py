@@ -132,6 +132,8 @@ class Database:
             lastTimestamp real)")
 
         self.dbCommit()
+
+        self.dbCompact()
         return None
 
     # See if a particular message ID is already in the database
@@ -169,7 +171,6 @@ class Database:
     # Roll back database to pecific date/time
     # Datespec = Date & time to roll back to
     def rollback(self, datespec):
-
         globs.log.write(1,'db.rollback({})'.format(datespec))
 
         newTimeStamp = drdatetime.toTimestamp(datespec)
@@ -186,20 +187,19 @@ class Database:
             sqlStmt = 'select max(endTimeStamp), examinedFiles, sizeOfExaminedFiles from emails where sourceComp = \'{}\' and destComp= \'{}\''.format(source, destination)
             dbCursor = self.execSqlStmt(sqlStmt)
             emailTimestamp, examinedFiles, sizeOfExaminedFiles = dbCursor.fetchone()
-            if emailTimestamp is None:  # This was a new src/dest entry. Not going to find anything in emails
-                emailTimestamp = 0
-                examinedFiles = 0
-                sizeOfExaminedFiles = 0
-                globs.log.write(2, 'Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, 0))
+            if emailTimestamp is None:
+                # After the rollback, some srcdest pairs may have no corresponding entries in the the database, meaning they were not seen until after the rollback period
+                # We should remove these from the database, to return it to the state it was in before the rollback.
+                globs.log.write(2, 'Deleting {}{}{} from backupsets.'.format(source, globs.opts['srcdestdelimiter'], destination, 0))
+                sqlStmt = 'DELETE FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"'.format(source, destination)
+                dbCursor = self.execSqlStmt(sqlStmt)
             else:
                 globs.log.write(2, 'Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp)))
-
-            # Update backupset table to reflect rolled-back date
-            sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTimestamp={} where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, source, destination)
-            dbCursor = self.execSqlStmt(sqlStmt)
-
+                # Update backupset table to reflect rolled-back date
+                sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTimestamp={} where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, source, destination)
+                dbCursor = self.execSqlStmt(sqlStmt)
+            
         self.dbCommit()
-        
         return None
 
     # Remove a source/destination pair from the database
@@ -229,18 +229,26 @@ class Database:
 
         globs.log.write(2, 'Purging unseen emails')
         self.execSqlStmt('DELETE FROM emails WHERE dbSeen = 0')
+        self.dbCommit()
 
-        globs.log.write(2, 'Compacting database')
+        self.dbCompact()
+
+        return None
+
+    # Compact database to eliminate unused space
+    def dbCompact(self):
+        globs.log.write(1, 'dbCompact()')
         # Need to reset connection isolation level in order to compress database
         # Why? Not sure, but see https://github.com/ghaering/pysqlite/issues/109 for details
         isoTmp = self.dbConn.isolation_level
         self.dbConn.isolation_level = None
         self.execSqlStmt('VACUUM')
         self.dbConn.isolation_level = isoTmp    # Re-set isolation level back to previous value
-
         self.dbCommit()
 
+        globs.log.write(1, 'Database compacted')
         return None
+
 
 
 

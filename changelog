@@ -23,11 +23,11 @@
 - Database & .rc file upgrades now handled automatically
 - Logging information generated before log files are opened is now captured and saved
 - Using HTML <detail> tags in message/warning/error output to clean up the HTML report. Not supported in all browsers or email clients, so end user experience may vary.
-- Ability to roll back database to a specific time/date (-b option). Useful for failed runs or testing.
-- Changed bahavior of -i option (again!). After initialization, if program can continue, it will. Also eliminated undocumented -I option.
+- Ability to roll back database to a specific time/date (-b and -B options). Useful for failed runs or testing.
 - Ability to remove a source/destination pair from the database if it is no longer in use (-m option)
 - Purge emails that are no longer on the server from the database. (-p option or [main] purgedb in .rc file)
 - Send separate warning email when a backupset has not been seen in a certain number of days ([report] nobackupwarn options)
+- Changed bahavior of -i option (again!). After initialization, if program can continue, it will. Also eliminated undocumented -I option.
 
 
 2.0.4

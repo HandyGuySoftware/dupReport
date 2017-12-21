@@ -146,11 +146,13 @@ dupReport has the following command line options:
 | -i                          | --initdb                          | Erase all information from the database and resets the tables. |
 | -c                          | --collect                         | Collect new emails only and don't run summary report. -c and -t options can not be used together. |
 | -t                          | --report                          | Run summary report only and don't collect emails. -c and -t options can not be used together. |
-| -b \<DateTimeSpec>          | --rollback \<DateTimeSpec>        | Roll back database to a specified date and time. \<DateTimeSpec\> must be in the following format: “\<datespec> \<timespec>”, where \<datespec> and \<timespec> are in the same format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. For example, if dateformat="MM/DD/YYYY" and timeformat="HH:MM:SS" \<DateTimeSpec> should be set to "12/17/2017 12:37:45". See the discussion of the dateformat= and timeformat= options below. To roll back the database to the beginning of a day, use "00:00:00" for \<timespec>. |
+| -b \<DateTimeSpec>          | --rollback \<DateTimeSpec>        | Roll back database to a specified date and time, then continue processing emails. \<DateTimeSpec\> must be in the following format: “\<datespec> \<timespec>”, where \<datespec> and \<timespec> are in the same format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. For example, if dateformat="MM/DD/YYYY" and timeformat="HH:MM:SS" \<DateTimeSpec> should be set to "12/17/2017 12:37:45". See the discussion of the dateformat= and timeformat= options below. To roll back the database to the beginning of a day, use "00:00:00" for \<timespec>. |
+| -B \<DateTimeSpec>          | --rollbackx \<DateTimeSpec>       | Roll back database to a specified date and time. Same operation as -b, except program will exit after rolling back the database. |
 | -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>      | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
 | -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
 | -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source/destination pair from the database. |
 | -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
+| -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in the .rc file. See description of nobackwarn= option in "[source-destination] Sections" below. |
 
 
 
@@ -412,9 +414,16 @@ Main report tile used for the report.
 subheading=Report Subheading
 ```
 
-Text to use as the subheading of the report. Because the subheading is different for each report there is no default for this option and you will need to manually add it to the .rc file to enable it.
+Text to use as the subheading of the report. Because the subheading is different for each report there is no default for this option and <u>you will need to manually add it to the .rc file to enable it</u>. If a subheading is not specified in the .rc file, dupReport will supply the following default subheading:
 
-**Keyword Substitution**: You can supply keywords within the subheading option to customize the way it looks. Available keywords are:
+| Report   | Default Subheading                       |
+| -------- | ---------------------------------------- |
+| srcdest  | Source: \<source>  Destination: \<destination> |
+| bydest   | Destination: \<destination>              |
+| bysource | Source: \<source>                        |
+| bydate   | Date: \<date>                            |
+
+**Keyword Substitution**: You can supply keywords within the subheading= option to customize the way it looks. Available keywords are:
 
 - \#SOURCE#: Inserts the appropriate source name in the subheading
 - \#DESTINATION#: Inserts the appropriate destination name in the subheading
@@ -432,7 +441,14 @@ For the bydest report an appropriate subheading might be:
 subheading = Target Destination: #DESTINATION#
 ```
 
-Not all keywords are appropriate for all reports, so you may have to try different options to find the one(s) that fit. If you're so inclined, the source code files for the reports (rpt_\*.py) will give an indication of which keywords will work with each report.
+Not all keywords are appropriate for all reports. The following table shows what keywords are available to use in the subheading field for each report:
+
+| Report   | Allowable Fields          |
+| -------- | ------------------------- |
+| srcdest  | \#SOURCE#  \#DESTINATION# |
+| bydest   | \#DESTINATION#            |
+| bysource | \#SOURCE#                 |
+| bydate   | \#DATE#                   |
 
 ```
 border=1
