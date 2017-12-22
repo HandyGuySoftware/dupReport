@@ -10,6 +10,7 @@
 # Import system modules
 import sys
 import globs
+import os
 
 # Class to handle log management
 class LogHandler:
@@ -38,6 +39,7 @@ class LogHandler:
                     tmpData = self.tmpFile.read()
                     self.logFile.write(tmpData)
                     self.tmpFile.close()
+                    os.remove(self.tmpLogPath)
                     self.tmpFile = None
             except (OSError, IOError):
                 sys.stderr.write('Error opening log file: {}\n'.format(path))
