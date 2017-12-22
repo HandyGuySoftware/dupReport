@@ -59,7 +59,7 @@ def initOptions():
     
     # Check .rc file structure to see if all proper fields are there
     if oMgr.setRcDefaults() is True:
-        globs.log.out('RC file {} has changed. Plese edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
+        globs.log.out('RC file {} has changed. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
         return False
 
     # RC file is structurally correct. Now need to parse rc options for global use. 
