@@ -268,7 +268,7 @@ def getLatestTimestamp(src, dest):
     sqlStmt = 'SELECT lastTimestamp FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"'.format(src, dest)
     dbCursor = globs.db.execSqlStmt(sqlStmt)
     lastTimestamp = dbCursor.fetchone()
-    if lastTimestamp[0]:
+    if lastTimestamp[0] is not None:
             # See if there is a later timestamp waiting in the email table
             sqlStmt = 'SELECT max(endTimeStamp) FROM emails WHERE sourceComp = \'{}\' AND destComp= \'{}\' AND endTimeStamp > {}'.format(src, dest, lastTimestamp[0])
             dbCursor = globs.db.execSqlStmt(sqlStmt)

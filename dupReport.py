@@ -105,7 +105,7 @@ def sendNoBackupWarnings():
     sqlStmt = "SELECT source, destination FROM backupsets ORDER BY source, destination"
     dbCursor = globs.db.execSqlStmt(sqlStmt)
     srcDestRows = dbCursor.fetchall()
-    if srcDestRows:
+    if len(srcDestRows) != 0:
         for source, destination in srcDestRows:
             latestTimeStamp = report.getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
