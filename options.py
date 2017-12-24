@@ -225,19 +225,19 @@ class OptionManager:
         #
         # Database Path - default stored in globs.dbName
         if self.cmdLineArgs.dbpath != None:  # dbPath specified on command line
-            self.options['dbpath'] = '{}/{}'.format(args.dbpath, globs.dbName) 
+            self.options['dbpath'] = '{}/{}'.format(self.processPath(self.cmdLineArgs.dbpath), globs.dbName) 
         elif self.options['dbpath'] == '':  # No command line & not specified in RC file
             self.options['dbpath'] = '{}/{}'.format(os.path.dirname(path, globs.rcName), globs.dbName)
         else:  # Path specified in rc file. Add dbname for full path
-            self.options['dbpath'] = '{}/{}'.format(self.options['dbpath'], globs.dbName)
+            self.options['dbpath'] = '{}/{}'.format(self.processPath(self.options['dbpath']), globs.dbName)
 
         # Log file path
         if self.cmdLineArgs.logpath != None:  #logPath specified on command line
-            self.options['logpath'] = '{}/{}'.format(self.cmdLineArgs.logpath, globs.logName)
+            self.options['logpath'] = '{}/{}'.format(self.processPath(self.cmdLineArgs.logpath), globs.logName)
         elif self.options['logpath'] == '':  # No command line & not specified in RC file
             self.options['logpath'] = '{}/{}'.format(globs.progPath, globs.logName)
         else:  # Path specified in rc file. Add dbname for full path
-            self.options['logpath'] = '{}/{}'.format(self.options['logpath'], globs.logName)
+            self.options['logpath'] = '{}/{}'.format(self.processPath(self.options['logpath']), globs.logName)
 
         self.options['version'] = self.cmdLineArgs.Version
         self.options['collect'] = self.cmdLineArgs.collect
@@ -322,18 +322,17 @@ class OptionManager:
 
         globs.log.write(3, 'Command line parsed. args=[{}]'.format(self.cmdLineArgs))
         
-        # Figure out whwre RC file is located
+        # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
-            globs.log.write(2, 'RC path specified on command line')
-            rc = '{}/{}'.format(self.cmdLineArgs.rcpath, globs.rcName)
+            globs.log.write(2, 'RC path specified on command line: {}'.format(self.cmdLineArgs.rcpath))
+            rc = '{}/{}'.format(self.processPath(self.cmdLineArgs.rcpath),globs.rcName)
         else: # RC path not specified on command line. use default location
             path = os.path.dirname(os.path.realpath(sys.argv[0]))
-            globs.log.write(2, 'RC path not specified on command line. Using default.'.format(path))
+            globs.log.write(2, 'RC path not specified on command line. Using default: {}.'.format(path))
             rc = '{}/{}'.format(path, globs.rcName)
-        
+
         self.options['rcfilename'] = rc
         globs.log.write(3, 'RC path=[{}]'.format(self.options['rcfilename']))
-
 
     # Get individual .rc file option
     def getRcOption(self, section, option):
@@ -402,3 +401,10 @@ class OptionManager:
 
         return dtfmt, tmfmt
     
+    # Strips trailing slash character from a path specification if one exists
+    def processPath(self, path):
+        if path[-1:] == '/' or path[-1:] == '\\':
+            newpath = path[:-1]
+            return newpath
+        else:
+            return path

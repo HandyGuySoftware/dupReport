@@ -86,7 +86,7 @@ Several users on the Duplicati Forum have found different ways to modify subject
 
 ## System Requirements
 
-dupReport has been formally tested on Linux (Debian 8) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)  on the Duplicati Forum have stated they’ve installed and run the program on a wide variety of operating systems. 
+dupReport has been formally tested on Linux (Debian 8) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page on the Duplicati Forum](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)   have stated they’ve installed and run the program on a wide variety of operating systems. 
 
 In addition to the dupReport program files, the only other software dupReport needs is Python3. Installation instructions for Python are beyond our scope here, but instructions are widely available on the Internet.
 
@@ -242,7 +242,7 @@ Default format for dates found in emails. Acceptable formats are:
 - YYYY.MM.DD
 - YYYY.DD.MM
 
-If there are problems in your report dates (especially of your locale doesn't use U.S.-style dates), or if you are getting program crashes around the date/time routines, you might try checking and/or changing this value.
+If there are problems in your report dates (especially if your locale doesn't use U.S.-style dates), or if you are getting program crashes around the date/time routines, you might try checking and/or changing this value.
 
 The default format can be overridden for specific backup jobs by specifying a dateformat= line in a job-specific section of the .rc file. See “[source-destination] Sections” below.
 
