@@ -67,7 +67,7 @@ def printTitle(fld, typ):
                 displayAddOn = ''
 
     if typ == 'html':
-        outStr = '<td align=\"{}\">{}{}</td>'.format(fldDefs[fld][2], globs.report.reportTits[fld], displayAddOn)
+        outStr = '<td align=\"{}\"><b>{}{}</b></td>'.format(fldDefs[fld][2], globs.report.reportTits[fld], displayAddOn)
     elif typ == 'text':
         outStr = '{:{fmt}}'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][4])
     elif typ == 'csv':
