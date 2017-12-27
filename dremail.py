@@ -150,6 +150,8 @@ class EmailServer:
     # Set the folder for retrieving incoming email.
     # Only useful for IMAP servers. POP3 doesn't use folders
     def setFolder(self, fname):
+        globs.log.write(1,'setFolder({})'.format(fname))
+        globs.log.write(3,'self.protocol=[{}]'.format(self.protocol))
         # Folder only valid on IMAP. Need a valid connection. Need a valid folder name. Handle pathological cases
         if ((self.protocol != 'imap') or (self.server is None) or (fname is None) or (fname == '')):
             return None
@@ -301,8 +303,17 @@ class EmailServer:
         dateParts = {}
 
         # Get Message ID
-        decode = email.header.decode_header(msg['Message-Id'])[0]
-        msgParts['messageId'] = decode[0]
+        globs.log.write(3,'messagId=[{}]'.format(msg['Message-Id']))
+        decode1 = email.header.decode_header(msg['Message-Id'])[0][0]
+        globs.log.write(3,'decode1=[{}]'.format(decode1))
+        #decode2 = decode1[0]
+        #globs.log.write(3,'decode2=[{}]'.format(decode2))
+
+        #globs.log.write(3,'messagId.decode_header=[{}]'.format(msg['Message-Id']))
+        #decode = email.header.decode_header(msg['Message-Id'])[0]
+        msgParts['messageId'] = decode1
+        
+        #msgParts['messageId'] = decode2[0]
         if (type(msgParts['messageId']) is not str):  # Email encoded as a byte object - See Issue #14
             msgParts['messageId'] = msgParts['messageId'].decode('utf-8')
         globs.log.write(3, 'messageId=[{}]'.format(msgParts['messageId']))
