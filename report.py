@@ -211,7 +211,7 @@ def pastBackupWarningThreshold(src, dest, nDays, opts):
     else:   # No pair-specific option. Use the global option from [main]
         nbwVal = opts['nobackupwarn']
 
-    globs.log.write(3,'nbwVal={}'.format(nbwVal))
+    globs.log.write(3,'Nobackup warning threshold is {} days.'.format(nbwVal))
 
     if nbwVal == 0:     # 0 = do not warn on missing backups
         retVal = False
@@ -221,7 +221,7 @@ def pastBackupWarningThreshold(src, dest, nDays, opts):
         else:
             retVal = False
 
-    globs.log.write(3,'retVal={}'.format(retVal))
+    globs.log.write(3,'pastBackupWarningThreshold returning {}'.format(retVal))
     return retVal
 
 

@@ -303,20 +303,25 @@ class EmailServer:
         dateParts = {}
 
         # Get Message ID
-        globs.log.write(3,'messagId=[{}]'.format(msg['Message-Id']))
-        decode1 = email.header.decode_header(msg['Message-Id'])[0][0]
-        globs.log.write(3,'decode1=[{}]'.format(decode1))
+        globs.log.write(3,'msg[Message-Id]=[{}]'.format(msg['Message-Id']))
+        if msg['Message-Id'] is None:
+            globs.log.write(3,'No message-Id. Abandoning processMessage()')
+            return None, None
+
+        msgParts['messageId'] = email.header.decode_header(msg['Message-Id'])[0][0]
+        globs.log.write(3,'msgParts[messageId]=[{}]'.format(msgParts['messageId']))
+
+        #decode1 = email.header.decode_header(msg['Message-Id'])[0][0]
         #decode2 = decode1[0]
         #globs.log.write(3,'decode2=[{}]'.format(decode2))
-
         #globs.log.write(3,'messagId.decode_header=[{}]'.format(msg['Message-Id']))
         #decode = email.header.decode_header(msg['Message-Id'])[0]
-        msgParts['messageId'] = decode1
-        
+        #msgParts['messageId'] = decode1
         #msgParts['messageId'] = decode2[0]
+
         if (type(msgParts['messageId']) is not str):  # Email encoded as a byte object - See Issue #14
             msgParts['messageId'] = msgParts['messageId'].decode('utf-8')
-        globs.log.write(3, 'messageId=[{}]'.format(msgParts['messageId']))
+            globs.log.write(3, 'Revised messageId=[{}]'.format(msgParts['messageId']))
 
         # See if the record is already in the database, meaning we've seen it before
         if globs.db.searchForMessage(msgParts['messageId']):    # Is message already in database?

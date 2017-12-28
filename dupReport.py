@@ -110,6 +110,7 @@ def sendNoBackupWarnings():
             latestTimeStamp = report.getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
             if report.pastBackupWarningThreshold(source, destination, diff, globs.report.reportOpts) is True:
+                globs.log.write(2,'{}-{} is past backup warning threshold @ {} days. Sending warning email'.format(source, destination, diff))
                 warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.reportOpts)
                 globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
     return None
