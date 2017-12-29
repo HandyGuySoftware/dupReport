@@ -47,8 +47,9 @@ Source/Destination pairs are specified in dupReport in the following format:
 Where:
 
 - \<Source\> is a series of alphanumeric characters
-- \<delimiter\> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source/Destination pairs
+- \<delimiter\> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source/Destination pairs 
 - \<Destination\> is a series of alphanumeric characters
+- There can be NO SPACES in or between the \<Source>, \<delimiter>, and \<Destination> specifications
 
 dupReport allows you to define the format specification of the Source, Destination, and Delimiter in the [main] section of the dupReport.rc file. Each specification is the regular expression definition of that element. The defaults are: 
 
@@ -67,7 +68,7 @@ Together the full source/destination regex is:
 
 You can modify the specification of these elements by replacing each with a regular expression defining how dupReport can find that element in a email's subject line. 
 
-***WARNING!*** dupReport relies on the Source/Destination pair format for all of its operations. If you do not properly specify your Source/Destination pair formats in both the program (through the dupReport.rc file) and in Duplicati (through proper job naming) none of this will work for you. 
+***WARNING!*** *dupReport relies on the Source/Destination pair format for all of its operations. If you do not properly specify your Source/Destination pair formats in both the program (through the dupReport.rc file) and in Duplicati (through proper job naming) none of this will work for you. In particular (and repeating what's already been stated) make sure that you **DO NOT INCLUDE ANY SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications in your Duplicati job names.*
 
 ## Identifying Emails of Interest
 

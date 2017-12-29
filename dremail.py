@@ -501,3 +501,8 @@ class EmailServer:
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
         self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
 
+    def keepAlive(self):
+        globs.log.write(3,'outServer.keepAlive()')
+        retval = self.server.noop()
+        return None
+
