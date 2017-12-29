@@ -216,7 +216,7 @@ class EmailServer:
                 return None
             globs.log.write(3,'data[0][1]=[{}]'.format(data[0][1]))
             retMessage = email.message_from_string(data[0][1].decode('utf-8'))  # Get message body
-            globs.log.write(2, 'retMessage=[{}]'.format(retMessage))        
+            globs.log.write(2, 'Next Message=[{}]'.format(retMessage))        
             self.nextEmail += 1
             return retMessage
         else:
@@ -286,7 +286,6 @@ class EmailServer:
     def processMessage(self, msg):
 
         globs.log.write(1,'EmailServer.process_message()')
-        globs.log.write(2,'Message=[{}]'.format(msg))
     
         # msgParts items:
         #    'messageID' - the message ID
@@ -302,35 +301,37 @@ class EmailServer:
         # dateParts contains the date & time strings for the SQL Query
         dateParts = {}
 
-        # Get Message ID
-        globs.log.write(3,'msg[Message-Id]=[{}]'.format(msg['Message-Id']))
-        if msg['Message-Id'] is None:
+        # Check all the vital parts to see if they're there
+        # If any of these are missing it meaans:
+        #   (1) they are not from Duplicati, and 
+        #   (2) if we keep processing things will blow up down the line
+        # In either case we'll just skip the message
+        if msg['Message-Id'] is None or msg['Message-Id'] == '':
             globs.log.write(3,'No message-Id. Abandoning processMessage()')
             return None, None
+        if msg['Subject'] is None or msg['Subject'] == '':
+            globs.log.write(3,'No Subject. Abandoning processMessage()')
+            return None, None
+        if msg['Date'] is None or msg['Date'] == '':
+            globs.log.write(3,'No Date. Abandoning processMessage()')
+            return None, None
 
+        # Get Message ID
+        globs.log.write(3,'msg[Message-Id]=[{}]'.format(msg['Message-Id']))
         msgParts['messageId'] = email.header.decode_header(msg['Message-Id'])[0][0]
         globs.log.write(3,'msgParts[messageId]=[{}]'.format(msgParts['messageId']))
-
-        #decode1 = email.header.decode_header(msg['Message-Id'])[0][0]
-        #decode2 = decode1[0]
-        #globs.log.write(3,'decode2=[{}]'.format(decode2))
-        #globs.log.write(3,'messagId.decode_header=[{}]'.format(msg['Message-Id']))
-        #decode = email.header.decode_header(msg['Message-Id'])[0]
-        #msgParts['messageId'] = decode1
-        #msgParts['messageId'] = decode2[0]
-
         if (type(msgParts['messageId']) is not str):  # Email encoded as a byte object - See Issue #14
             msgParts['messageId'] = msgParts['messageId'].decode('utf-8')
             globs.log.write(3, 'Revised messageId=[{}]'.format(msgParts['messageId']))
 
         # See if the record is already in the database, meaning we've seen it before
-        if globs.db.searchForMessage(msgParts['messageId']):    # Is message already in database?
+        if globs.db.searchForMessage(msgParts['messageId']):    # Message is already in database
             # Mark the email as being seen in the database
             globs.db.execSqlStmt('UPDATE emails SET dbSeen = 1 WHERE messageId = \"{}\"'.format(msgParts['messageId']))
             globs.db.dbCommit()
             return None, None
 
-        # Message not yet in database. Proceed
+        # Message not yet in database. Proceed.
         globs.log.write(1, 'Message ID [{}] does not exist. Adding to DB'.format(msgParts['messageId']))
 
         # get Subject
@@ -342,24 +343,23 @@ class EmailServer:
 
         dTup = email.utils.parsedate_tz(msg['Date'])
         if dTup:
-            # See if there's timezone info in the date. May be 'None' if no TZ info in the date line
+            # See if there's timezone info in the email header data. May be 'None' if no TZ info in the date line
             # TZ info is represented by seconds offset from UTC
-            # We don't need to pass TimeZone info now, since date line in email already accounts for TZ.
+            # We don't need to adjust the email date for TimeZone info now, since date line in email already accounts for TZ.
             # All other calls to toTimestamp() should include timezone info
             msgParts['timezone'] = dTup[9]
 
             # Set date into a parseable string
             # It doesn't matter what date/time format we pass in (as long as it's valid)
-            # When it comes back out, it'll be parsed into a user-defined format
+            # When it comes back out, it'll be parsed into the user-defined format from the .rc file
             # For now, we'll use YYYY/MM/DD HH:MM:SS
             xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])  
             dtTimStmp = drdatetime.toTimestamp(xDate, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
             msgParts['emailTimestamp'] = dtTimStmp
-
             globs.log.write(3, 'emailDate=[{}]-[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
 
         # See if it's a message of interest
-        # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...'
+        # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...')
         if re.search(globs.opts['subjectregex'], msgParts['subject']) == None:
             globs.log.write(1, 'Message [{}] is not a Message of Interest.'.format(msgParts['messageId']))
             return None, None    # Not a message of Interest
@@ -415,8 +415,8 @@ class EmailServer:
             statusParts['errors'] = statusParts['failed']
             statusParts['parsedResult'] = 'Failure'
             statusParts['warnings'] = statusParts['details']
-            globs.log.write(3, 'Errors=[{}]'.format(statusParts['errors']))
-            globs.log.write(3, 'Warnings=[{}]'.format(statusParts['warnings']))
+            globs.log.write(2, 'Errors=[{}]'.format(statusParts['errors']))
+            globs.log.write(2, 'Warnings=[{}]'.format(statusParts['warnings']))
 
             # Since the backup job report never ran, we'll use the email date/time as the report date/time
             dateParts['endTimestamp'] = msgParts['emailTimestamp']
