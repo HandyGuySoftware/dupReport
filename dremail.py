@@ -302,20 +302,45 @@ class EmailServer:
         dateParts = {}
 
         # Check all the vital parts to see if they're there
-        # If any of these are missing it meaans:
+        # If any of these are missing it means:
         #   (1) they are not from Duplicati, and 
         #   (2) if we keep processing things will blow up down the line
-        # In either case we'll just skip the message
+        # To be safe, we'll just skip the message
         if msg['Message-Id'] is None or msg['Message-Id'] == '':
-            globs.log.write(3,'No message-Id. Abandoning processMessage()')
+            globs.log.write(1,'No message-Id. Abandoning processMessage()')
             return None, None
         if msg['Subject'] is None or msg['Subject'] == '':
-            globs.log.write(3,'No Subject. Abandoning processMessage()')
+            globs.log.write(1,'No Subject. Abandoning processMessage()')
             return None, None
         if msg['Date'] is None or msg['Date'] == '':
-            globs.log.write(3,'No Date. Abandoning processMessage()')
+            globs.log.write(1,'No Date. Abandoning processMessage()')
             return None, None
 
+        # get Subject
+        decode = email.header.decode_header(msg['Subject'])[0]
+        msgParts['subject'] = decode[0]
+        if (type(msgParts['subject']) is not str):  # Email encoded as a byte object - See Issue #14
+            msgParts['subject'] = msgParts['subject'].decode('utf-8')
+        globs.log.write(3, 'Subject=[{}]'.format(msgParts['subject']))
+
+        # See if it's a message of interest
+        # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...')
+        if re.search(globs.opts['subjectregex'], msgParts['subject']) == None:
+            globs.log.write(1, 'Message [{}] is not a Message of Interest. Skipping message.'.format(msg['Message-Id']))
+            return None, None    # Not a message of Interest
+
+        # Last chance to kick out bad messages
+        # Get source & desination computers from email subject
+        srcRegex = '{}{}'.format(globs.opts['srcregex'], re.escape(globs.opts['srcdestdelimiter']))
+        destRegex = '{}{}'.format(re.escape(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
+        globs.log.write(3,'srcregex=[{}]  destRegex=[{}]'.format(srcRegex, destRegex))
+        # Does the Subject have a proper source/destination pair?
+        partsSrc = re.search(srcRegex, msgParts['subject'])
+        partsDest = re.search(destRegex, msgParts['subject'])
+        if (partsSrc is None) or (partsDest is None):    # Correct subject but delimeter not found. Something is wrong.
+            globs.log.write(2,'srcdestdelimiter [{}] not found in subject. Skipping message.'.format(globs.opts['srcdestdelimiter']))
+            return None, None
+        
         # Get Message ID
         globs.log.write(3,'msg[Message-Id]=[{}]'.format(msg['Message-Id']))
         msgParts['messageId'] = email.header.decode_header(msg['Message-Id'])[0][0]
@@ -334,13 +359,6 @@ class EmailServer:
         # Message not yet in database. Proceed.
         globs.log.write(1, 'Message ID [{}] does not exist. Adding to DB'.format(msgParts['messageId']))
 
-        # get Subject
-        decode = email.header.decode_header(msg['Subject'])[0]
-        msgParts['subject'] = decode[0]
-        if (type(msgParts['subject']) is not str):  # Email encoded as a byte object - See Issue #14
-            msgParts['subject'] = msgParts['subject'].decode('utf-8')
-        globs.log.write(3, 'Subject=[{}]'.format(msgParts['subject']))
-
         dTup = email.utils.parsedate_tz(msg['Date'])
         if dTup:
             # See if there's timezone info in the email header data. May be 'None' if no TZ info in the date line
@@ -358,23 +376,6 @@ class EmailServer:
             msgParts['emailTimestamp'] = dtTimStmp
             globs.log.write(3, 'emailDate=[{}]-[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
 
-        # See if it's a message of interest
-        # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...')
-        if re.search(globs.opts['subjectregex'], msgParts['subject']) == None:
-            globs.log.write(1, 'Message [{}] is not a Message of Interest.'.format(msgParts['messageId']))
-            return None, None    # Not a message of Interest
-
-        # Get source & desination computers from email subject
-        srcRegex = '{}{}'.format(globs.opts['srcregex'], re.escape(globs.opts['srcdestdelimiter']))
-        destRegex = '{}{}'.format(re.escape(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
-        globs.log.write(3,'srcregex=[{}]  destRegex=[{}]'.format(srcRegex, destRegex))
-
-        partsSrc = re.search(srcRegex, msgParts['subject'])
-        partsDest = re.search(destRegex, msgParts['subject'])
-        if (partsSrc is None) or (partsDest is None):    # Correct subject but delimeter not found. Something is wrong.
-            globs.log.write(2,'srcdestdelimiter [{}] not found in subject. Abandoning message.'.format(globs.opts['srcdestdelimiter']))
-            return None, None
-        
         msgParts['sourceComp'] = re.search(srcRegex, msgParts['subject']).group().split(globs.opts['srcdestdelimiter'])[0]
         msgParts['destComp'] = re.search(destRegex, msgParts['subject']).group().split(globs.opts['srcdestdelimiter'])[1]
         globs.log.write(3, 'sourceComp=[{}] destComp=[{}] emailTimestamp=[{}] subject=[{}]'.format(msgParts['sourceComp'], \
