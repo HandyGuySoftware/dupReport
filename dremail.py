@@ -195,6 +195,8 @@ class EmailServer:
     # Returns None if no more messages
     def getNextMessage(self):
         globs.log.write(1, 'dremail.getNextMessage()')
+        self.keepAlive()
+
         if self.newEmails == None:  # No new emails to get
             return None
         if self.nextEmail == self.numEmails: # Past last email on list
@@ -452,6 +454,7 @@ class EmailServer:
     # Send final email result
     def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):
         globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, sender, receiver))
+        self.keepAlive()
 
         # Build email message
         msg = MIMEMultipart('alternative')
@@ -486,6 +489,7 @@ class EmailServer:
     # Send email for errors
     def sendErrorEmail(self, errText):
         globs.log.write(2, 'sendErrorEmail()')
+        self.keepAlive()
 
         # Build email message
         msg = MIMEMultipart('alternative')
@@ -501,8 +505,37 @@ class EmailServer:
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
         self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
 
+    # Check if server connection has timed out. If it has, reconnect and continue
     def keepAlive(self):
         globs.log.write(3,'outServer.keepAlive()')
-        retval = self.server.noop()
+
+        if self.protocol == 'smtp':
+            try:
+                status = self.server.noop()[0]
+            except:  # smtplib.SMTPServerDisconnected
+                status = -1
+
+            if status != 250: # Disconnected. Need to reconnect to server
+                globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
+                self.connect(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption)
+        elif self.protocol == 'imap':
+            try:
+                status = self.server.noop()[0]
+            except:
+                status = 'NO'
+
+            if status != 'OK':
+                globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
+                self.connect(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption)
+        elif self.protocol == 'pop3':
+            try:
+                status = self.server.noop()
+            except:
+                status = '+NO'
+
+            if status != '+OK':
+                globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
+                self.connect(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption)
+
         return None
 

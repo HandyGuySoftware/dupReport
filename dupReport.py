@@ -213,7 +213,6 @@ if __name__ == "__main__":
             while nxtMsg is not None:
                 globs.inServer.processMessage(nxtMsg)
                 nxtMsg = globs.inServer.getNextMessage()
-                globs.outServer.keepAlive()
 
     # Open report object and initialize report options
     # We may not be running reports, but the options will be needed later in the program 
