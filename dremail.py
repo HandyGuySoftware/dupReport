@@ -465,6 +465,8 @@ class EmailServer:
 
         if sender is None:
             sender = globs.opts['outsender']
+        if globs.opts['outsendername'] != '':
+            sender = '{} <{}>'.format(globs.opts['outsendername'], sender)
         msg['From'] = sender
 
         if receiver is None:
@@ -494,7 +496,11 @@ class EmailServer:
         # Build email message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = 'Duplicati Job Status Error'
+
         msg['From'] = globs.opts['outsender']
+        if globs.opts['outsendername'] != '':
+            msg['From'] = '{} <{}>'.format(globs.opts['outsendername'], msg['From'])
+
         msg['To'] = globs.opts['outreceiver']
 
         # Record the MIME type. Only need text type

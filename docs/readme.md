@@ -370,6 +370,16 @@ outsender=sender@somemail.com
 Email address of report sender.
 
 ```
+outsendername=
+```
+
+The "friendly name" used to send report emails. If non-blank, emails will be sent from 
+
+> "Friendly Name \<sender@somemail.com>"
+
+The default is blank.
+
+```
 outreceiver=receiver@somemail.com
 ```
 
