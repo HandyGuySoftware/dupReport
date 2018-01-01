@@ -58,7 +58,6 @@ rcParts= [
     ('outgoing','outaccount','someacct@hostmail.com', False),
     ('outgoing','outpassword','********', False),
     ('outgoing','outsender','sender@hostmail.com', False),
-    ('outgoing','outsendername','', True),
     ('outgoing','outreceiver','receiver@hostmail.com', False),
 
     # [report] section defaults

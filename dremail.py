@@ -465,8 +465,6 @@ class EmailServer:
 
         if sender is None:
             sender = globs.opts['outsender']
-        if globs.opts['outsendername'] != '':
-            sender = '{} <{}>'.format(globs.opts['outsendername'], sender)
         msg['From'] = sender
 
         if receiver is None:
@@ -484,9 +482,12 @@ class EmailServer:
             msgPart = MIMEText(msgHtml, 'html')
             msg.attach(msgPart)
 
-        # Send the message via local SMTP server.
+        # Send the message via SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        self.server.sendmail(sender, receiver, msg.as_string().encode('utf-8'))
+        globs.log.write(2,'Sending email to [{}]'.format(receiver.split(',')))
+        self.server.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
+
+        return None
 
     # Send email for errors
     def sendErrorEmail(self, errText):
@@ -496,11 +497,7 @@ class EmailServer:
         # Build email message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = 'Duplicati Job Status Error'
-
         msg['From'] = globs.opts['outsender']
-        if globs.opts['outsendername'] != '':
-            msg['From'] = '{} <{}>'.format(globs.opts['outsendername'], msg['From'])
-
         msg['To'] = globs.opts['outreceiver']
 
         # Record the MIME type. Only need text type
@@ -509,7 +506,10 @@ class EmailServer:
 
         # Send the message via local SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'], msg.as_string().encode('utf-8'))
+        globs.log.write(2,'Sending error email to [{}]'.format(globs.opts['outreceiver'].split(',')))
+        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'].split(','), msg.as_string().encode('utf-8'))
+
+        return None
 
     # Check if server connection has timed out. If it has, reconnect and continue
     def keepAlive(self):

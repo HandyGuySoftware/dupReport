@@ -367,23 +367,21 @@ Password for outgoing email system.
 outsender=sender@somemail.com
 ```
 
-Email address of report sender.
+Email address of report sender. To add a "friendly name" to the sender's email address, use the form:
 
-```
-outsendername=
-```
-
-The "friendly name" used to send report emails. If non-blank, emails will be sent from 
-
-> "Friendly Name \<sender@somemail.com>"
-
-The default is blank.
+​	 `outsender=Arthur Dent <adent@galaxy.org>`
 
 ```
 outreceiver=receiver@somemail.com
 ```
 
-Email address of report recipient. 
+Email address of report recipient. To add a "friendly name" to the receiver's email address, use the form:
+
+​	`outreceiver=Arthur Dent <adent@galaxy.org>`
+
+To send to multiple recipients, separate the recipients with a comma:
+
+​	`outreceiver=adent@galaxy.org, Zaphod B <zbeeblebrox@galaxy.org>`
 
 ### [report] section
 
