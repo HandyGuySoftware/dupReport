@@ -439,7 +439,7 @@ class EmailServer:
             if statusParts['warnings'] != '':
                 errMsg += 'Warnings:' + statusParts['warnings'] + '\n\n'
             if statusParts['errors'] != '':
-                errMsg += 'Errors:' + statusParts['warnings'] + '\n\n'
+                errMsg += 'Errors:' + statusParts['errors'] + '\n\n'
 
             globs.outServer.sendErrorEmail(errMsg)
 
