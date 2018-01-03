@@ -216,8 +216,18 @@ class EmailServer:
             if retVal != 'OK':
                 globs.log.write(1, 'ERROR getting message: {}'.format(self.nextEmail))
                 return None
-            globs.log.write(3,'data[0][1]=[{}]'.format(data[0][1]))
-            retMessage = email.message_from_string(data[0][1].decode('utf-8'))  # Get message body
+
+            # Fix issue #71
+            # From https://stackoverflow.com/questions/2230037/how-to-fetch-an-email-body-using-imaplib-in-python
+            # "...usually the data format is [(bytes, bytes), bytes] but when the message is marked as unseen manually, 
+            # the format is [bytes, (bytes, bytes), bytes] – Niklas R Sep 8 '15 at 23:29
+            # Need to check if len(data)==2 (normally unread) or ==3 (manually set unread)
+            if len(data) == 2:
+                retMessage = email.message_from_string(data[0][1].decode('utf-8'))  # Get message body
+                globs.log.write(3,'data[0][1]=[{}]'.format(data[0][1]))
+            else:
+                retMessage = email.message_from_string(data[1][1].decode('utf-8'))  # Get message body
+                globs.log.write(3,'data[1][1]=[{}]'.format(data[1][1]))
             globs.log.write(2, 'Next Message=[{}]'.format(retMessage))        
             self.nextEmail += 1
             return retMessage
