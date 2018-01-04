@@ -275,7 +275,7 @@ show24hourtime=false
 purgedb=true
 ```
 
-If true, emails in the database that are no longer found on the incoming email server will be purged from the database and the database will be compacted. **NOTE:** Any source-destination pairs referenced in purged emails will remain in the database in case future emails for those pairs come in. To remove obsolete source-destination pairs from the database, use the -m option.
+If true, emails in the database that are no longer found on the incoming email server will be purged from the database and the database will be compacted. **NOTE:** Any source-destination pairs referenced in purged emails will remain in the database in case emails for those pairs are seen in the future. To remove obsolete source-destination pairs from the database, use the -m option.
 
 ### [incoming] section
 
@@ -452,7 +452,7 @@ subheading = Target Destination: #DESTINATION#
 
 Not all keywords are appropriate for all reports. The following table shows what keywords are available to use in the subheading field for each report:
 
-| Report   | Allowable Fields          |
+| Report   | Allowable Keywords        |
 | -------- | ------------------------- |
 | srcdest  | \#SOURCE#  \#DESTINATION# |
 | bydest   | \#DESTINATION#            |
@@ -566,14 +566,14 @@ If the threshold defined by nobackupwarn is reached, the string specified by nbw
 
 ### [headings] section
 
-The [headings] section contains the default column titles for the fields used in all the dupReport reports. You can alter the headings to suit your tastes. For example, to change the heading for the “size” column from “Size” to “How Big?”, change:
+The [headings] section contains the default column titles for the fields used in all the dupReport reports. You can alter the headings to suit your tastes. For example, to change the heading for the “size” column from “Size” to “How Big?”, change this:
 
 ```
 size = Size
 ```
 
 
-To
+to this:
 
 ```
 size = How Big?
@@ -615,7 +615,7 @@ Specific options can also be set for each source/destination pair in the system.
 [Client-Server]
 ```
 
-Note that the section name must match the Source/Destination pair name ***exactly***, including capitalization and delimiter characters. If there is any difference between the source/destination name and the [source-destination] section name, the program will not be able to match the proper parameters to the correct backup job.
+Note that the section name must match the Source/Destination pair name ***exactly***, including capitalization and delimiter characters. If there is any difference between the source/destination job name and the [source-destination] section name, the program will not be able to match the proper parameters to the correct backup job.
 
 Because [source-destination] sections are optional, they must be manually added to the .rc file if they are needed. 
 
@@ -633,7 +633,7 @@ The allowable values for these options are the same as the dateformat= and timef
 | dateformat= | [main] dateformat= |
 | timeformat= | [main] timeformat= |
 
-**NOTE:** dateformat= and timeformat= in a [source-destination] section are only applied to the parsing of incoming emails. Dates and times produced in the final report are always formatted according to the default dateformat= and timeformat= options in the [main] section.
+**NOTE:** dateformat= and timeformat= in a [source-destination] section are only applied to the parsing of *incoming* emails. Dates and times produced in the final report are always formatted according to the default dateformat= and timeformat= options in the [main] section.
 
 ```
 nobackupwarn = 3
@@ -655,7 +655,7 @@ dupReport has several formats for reporting that are specified in the “style�
 
 ------
 
-The ‘srcdest’ report, also known as the “classic” report, displays backup jobs in groups of source/destination pairs. Here is an example of the ‘srcdest’ report:
+**The ‘srcdest’ report**, also known as the “classic” report, displays backup jobs in groups of source/destination pairs. Here is an example of the ‘srcdest’ report:
 
 ![report_srcdest](report_srcdest.jpg)
 
@@ -663,7 +663,7 @@ The ‘srcdest’ report, also known as the “classic” report, displays backu
 
 ------
 
-The 'bydest' report displays backup jobs grouped by destination. Here is an example of the ‘bydest’ report:
+**The 'bydest' report** displays backup jobs grouped by destination. Here is an example of the ‘bydest’ report:
 
 ![report_bydest](report_bydest.jpg)
 
@@ -671,7 +671,7 @@ The 'bydest' report displays backup jobs grouped by destination. Here is an exam
 
 ------
 
-The ‘bysource’ report displays backup jobs grouped by source. Here is an example of the ‘bysource’ report:
+**The ‘bysource’ report** displays backup jobs grouped by source. Here is an example of the ‘bysource’ report:
 
 ![report_bysource](report_bysource.jpg)
 
@@ -679,7 +679,7 @@ The ‘bysource’ report displays backup jobs grouped by source. Here is an exa
 
 ------
 
-The ‘bydate’ report displays backup jobs grouped by the date the jobs were run. Here is an example of the ‘bydate’ report:
+**The ‘bydate’ report** displays backup jobs grouped by the date the jobs were run. Here is an example of the ‘bydate’ report:
 
 ![report_bydate](report_bydate.jpg)
 
