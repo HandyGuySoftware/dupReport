@@ -222,6 +222,7 @@ class EmailServer:
             # "...usually the data format is [(bytes, bytes), bytes] but when the message is marked as unseen manually, 
             # the format is [bytes, (bytes, bytes), bytes] – Niklas R Sep 8 '15 at 23:29
             # Need to check if len(data)==2 (normally unread) or ==3 (manually set unread)
+            globs.log.write(3,'dataLen={}'.format(len(data)))
             if len(data) == 2:
                 retMessage = email.message_from_string(data[0][1].decode('utf-8'))  # Get message body
                 globs.log.write(3,'data[0][1]=[{}]'.format(data[0][1]))
