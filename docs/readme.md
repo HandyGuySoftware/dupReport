@@ -4,10 +4,10 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 
 ## Available Branches
 
-| Code            | Version      | GitHub Branch |
-| --------------- | ------------ | ------------- |
-| Current Release | 2.0.4        | master        |
-| Current Beta    | 2.1.0 Beta 1 | 2\_1\_0_Beta  |
+| Code            | Version | GitHub Branch |
+| --------------- | ------- | ------------- |
+| Current Release | 2.1.0   | master        |
+| Current Beta    | \<none> | \<none>       |
 
 
 The GitHub "master" branch contains the latest production (stable...mostly) code. See the "changelog" file for release history, features, and bug fixes.
