@@ -8,6 +8,7 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 | --------------- | ------- | ------------- |
 | Current Release | 2.1.0   | master        |
 | Current Beta    | \<none> | \<none>       |
+| Older Releases  | 2.0.4   | 2.0.4_Release |
 
 
 The GitHub "master" branch contains the latest production (stable...mostly) code. See the "changelog" file for release history, features, and bug fixes.
