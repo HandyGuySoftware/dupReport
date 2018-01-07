@@ -8,7 +8,7 @@
 
 # Define version info
 version=[2,1,0]     # Program Version
-status='Beta 1'
+status='Release 1'
 dbVersion=[1,0,1]   # Required DB version
 copyright='Copyright (c) 2018 Stephen Fried for HandyGuy Software.'
 
