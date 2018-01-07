@@ -35,7 +35,7 @@ dupReport was born.
 
 dupReport identifies backup jobs as a series of Source/Destination pairs. dupReport uses Source-Destination Pairs to display each source job and target storage separately. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
 
-\*\*\*\*\* Fred_Home_Desktop to Homers_Minio \*\*\*\*\*
+\*\*\*\*\* Fred_Home_Desktop to Homers_Minio \*\*\*\*\*\*
 
 Note that spaces in job names are not supported, at least by the default pattern matching.
 Source/Destination pairs are specified in dupReport in the following format: 
