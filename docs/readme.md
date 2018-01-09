@@ -108,7 +108,7 @@ dupReport installation is easy and quick. To begin, download the dupReport files
 
 ## First-time Installation
 
-Running dupReport is easy. To use all the default values, execute the following command:
+Installing dupReport is easy. To use all the default values, execute the following command:
 
 ```
 Linux systems: user@system:~$ dupReport.py
@@ -124,7 +124,7 @@ dupReport is self-initializing, in that running the program for the first time c
 dupReport.py -r <RC_Directory> -d <Database_Directory>
 ```
 
-dupReport will create the .rc and database files in their respective paths. Both directories must already exist and you must have read and write access permissions to those locations. Use the default values for these file paths is recommended, but the option is there if you want it.
+dupReport will create the .rc and database files in their respective paths. Both directories must already exist and you must have read and write access permissions to those locations. Use of the default values for these file paths is recommended, but the option is there if you want it.
 
 The only thing dupReport can't set defaults for is the technical specifics about your incoming and outgoing mail servers (for example, the name/IP address, user ID, password, transport, encryption, etc.). These are specified in the [incoming] and [outgoing] sections of the .rc file. Once you edit those entries in the .rc file everything should work like magic. Probably.
 
