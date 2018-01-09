@@ -10,7 +10,6 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 | Current Beta    | \<none> | \<none>       |
 | Older Releases  | 2.0.4   | 2.0.4_Release |
 
-
 The GitHub "master" branch contains the latest production (stable...mostly) code. See the "changelog" file for release history, features, and bug fixes.
 
 Other GitHub branches may contain the latest beta releases, test code, development features, and other potentially unstable code. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. 
@@ -25,20 +24,31 @@ Please follow dupReport on Twitter [@dupReport](https://twitter.com/DupReport)
 
 Enjoy!
 
-## Origin Story
+# What is it?
 
-The old CrashPlan Home backup system had a really nice feature whereby it would gather up the current backup status for all your systems and mail you a consolidated report on a periodic basis. It was a great way to make sure all your backups were current and to notify you if something was wrong. Duplicati has no such capability. You can configure it to send you email when backup jobs completed, but you get a separate email for each backup job that runs. In the configuration I have (9 systems backing up to 2 different storage services in various combinations) that's 14 different emails per day. Compare that with CrashPlan's one summary email per day and you can see how this was a problem. Others on the Duplicati discussion forum noticed it, too. That started me thinking about developing a tool to provide summarized email notification for Duplicati users.  
+dupReport is a program that will collect up status emails from Duplicati and combine them into a single email report that is sent to you. The following diagram helps explain how it works:
+
+![dupReport Architecture](dR_Architecture.jpg)\
+
+Some general points about dupReport
+
+- The program is designed for those who run backups from multiple locations and are getting multiple     Duplicati emails per day. For example, we have 14 separate emails coming in per day from Duplicati backup jobs; way too many to keep track of manually. In these cases, dupReport will collect and collate all those emails and create a single report that summarizes all of them. If you only have a single instance of Duplicati running a single backup job, you may get some value from dupReport, but it may be overkill.
+- dupReport doesn’t interface directly with Duplicati and doesn't read the Duplicati configuration files, log files, or or database. It connects to your email server, reads the backup report emails that Duplicati sends out, then parses them to create its report. It does not need to be run on the same system where Duplicati is running, it can be on a completely different system if that is more convenient for you. The only requirement is that the system where dupReport is running must be able to connect to your email server.
+
+# Origin Story
+
+The old CrashPlan Home backup system had a really nice feature whereby it would gather up the current backup status for all your systems and mail you a consolidated report on a periodic basis. It was a great way to make sure all your backups were current and to notify you if something was wrong. Duplicati has no such capability. You can configure it to send you email when backup jobs completed, but you get a separate email for each backup job that runs. In the configuration we have (9 systems backing up to 2 different storage services in various combinations) we get 14 different emails per day. Compare that with CrashPlan's single summary email per day and you can see how this was a problem. Others on the [Duplicati discussion forum](https://forum.duplicati.com/) noticed it, too. That started us thinking about developing a tool to provide summarized email notification for Duplicati users.  
 
 dupReport was born.  
 
-## Source-Destination Pairs
+# Source-Destination Pairs
 
-dupReport identifies backup jobs as a series of Source/Destination pairs. dupReport uses Source-Destination Pairs to display each source job and target storage separately. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
+dupReport identifies backup jobs as a series of "Source-Destination" pairs. dupReport uses Source-Destination Pairs to identify the source and destination systems for each backup job. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
 
 \*\*\*\*\* Fred_Home_Desktop to Homers_Minio \*\*\*\*\*\*
 
 Note that spaces in job names are not supported, at least by the default pattern matching.
-Source/Destination pairs are specified in dupReport in the following format: 
+Source-Destination pairs are specified in dupReport in the following format: 
 
 ```
 <Source><delimiter><Destination>
@@ -48,7 +58,7 @@ Source/Destination pairs are specified in dupReport in the following format:
 Where:
 
 - \<Source\> is a series of alphanumeric characters
-- \<delimiter\> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source/Destination pairs 
+- \<delimiter\> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source-Destination pairs 
 - \<Destination\> is a series of alphanumeric characters
 - There can be NO SPACES in or between the \<Source>, \<delimiter>, and \<Destination> specifications
 
@@ -61,7 +71,7 @@ destregex=\w\*
 srcdestdelimiter=-
 ```
 
-Together the full source/destination regex is:
+Together the full source-destination regex is:
 
 ```
 <srcregex><srcdestdelimiter><destregex> 
@@ -69,9 +79,9 @@ Together the full source/destination regex is:
 
 You can modify the specification of these elements by replacing each with a regular expression defining how dupReport can find that element in a email's subject line. 
 
-***WARNING!*** *dupReport relies on the Source/Destination pair format for all of its operations. If you do not properly specify your Source/Destination pair formats in both the program (through the dupReport.rc file) and in Duplicati (through proper job naming) none of this will work for you. In particular (and repeating what's already been stated) make sure that you **DO NOT INCLUDE ANY SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications in your Duplicati job names.*
+***WARNING!*** *dupReport relies on the Source-Destination pair format for all of its operations. If you do not properly specify your Source-Destination pair formats in both the program (through the dupReport.rc file) and in Duplicati (through proper job naming) none of this will work for you. In particular (and repeating what's already been stated) make sure that you **DO NOT INCLUDE ANY SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications in your Duplicati job names.*
 
-## Identifying Emails of Interest
+# Identifying Emails of Interest
 
 dupReport scans the identified mailbox looking for backup job emails. However, there may be hundreds (or thousands) of emails in the inbox, only a few of which contain information about Duplicati backup jobs. dupReport identifies "Emails of Interest" by matching the email's subject line against a pattern defined in the dupReport.rc file. If the pattern matches, the email is analyzed. If the pattern does not match, the email is ignored. 
 
@@ -86,19 +96,19 @@ If you change the subjectregex option, be sure that it will match the text speci
 
 Several users on the Duplicati Forum have found different ways to modify subjectregex= to get more control over finding Emails of Interest. [This idea from dcurrey](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116/15) shows one way to specify what types of report emails you are looking for.  [This post from Marc_Aronson](https://forum.duplicati.com/t/how-to-configure-automatic-email-notifications-via-gmail-for-every-backup-job/869) shows another approach. 
 
-## System Requirements
+# System Requirements
 
-dupReport has been formally tested on Linux (Debian 8) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page on the Duplicati Forum](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)   have stated they’ve installed and run the program on a wide variety of operating systems. 
+dupReport has been formally tested on Linux (Debian 8) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page on the Duplicati Forum](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)   have stated they’ve installed and run the program on a wide variety of operating systems. The python code uses standard Python libraries, so it *should* run on any platform where Python can be run. *Should*.
 
 In addition to the dupReport program files, the only other software dupReport needs is Python3. Installation instructions for Python are beyond our scope here, but instructions are widely available on the Internet.
 
-## Installing dupReport
+# Installing dupReport
 
 dupReport installation is easy and quick. To begin, download the dupReport files from the GitHub repository and place them in the directory of your choice. Then, make sure Python 3 is installed on your system and operating correctly.
 
-### First-time installation
+## First-time Installation
 
-If you are running dupReport for the first time, execute the following command:
+Running dupReport is easy. To use all the default values, execute the following command:
 
 ```
 Linux systems: user@system:~$ dupReport.py
@@ -108,29 +118,37 @@ Linux systems: user@system:~$ dupReport.py
 Windows Systems: C:\users\me> python.exe dupReport.py
 ```
 
-This will perform the following actions:
-
-1. Create and initialize the dupReport database (dupReport.db)
-2. Create a default configuration file (dupReport.rc)
-
-By default, both of these files will be created in the same directory where the dupReport.py script is located. If you want them created in another location use the following program options:
+dupReport is self-initializing, in that running the program for the first time creates the database, initializes the .rc file with a bunch of default values, then exits. By default, the database and .rc files will be created in the same directory where the dupReport.py script is located. If you want them created in another location use the following program options:
 
 ```
 dupReport.py -r <RC_Directory> -d <Database_Directory>
 ```
 
+dupReport will create the .rc and database files in their respective paths. Both directories must already exist and you must have read and write access permissions to those locations. Use the default values for these file paths is recommended, but the option is there if you want it.
 
-Both \<RC_Directory\> and \<Database_Directory\> must be directory specifications, *<u>not</u>* full file paths. dupReport will create the .rc and database files in their respective paths. Both directories must already exist and you must have access permissions to those locations.
+The only thing dupReport can't set defaults for is the technical specifics about your incoming and outgoing mail servers (for example, the name/IP address, user ID, password, transport, encryption, etc.). These are specified in the [incoming] and [outgoing] sections of the .rc file. Once you edit those entries in the .rc file everything should work like magic. Probably.
 
-Once the files are created the program will exit. You will then need to edit the dupReport.rc file with the appropriate entries to point to your database and log files as well as providing the locations and credentials for your email servers. More information on the .rc file configuration can be found below under “RC File Configuration.”
+More information on the .rc file configuration can be found below under “RC File Configuration.”
 
-### Upgrading from a Previous Version
+## Upgrading From a Previous Version
 
 If you have been running an earlier version of dupReport, the program will automatically update the dupReport.rc file and the dupReport.db database to the latest versions. Depending on the extent of the changes, the program may indicate that you need to edit the dupReport.rc file to set any new options correctly. 
 
 As a precaution, **it is highly recommended that you backup your .rc and .db files to a safe place** before proceeding with the upgrade until you're sure everything is working properly.
 
-## Command Line Options
+## Running the Program After Installation
+
+Once all the options have been set in the .rc file, use the following commands to run dupReport normally:
+
+```
+Linux systems: user@system:~$ /path/to/dupReport/dupReport.py <options>
+```
+
+```
+Windows Systems: C:\users\me> python.exe \path\to\dupreport\dupReport.py <options>
+```
+
+# Command Line Options
 
 Command line options alter the way dupReport operates. Many command line options have equivalent options in the dupReport.rc file. If an option is specified on both the command line and in the .rc file, the command line option takes precedence.
 
@@ -152,17 +170,17 @@ dupReport has the following command line options:
 | -B \<DateTimeSpec>          | --rollbackx \<DateTimeSpec>       | Roll back database to a specified date and time. Same operation as -b, except program will exit after rolling back the database. |
 | -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>      | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
 | -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
-| -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source/destination pair from the database. |
+| -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source-destination pair from the database. |
 | -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
 | -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in the .rc file. See description of nobackwarn= option in "[source-destination] Sections" below. |
 
 
 
-## dupReport.rc Configuration
+# dupReport.rc Configuration
 
 The dupReport.rc file contains configuration information for dupReport to run properly. Many options in the dupReport.rc file have equivalent command line options. If an option is specified on both the command line and the .rc file, the command line option takes precedence.
 
-### [main] section
+## [main] section
 
 The [main] section contains the high-level program options for dupReport to run properly.
 
@@ -278,7 +296,7 @@ purgedb=true
 
 If true, emails in the database that are no longer found on the incoming email server will be purged from the database and the database will be compacted. **NOTE:** Any source-destination pairs referenced in purged emails will remain in the database in case emails for those pairs are seen in the future. To remove obsolete source-destination pairs from the database, use the -m option.
 
-### [incoming] section
+## [incoming] section
 
 The [incoming] section contains settings for incoming email that dupReport reads to create the report. 
 
@@ -324,7 +342,7 @@ infolder=INBOX
 
 Email account folder where incoming Duplicati email is stored. This parameter is used for IMAP systems and ignored for POP3 systems.
 
-### [outgoing] section
+## [outgoing] section
 
 The [outgoing] section contains settings for the email server that dupReport will use to send the final summary report email. 
 
@@ -384,7 +402,7 @@ To send to multiple recipients, separate the recipients with a comma:
 
 ​	`outreceiver=adent@galaxy.org, Zaphod B <zbeeblebrox@galaxy.org>`
 
-### [report] section
+## [report] section
 
 The [report] section contains settings for the final report created by dupReport.
 
@@ -394,7 +412,7 @@ style=srcdest
 
 Specifies the type of report for dupReport to create. Allowable report styles are:
 
-- **srcdest**: Backup jobs grouped by source/destination pairs
+- **srcdest**: Backup jobs grouped by source-destination pairs
 - **bydest**: Backup jobs grouped by destination systems
 - **bysource**: Backup jobs grouped by source systems
 - **bydate**: backup jobs grouped by run date
@@ -565,7 +583,7 @@ If the threshold defined by nobackupwarn is reached, the string specified by nbw
 - \#DATE# - The date of the last backup
 - \#TIME# - The time of the last backup
 
-### [headings] section
+## [headings] section
 
 The [headings] section contains the default column titles for the fields used in all the dupReport reports. You can alter the headings to suit your tastes. For example, to change the heading for the “size” column from “Size” to “How Big?”, change this:
 
@@ -608,15 +626,15 @@ added =
 | jobwarnings      | Warning messages generated by the backup job during its run. This column can also be suppressed by setting displaywarnings=false in the [report] section |
 | joberrors        | Error messages generated by the backup job during its run. This column can also be suppressed by setting displayerrors=false in the [report] section |
 
-### [source-destination] sections
+## [source-destination] sections
 
-Specific options can also be set for each source/destination pair in the system. For example, to specify parameters specifically for a backup job named “Client-Server”, there should be a section in the .rc file with the following name:
+Specific options can also be set for each Source-Destination pair in the system. For example, to specify parameters specifically for a backup job named “Client-Server”, there should be a section in the .rc file with the following name:
 
 ```
 [Client-Server]
 ```
 
-Note that the section name must match the Source/Destination pair name ***exactly***, including capitalization and delimiter characters. If there is any difference between the source/destination job name and the [source-destination] section name, the program will not be able to match the proper parameters to the correct backup job.
+Note that the section name must match the Source-Destination pair name ***exactly***, including capitalization and delimiter characters. If there is any difference between the Source-Destination job name and the [source-destination] section name, the program will not be able to match the proper parameters to the correct backup job.
 
 Because [source-destination] sections are optional, they must be manually added to the .rc file if they are needed. 
 
@@ -650,13 +668,13 @@ These options specify the parameters for warning emails if a backup has not been
 | nbwsubject= | [report] nbwsubject=    |
 | receiver=   | [outgoing] outreceiver= |
 
-## Report Formats
+# Report Formats
 
 dupReport has several formats for reporting that are specified in the “style” parameter in the [report] section of the dupReport.rc file. Each report can be sorted in various ways. Sorting options are configured using the “sortby” option in the [report] section.
 
 ------
 
-**The ‘srcdest’ report**, also known as the “classic” report, displays backup jobs in groups of source/destination pairs. Here is an example of the ‘srcdest’ report:
+**The ‘srcdest’ report**, also known as the “classic” report, displays backup jobs in groups of Source-Destination pairs. Here is an example of the ‘srcdest’ report:
 
 ![report_srcdest](report_srcdest.jpg)
 
