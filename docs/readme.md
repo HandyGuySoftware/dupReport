@@ -111,11 +111,11 @@ dupReport installation is easy and quick. To begin, download the dupReport files
 Installing dupReport is easy. To use all the default values, execute the following command:
 
 ```
-Linux systems: user@system:~$ dupReport.py
+Linux systems: user@system:~$ /path/to/dupReport/dupReport.py
 ```
 
 ```
-Windows Systems: C:\users\me> python.exe dupReport.py
+Windows Systems: C:\users\me> python.exe \path\to\dupreport\dupReport.py
 ```
 
 dupReport is self-initializing, in that running the program for the first time creates the database, initializes the .rc file with a bunch of default values, then exits. By default, the database and .rc files will be created in the same directory where the dupReport.py script is located. If you want them created in another location use the following program options:
