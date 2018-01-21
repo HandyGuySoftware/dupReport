@@ -140,7 +140,7 @@ class OptionManager:
             verParts = rcVersion.split('.')
             currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
             # Split RC version into component parts
-            newVerNum = (globs.version[0] * 100) + (globs.version[1] * 10) + globs.version[2]
+            newVerNum = (globs.rcVersion[0] * 100) + (globs.rcVersion[1] * 10) + globs.rcVersion[2]
             globs.log.write(3,'RC file versions: current={} new={}.'.format(currVerNum, newVerNum))
             if currVerNum < newVerNum: # Need an upgrade
                 needToUpgrade = True

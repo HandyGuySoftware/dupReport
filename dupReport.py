@@ -209,10 +209,9 @@ if __name__ == "__main__":
         # Get new messages on server
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
-            nxtMsg = globs.inServer.getNextMessage()
+            nxtMsg = globs.inServer.processNextMessage()
             while nxtMsg is not None:
-                globs.inServer.processMessage(nxtMsg)
-                nxtMsg = globs.inServer.getNextMessage()
+                nxtMsg = globs.inServer.processNextMessage()
 
     # Open report object and initialize report options
     # We may not be running reports, but the options will be needed later in the program 
