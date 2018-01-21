@@ -13,6 +13,7 @@ import poplib
 import email
 import re
 import datetime
+import time
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -65,104 +66,131 @@ lineParts = [
 
 
 class EmailServer:
-    def __init__(self):
-        self.protocol = None
-        self.address = None
-        self.port = None
-        self.encryption = None
-        self.accountname = None
-        self.passwd = None
-        self.server = None
-        self.newEmails = None      # List[] of new emails on server. Activated by connect()
-        self.numEmails = None      # Number of emails in list
-        self.nextEmail = None      # index into list of next email to be retrieved
-
-    def dump(self):
-        return 'protocol=[{}] address=[{}] port=[{}] account=[{}] passwd=[{}] encryption=[{}]'.format(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption)
-
-    def connect(self, prot, add, prt, acct, pwd, crypt=None):
+    def __init__(self, prot, add, prt, acct, pwd, crypt, kalive, fold = None):
         self.protocol = prot
         self.address = add
         self.port = prt
-        self.encryption = crypt
         self.accountname = acct
         self.passwd = pwd
+        self.encryption = crypt
+        self.keepalive = kalive
+        self.folder = fold
         self.server = None
         self.newEmails = 0      # List[] of new emails on server. Activated by connect()
         self.numEmails = 0      # Number of emails in list
         self.nextEmail = 0      # index into list of next email to be retrieved
 
-        globs.log.write(1, 'EmailServer.Connect({})'.format(self.dump()))
+    def dump(self):
+        return 'protocol=[{}] address=[{}] port=[{}] account=[{}] passwd=[{}] encryption=[{}] keepalive=[{}] folder=[{}]'.format(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption, self.keepalive, self.folder)
 
-        if self.protocol == 'pop3':
-            globs.log.write(1,'Using POP3')
-            try:
-                if self.encryption is not None:
-                    self.server = poplib.POP3_SSL(self.address,self.port)
-                else:
-                    self.server = poplib.POP3(self.address,self.port)
-                retVal = self.server.user(self.accountname)
-                globs.log.write(3,'Logged in. retVal={}'.format(retVal))
-                retVal = self.server.pass_(self.passwd)
-                globs.log.write(3,'Entered password. retVal={}'.format(retVal))
-                return retVal.decode()
-            except Exception:
+    def connect(self):
+        globs.log.write(1, 'EmailServer.Connect({})'.format(self.dump()))
+        globs.log.write(3, 'server={} keepalive={}'.format(self.server, self.keepalive))
+
+        # See if a server connection is already established
+        # This is the most common case, so check this first
+        if self.server != None:
+            if self.keepalive is False: # Do we care about keepalives?
                 return None
-        elif self.protocol == 'imap':
-            globs.log.write(1,'Using IMAP')
-            try:
-                if self.encryption is not None:
-                    self.server = imaplib.IMAP4_SSL(self.address,self.port)
-                else:
-                    self.server = imaplib.IMAP4(self.address,self.port)
-                retVal, data = self.server.login(self.accountname, self.passwd)
-                globs.log.write(3,'Logged in. retVal={} data={}'.format(retVal, data))
-                return retVal
-            except imaplib.IMAP4.error:
+
+            globs.log.write(3,'Cheeking server connection')
+            if self.protocol == 'imap':
+                try:
+                    status = self.server.noop()[0]
+                except:
+                    status = 'NO'
+
+                if status != 'OK':
+                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
+                    self.server = None
+                    self.connect()
+            elif self.protocol == 'pop3':
+                try:
+                    status = self.server.noop()
+                except:
+                    status = '+NO'
+
+                if status != '+OK':
+                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
+                    self.server = None
+                    self.connect()
+            elif self.protocol == 'smtp':
+                try:
+                    status = self.server.noop()[0]
+                except:  # smtplib.SMTPServerDisconnected
+                    status = -1
+
+                if status != 250: # Disconnected. Need to reconnect to server
+                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
+                    self.server = None
+                    self.connect()
+        else:     # Need to establish server connection
+            if self.protocol == 'imap':
+                globs.log.write(1,'Initial connect using  IMAP')
+                try:
+                    if self.encryption is not None:
+                        self.server = imaplib.IMAP4_SSL(self.address,self.port)
+                    else:
+                        self.server = imaplib.IMAP4(self.address,self.port)
+                    retVal, data = self.server.login(self.accountname, self.passwd)
+                    globs.log.write(3,'IMAP Logged in. retVal={} data={}'.format(retVal, data))
+                    retVal, data = self.server.select(self.folder)
+                    globs.log.write(3,'IMAP Setting folder. retVal={} data={}'.format(retVal, data))
+                    return retVal
+                except imaplib.IMAP4.error:
+                    return None
+                except imaplib.socket.gaierror:
+                    return None
+            elif self.protocol == 'pop3':
+                globs.log.write(1,'Initial connect using POP3')
+                try:
+                    if self.encryption is not None:
+                        self.server = poplib.POP3_SSL(self.address,self.port)
+                    else:
+                        self.server = poplib.POP3(self.address,self.port)
+                    retVal = self.server.user(self.accountname)
+                    globs.log.write(3,'Logged in. retVal={}'.format(retVal))
+                    retVal = self.server.pass_(self.passwd)
+                    globs.log.write(3,'Entered password. retVal={}'.format(retVal))
+                    return retVal.decode()
+                except Exception:
+                    return None
+            elif self.protocol == 'smtp':
+                globs.log.write(1,'Initial connect using  SMTP')
+                try:
+                    self.server = smtplib.SMTP('{}:{}'.format(self.address,self.port))
+                    if self.encryption is not None:   # Do we need to use SSL/TLS?
+                        self.server.starttls()
+                    retVal, retMsg = self.server.login(self.accountname, self.passwd)
+                    globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
+                    return retMsg.decode()
+                except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
+                    return None
+            else:   # Bad protocol specification
+                globs.log.err('Invalid protocol specification: {}. Aborting program.'.format(self.protocol))
+                globs.closeEverythingAndExit(1)
                 return None
-            except imaplib.socket.gaierror:
-                return None
-        elif self.protocol == 'smtp':
-            globs.log.write(1,'Using SMTP')
-            try:
-                self.server = smtplib.SMTP('{}:{}'.format(self.address,self.port))
-                if self.encryption is not None:   # Do we need to use SSL/TLS?
-                    self.server.starttls()
-                retVal, retMsg = self.server.login(self.accountname, self.passwd)
-                globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
-                return retMsg.decode()
-            except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
-                return None
-        else:
-            return None
+        return None
+
 
     # Close email server connection
     def close(self):
+        if self.server == None:
+            return None
+
         if self.protocol == 'pop3':
             self.server.quit()
         elif self.protocol == 'imap':
             self.server.close()
         elif self.protocol == 'smtp':
             self.server.quit()
-
         return None
-
-    # Set the folder for retrieving incoming email.
-    # Only useful for IMAP servers. POP3 doesn't use folders
-    def setFolder(self, fname):
-        globs.log.write(1,'setFolder({})'.format(fname))
-        globs.log.write(3,'self.protocol=[{}]'.format(self.protocol))
-        # Folder only valid on IMAP. Need a valid connection. Need a valid folder name. Handle pathological cases
-        if ((self.protocol != 'imap') or (self.server is None) or (fname is None) or (fname == '')):
-            return None
-        retVal, data = self.server.select(fname)
-        globs.log.write(3,'Setting folder. retVal={} data={}'.format(retVal, data))
-        return retVal
 
     # Check if there are new messages waiting on the server
     # Return number of messages if there
     # Return None if empty
     def checkForMessages(self):
+        self.connect()
         if self.protocol == 'pop3':
             globs.log.write(1,'checkForMessages(POP3)')
             self.numEmails = len(self.server.list()[1])  # Get list of new emails
@@ -195,7 +223,7 @@ class EmailServer:
     # Returns None if no more messages
     def processNextMessage(self):
         globs.log.write(1, 'dremail.processNextMessage()')
-        #self.keepAlive()
+        self.connect()
 
         # Increment message counter to the next message. 
         # Skip for message #0 because we haven't read any messages yet
@@ -452,22 +480,22 @@ class EmailServer:
     # Send final email result
     def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):
         globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, sender, receiver))
-        self.keepAlive()
+        self.connect()
 
         # Build email message
         msg = MIMEMultipart('alternative')
-
         if subject is None:
             subject = globs.report.reportOpts['reporttitle']
         msg['Subject'] = subject
-
         if sender is None:
             sender = globs.opts['outsender']
         msg['From'] = sender
-
         if receiver is None:
             receiver = globs.opts['outreceiver']
         msg['To'] = receiver
+ 
+        # Add 'Date' header for RFC compliance - See issue #77
+        msg['Date'] = email.utils.formatdate(time.time(), localtime=True)
 
         # Record the MIME types of both parts - text/plain and text/html.
         # Attach parts into message container.
@@ -484,19 +512,19 @@ class EmailServer:
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
         globs.log.write(2,'Sending email to [{}]'.format(receiver.split(',')))
         self.server.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
-
         return None
 
     # Send email for errors
     def sendErrorEmail(self, errText):
         globs.log.write(2, 'sendErrorEmail()')
-        self.keepAlive()
+        self.connect()
 
         # Build email message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = 'Duplicati Job Status Error'
         msg['From'] = globs.opts['outsender']
         msg['To'] = globs.opts['outreceiver']
+        msg['Date'] = email.utils.formatdate(time.time(), localtime=True)   # Add 'Date' header for RFC compliance - See issue #77
 
         # Record the MIME type. Only need text type
         msgPart = MIMEText(errText, 'plain')
@@ -506,40 +534,6 @@ class EmailServer:
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
         globs.log.write(2,'Sending error email to [{}]'.format(globs.opts['outreceiver'].split(',')))
         self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'].split(','), msg.as_string().encode('utf-8'))
-
-        return None
-
-    # Check if server connection has timed out. If it has, reconnect and continue
-    def keepAlive(self):
-        globs.log.write(3,'outServer.keepAlive()')
-
-        if self.protocol == 'smtp':
-            try:
-                status = self.server.noop()[0]
-            except:  # smtplib.SMTPServerDisconnected
-                status = -1
-
-            if status != 250: # Disconnected. Need to reconnect to server
-                globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
-                self.connect(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption)
-        elif self.protocol == 'imap':
-            try:
-                status = self.server.noop()[0]
-            except:
-                status = 'NO'
-
-            if status != 'OK':
-                globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
-                self.connect(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption)
-        elif self.protocol == 'pop3':
-            try:
-                status = self.server.noop()
-            except:
-                status = '+NO'
-
-            if status != '+OK':
-                globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
-                self.connect(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption)
 
         return None
 

@@ -7,7 +7,7 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 | Code            | Version | GitHub Branch |
 | --------------- | ------- | ------------- |
 | Current Release | 2.1.0   | master        |
-| Current Beta    | \<none> | \<none>       |
+| Current Beta    | 2.2.0   | 2.2.0_Beta    |
 | Older Releases  | 2.0.4   | 2.0.4_Release |
 
 The GitHub "master" branch contains the latest production (stable...mostly) code. See the "changelog" file for release history, features, and bug fixes.
@@ -296,6 +296,12 @@ purgedb=true
 
 If true, emails in the database that are no longer found on the incoming email server will be purged from the database and the database will be compacted. **NOTE:** Any source-destination pairs referenced in purged emails will remain in the database in case emails for those pairs are seen in the future. To remove obsolete source-destination pairs from the database, use the -m option.
 
+```
+showprogress=0
+```
+
+If this option is greater than zero, dupReport will display a dot ('.') on stdout for every 'n' emails that are processed from the incoming server. For example, if showprogress=5, there will be one '.' for every 5 emails that are read.
+
 ## [incoming] section
 
 The [incoming] section contains settings for incoming email that dupReport reads to create the report. 
@@ -304,7 +310,7 @@ The [incoming] section contains settings for incoming email that dupReport reads
 transport=imap
 ```
 
- Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'
+ Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'. IMAP is *highly* recommended.
 
 ```
 inserver=localhost
@@ -341,6 +347,12 @@ infolder=INBOX
 ```
 
 Email account folder where incoming Duplicati email is stored. This parameter is used for IMAP systems and ignored for POP3 systems.
+
+```
+inkeepalive=false
+```
+
+Large inboxes may take a long time to scan and parse, and on some systems this can lead to a server connection timeout before processing has completed. This is more likely to happen on the outgoing connection (where there may be long periods of inactivity) than on the incoming connection. However, if you are experiencing timeout errors on your incoming server connection set this value to 'true'.
 
 ## [outgoing] section
 
@@ -401,6 +413,12 @@ Email address of report recipient. To add a "friendly name" to the receiver's em
 To send to multiple recipients, separate the recipients with a comma:
 
 ​	`outreceiver=adent@galaxy.org, Zaphod B <zbeeblebrox@galaxy.org>`
+
+```
+outkeepalive=false
+```
+
+Large inboxes may take a long time to scan and parse, and on some systems this can lead to a server connection timeout before processing has completed. This is more likely to happen on the outgoing connection (where there may be long periods of inactivity) than on the incoming connection. If you are experiencing timeout errors on your outgoing server connection set this value to 'true'.
 
 ## [report] section
 

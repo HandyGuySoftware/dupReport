@@ -41,6 +41,7 @@ rcParts= [
     ('main','applyutcoffset','false', True),
     ('main','show24hourtime', 'true', True),
     ('main','purgedb', 'false', True),
+    ('main','showprogress', '0', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -50,6 +51,7 @@ rcParts= [
     ('incoming','inaccount','someacct@hostmail.com', False),
     ('incoming','inpassword','********', False),
     ('incoming','infolder','INBOX', False),
+    ('incoming','inkeepalive','false', True),
 
     # [outgoing] section defaults
     ('outgoing','outserver','localhost', False),
@@ -59,6 +61,7 @@ rcParts= [
     ('outgoing','outpassword','********', False),
     ('outgoing','outsender','sender@hostmail.com', False),
     ('outgoing','outreceiver','receiver@hostmail.com', False),
+    ('outgoing','outkeepalive','false', True),
 
     # [report] section defaults
     ('report','style','srcdest', True),
@@ -167,20 +170,25 @@ class OptionManager:
         globs.log.write(1, 'rc.setDefaults({})'.format(self.rcFileName))
 
         newRc = False
+        needUpdate = False
         # Loop through all the required parts of the RC file. If not there, add them
         for section, option, default, canCont in rcParts:
             if self.parser.has_section(section) == False: # Whole section is missing. Probably a new install.
                 globs.log.write(2, 'Adding RC section: [{}]'.format(section))
                 self.parser.add_section(section)
                 newRc=True
+                needUpdate = True
+
             if self.parser.has_option(section, option) == False: # Option is missing. Might be able to continue if non-critical.
                 globs.log.write(2, 'Adding RC option: [{}] {}={}'.format(section, option, default))
                 self.parser.set(section, option, default)
+                needUpdate = True
                 if canCont == False:
                     newRc=True
 
-        self.updateRc()
         globs.log.write(3,'newRc={}'.format(newRc))
+        if needUpdate:
+            self.updateRc()
         return newRc
 
     # Read .rc file options
@@ -210,6 +218,9 @@ class OptionManager:
         self.options['applyutcoffset'] = self.options['applyutcoffset'].lower() in ('true')   # boolean
         self.options['show24hourtime'] = self.options['show24hourtime'].lower() in ('true')   # boolean
         self.options['purgedb'] = self.options['purgedb'].lower() in ('true')   # boolean
+        self.options['inkeepalive'] = self.options['inkeepalive'].lower() in ('true')   # boolean
+        self.options['outkeepalive'] = self.options['outkeepalive'].lower() in ('true')   # boolean
+        self.options['showprogress'] = int(self.options['showprogress'])  # integer
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:

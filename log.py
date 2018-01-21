@@ -60,10 +60,11 @@ class LogHandler:
         return None
 
     # Write log info to stdout
-    def out(self, msg):
+    def out(self, msg, newline=True):
         if (msg is not None) and (msg != ''):
             sys.stdout.write(msg)
-            sys.stdout.write('\n')
+            if newline:
+                sys.stdout.write('\n')
         return None
 
     # Write log info to log file

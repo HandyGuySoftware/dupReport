@@ -189,15 +189,10 @@ if __name__ == "__main__":
         globs.closeEverythingAndExit(0)
 
     # Open email servers
-    globs.inServer = dremail.EmailServer()
-    retVal = globs.inServer.connect(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], globs.opts['inpassword'], globs.opts['inencryption'])
-    globs.log.write(3,'Open incoming server. retVal={}'.format(retVal))
-    retVal = globs.inServer.setFolder(globs.opts['infolder'])
-    globs.log.write(3,'Set folder. retVal={}'.format(retVal))
-
-    globs.outServer = dremail.EmailServer()
-    retVal = globs.outServer.connect('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], globs.opts['outpassword'], globs.opts['outencryption'])
-    globs.log.write(3,'Open outgoing server. retVal={}'.format(retVal))
+    globs.inServer = dremail.EmailServer(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], \
+        globs.opts['inpassword'], globs.opts['inencryption'], globs.opts['inkeepalive'], globs.opts['infolder'], )
+    globs.outServer = dremail.EmailServer('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], \
+        globs.opts['outpassword'], globs.opts['outencryption'], globs.opts['outkeepalive'])
 
     # Are we just collecting or not just reporting?
     if (globs.opts['collect'] or not globs.opts['report']):
@@ -207,11 +202,18 @@ if __name__ == "__main__":
         globs.db.dbCommit()
 
         # Get new messages on server
+        progCount = 0   # Count for progress indicator
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
             nxtMsg = globs.inServer.processNextMessage()
             while nxtMsg is not None:
+                if globs.opts['showprogress'] > 0:
+                    progCount += 1
+                    if (progCount % globs.opts['showprogress']) == 0:
+                        globs.log.out('.', newline = False)
                 nxtMsg = globs.inServer.processNextMessage()
+            if globs.opts['showprogress'] > 0:
+                globs.log.out(' ')   # Add newline at end.
 
     # Open report object and initialize report options
     # We may not be running reports, but the options will be needed later in the program 
