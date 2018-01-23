@@ -601,6 +601,33 @@ If the threshold defined by nobackupwarn is reached, the string specified by nbw
 - \#DATE# - The date of the last backup
 - \#TIME# - The time of the last backup
 
+```
+lastseensummary = none
+lastseensummarytitle = Backup Sets Last Seen
+```
+
+Add a summary table of all the backup sets and the date they were last seen by dupReport to the final report. An example of the table looks like this:
+
+![last_date_table](last_date_table.jpg)
+
+The default option is 'none' to skip this table. 'top' puts the table at the top of the summary report, 'bottom' places it at the bottom of the summary report. The lastseensummarytitle= option sets a custom title for the table.
+
+```
+lastseenlow= 85
+lastseenmed = 87
+lastseenlowcolor = #FFFFFF
+lastseenmedcolor = #FFFF00
+lastseenhighcolor = #FF0000
+```
+
+These options set parameters for the Last Seen Summary table. lastseenlow= and lastseenmed= set thresholds for the number of days a backup has been seen. The *color= options set background colors for the table display. The following chart shows how the thresholds and colors work:
+
+| Comparison                               | Background Color Display           |
+| :--------------------------------------- | :--------------------------------- |
+| \# days <= 'lastseenlow'                 | lastseenlowcolor (Defaut: white)   |
+| \# days > 'lastseenlow' and <= 'lastseenmed' | lastseenmedcolor (Default: yellow) |
+| \# days > 'lastseenmed'                  | lastseenhighcolor (Default: red)   |
+
 ## [headings] section
 
 The [headings] section contains the default column titles for the fields used in all the dupReport reports. You can alter the headings to suit your tastes. For example, to change the heading for the “size” column from “Size” to “How Big?”, change this:

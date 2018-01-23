@@ -239,7 +239,6 @@ if __name__ == "__main__":
 
         # Run selected report
         msgHtml, msgText, msgCsv = rpt.runReport(startTime)
-    
         globs.log.write(1,msgText)
 
     # Do we need to send any "backup not seen" warning messages?

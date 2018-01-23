@@ -4,6 +4,7 @@
 - Added options to use keepalive logic for larger inboxes to prevent timeout errors([incoming] inkeepalive= and [outgoing] outkeepalive= options in.rc file)
 - Added 'date' header to outgoing emails for RFC compliance (issue #77)
 - Added optional progress indicator to stdout to show emails are being read (issue #72)
+- Added option to add a "last seen date" summary table for all backup sets on report (issue #73 - [report]lastseen* options in .rc file)
 
 2.1.0
 -----

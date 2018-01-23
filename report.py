@@ -155,10 +155,17 @@ def initReportVars():
 
 def rptTop(rOpts, nFlds):
     # Start HTML and text messages
-    # Table border and padding settings
-    msgHtml = '<html><head></head><body><table border={} cellpadding="{}">'.format(rOpts['border'], rOpts['padding'])
+
+    msgHtml = '<html><head></head><body>\n'
     msgText = ''
     msgCsv = ''
+    if rOpts['lastseensummary'] == 'top':      # add summary to top of report
+        msgHtml2, msgText2, msgCsv2 =  lastSeenTable(globs.report.reportOpts)
+        msgHtml += msgHtml2 + '<br>\n'
+        msgText += msgText2 + '\n'
+        msgCsv += msgCsv2 + '\n'
+
+    msgHtml += '<table border={} cellpadding="{}">'.format(rOpts['border'], rOpts['padding'])
 
     # Add report title
     msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(nFlds, rOpts['titlebg'], rOpts['reporttitle'])
@@ -191,9 +198,17 @@ def rptBottom(html, text, csv, start, nfld):
     # Add final rows & close
     runningTime = 'Running Time: {:.3f} seconds.'.format(time.time() - start)
     html += '<tr><td colspan={} align="center"><b>{}</b></td></tr>\n'.format(nfld, runningTime)
-    html += '</table></body></html>'
+    html += '</table>'
     text += runningTime + '\n'
     csv += '\"' + runningTime + '\"\n'
+
+    if globs.report.reportOpts['lastseensummary'] == 'bottom':      # add summary to top of report
+        msgHtml2, msgText2, msgCsv2 =  lastSeenTable(globs.report.reportOpts)
+        html += '<br>' + msgHtml2 + '\n'
+        text += '\n' + msgText2
+        csv += '\n' + msgCsv2
+
+    html += '</body></html>'
 
     return html, text, csv
 
@@ -286,6 +301,33 @@ def getLatestTimestamp(src, dest):
         globs.log.write(2, 'Didn\'t find any timestamp for {}-{}: something is wrong!'.format(src, dest))
         return None
 
+def lastSeenTable(opts):
+    globs.log.write(1, 'report.lastSeenTable()')
+
+    msgHtml = '<table border={} cellpadding="{}"><td align=\"center\" colspan = \"3\"><b>{}</b></td>\n'.format(opts['border'],opts['padding'], opts['lastseensummarytitle'])
+    msgHtml += '<tr><td><b>Source</b></td><td><b>Destination</b></td><td><b>Last Seen</b></td></tr>\n'
+    msgText = '***** {} *****\n(Source-Destination-Last Seen)\n'.format(opts['lastseensummarytitle'])
+    msgCsv = '\"{}\",\n\"Source\",\"Destination\",\"Last Seen\"\n'.format(opts['lastseensummarytitle'])
+
+    dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination")
+    sdSets = dbCursor.fetchall()
+    for source, destination, lastTimestamp in sdSets:
+        lastDate = drdatetime.fromTimestamp(lastTimestamp)
+        days = drdatetime.daysSince(lastTimestamp)
+        if days <= opts['lastseenlow']:
+            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, opts['lastseenlowcolor'], lastDate[0], lastDate[1], days)
+        elif days <= opts['lastseenmed']:
+            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, opts['lastseenmedcolor'], lastDate[0], lastDate[1], days)
+        else:
+            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, opts['lastseenhighcolor'], lastDate[0], lastDate[1], days)
+
+        msgText += '{}{}{}: Last seen on {} {} ({} days ago)\n'.format(source, globs.opts['srcdestdelimiter'], destination, lastDate[0], lastDate[1], days)
+        msgCsv += '\"{}\",\"{}\",\"{} {} ({} days ago)\"\n'.format(source, destination, lastDate[0], lastDate[1], days)
+
+    msgHtml += '</table>'
+
+    return msgHtml, msgText, msgCsv
+
 
 # Class for report management
 class Report:
@@ -301,15 +343,16 @@ class Report:
         self.reportOpts = globs.optionManager.getRcSection('report')
 
         # Fix some of the data field types
-        self.reportOpts['border'] = int(self.reportOpts['border'])    # integer
-        self.reportOpts['padding'] = int(self.reportOpts['padding'])  # integer
+        self.reportOpts['border'] = int(self.reportOpts['border'])                                      # Convert to integer
+        self.reportOpts['padding'] = int(self.reportOpts['padding'])                                    # Convert to integer
         self.reportOpts['showsizedisplay'] = self.reportOpts['showsizedisplay'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displaymessages'] = self.reportOpts['displaymessages'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displaywarnings'] = self.reportOpts['displaywarnings'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displayerrors'] = self.reportOpts['displayerrors'].lower() in ('true')         # Convert to boolean
         self.reportOpts['repeatheaders'] = self.reportOpts['repeatheaders'].lower() in ('true')         # Convert to boolean
-        self.reportOpts['nobackupwarn'] = int(self.reportOpts['nobackupwarn'])  # integer
-
+        self.reportOpts['nobackupwarn'] = int(self.reportOpts['nobackupwarn'])                          # Convert to integer
+        self.reportOpts['lastseenlow'] = int(self.reportOpts['lastseenlow'])                            # Convert to integer
+        self.reportOpts['lastseenmed'] = int(self.reportOpts['lastseenmed'])                            # Convert to integer
 
         # Basic field value checking
         # See if valid report name
@@ -325,6 +368,10 @@ class Report:
 
         if self.reportOpts['sizedisplay'].lower()[:4] not in ('byte', 'mega', 'giga'):
             globs.log.err('Invalid RC file size display option in [report] section: sizedisplay cannot be \'{}\''.format(self.reportOpts['sizedisplay']))
+            globs.closeEverythingAndExit(1)
+
+        if self.reportOpts['lastseensummary'].lower()[:3] not in ('non', 'top', 'bot'):
+            globs.log.err('Invalid RC file size display option in [report] section: lastseensummary cannot be \'{}\''.format(self.reportOpts['lastseensummary']))
             globs.closeEverythingAndExit(1)
 
         # Get list of existing headers in [headings] section

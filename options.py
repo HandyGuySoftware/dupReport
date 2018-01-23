@@ -83,6 +83,13 @@ rcParts= [
     ('report','repeatheaders','false', True),
     ('report','nobackupwarn', '0', True),
     ('report','nbwsubject', 'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
+    ('report','lastseensummary', 'none', True),
+    ('report','lastseensummarytitle', 'Backup Sets Last Seen', True),
+    ('report','lastseenlow', '5', True),
+    ('report','lastseenlowcolor', '#FFFFFF', True),
+    ('report','lastseenmed', '10', True),
+    ('report','lastseenmedcolor', '#FFFF00', True),
+    ('report','lastseenhighcolor', '#FF0000', True),
 
     # [headings] section defaults
     ('headings','Source','Source', True),
