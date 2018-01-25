@@ -4,19 +4,20 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 
 ## Available Branches
 
-| Code            | Version | GitHub Branch |
-| --------------- | ------- | ------------- |
-| Current Release | 2.1.0   | master        |
-| Current Beta    | 2.2.0   | 2.2.0_Beta    |
-| Older Releases  | 2.0.4   | 2.0.4_Release |
+**<u>ATTENTION: AS OF JANUARY 24, 2017</u>** the branch structure of the dupReport repository has been changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
+>>>>>>> 0fa4ee6... Hotfix - Update readme to reflect new repository organization.
 
-The GitHub "master" branch contains the latest production (stable...mostly) code. See the "changelog" file for release history, features, and bug fixes.
+There will now usually be only three available branches in the dupReport repository:
 
-Other GitHub branches may contain the latest beta releases, test code, development features, and other potentially unstable code. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. 
+| Branch Name  | Purpose                                  |
+| ------------ | ---------------------------------------- |
+| **master**   | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
+| **pre_prod** | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **develop**  | This is an early-stage development and testing branch where code should be considered unstable. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.) **If you don't see a develop branch in the repository, that means there isn't any beta code available for testing.** |
 
-Bug reports and feature requests can be made on GitHub in the [Issues Section](https://github.com/HandyGuySoftware/dupReport/issuesdupReport)
+Bug reports and feature requests can be made on GitHub in the [Issues Section](https://github.com/HandyGuySoftware/dupReport/issuesdupReport). <u>Please do not issue pull requests</u> before discussing any problems or suggestions as an Issue. 
 
-The discussion group for dupReport is on the Duplicati Forum in [this thread](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)
+The discussion group for dupReport is on the Duplicati Forum in [this thread](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116).
 
 The program is released under an MIT license. Please see the LICENSE file for details.
 
