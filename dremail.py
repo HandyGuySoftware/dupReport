@@ -11,6 +11,7 @@
 import imaplib
 import poplib
 import email
+import time
 import re
 import datetime
 import smtplib
@@ -482,6 +483,9 @@ class EmailServer:
             receiver = globs.opts['outreceiver']
         msg['To'] = receiver
 
+        # Add 'Date' header for RFC compliance
+        msg['Date'] = email.utils.formatdate(time.time(), localtime=True)
+
         # Record the MIME types of both parts - text/plain and text/html.
         # Attach parts into message container.
         # According to RFC 2046, the last part of a multipart message is best and preferred.
@@ -510,6 +514,7 @@ class EmailServer:
         msg['Subject'] = 'Duplicati Job Status Error'
         msg['From'] = globs.opts['outsender']
         msg['To'] = globs.opts['outreceiver']
+        msg['Date'] = email.utils.formatdate(time.time(), localtime=True)
 
         # Record the MIME type. Only need text type
         msgPart = MIMEText(errText, 'plain')
