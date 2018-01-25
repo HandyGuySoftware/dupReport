@@ -4,7 +4,7 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 
 ## Available Branches
 
-**<u>ATTENTION: AS OF JANUARY 24, 2017</u>** the branch structure of the dupReport repository has been changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
+**<u>ATTENTION: AS OF JANUARY 24, 2018</u>** the branch structure of the dupReport repository has been changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
 
 There will now usually be only three available branches in the dupReport repository:
 
