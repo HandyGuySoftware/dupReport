@@ -36,10 +36,10 @@ lineParts = [
     ('examinedFiles', 'ExaminedFiles: \d+', 0, 0),
     ('openedFiles', 'OpenedFiles: \d+', 0, 0),
     ('addedFiles', 'AddedFiles: \d+', 0, 0),
-    ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: \d+', 0, 0),
-    ('sizeOfAddedFiles', 'SizeOfAddedFiles: \d+', 0, 0),
-    ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: \d+', 0, 0),
-    ('sizeOfOpenedFiles', 'SizeOfOpenedFiles: \d+', 0, 0),
+    ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: .*', 0, 0),
+    ('sizeOfAddedFiles', 'SizeOfAddedFiles: .*', 0, 0),
+    ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: .*', 0, 0),
+    ('sizeOfOpenedFiles', 'SizeOfOpenedFiles: .*', 0, 0),
     ('notProcessedFiles', 'NotProcessedFiles: \d+', 0, 0),
     ('addedFolders', 'AddedFolders: \d+', 0, 0),
     ('tooLargeFiles', 'TooLargeFiles: \d+', 0, 0),
@@ -217,6 +217,29 @@ class EmailServer:
             return self.numEmails
         else:  # Invalid protocol
             return None
+
+
+    # Extract a (parentheses) field or raw data from the result
+    # Some fields (sizes, date, time) can be presented in text or numeric values (Starting with Canary builds in Jan 2018)
+    # Examples: EndTime: 1/24/2018 10:01:45 PM (1516852905)
+    #           SizeOfAddedFiles: 10.12 KB (10364)
+    #           SizeOfExaminedFiles: 44.42 GB (47695243956)
+    # This function will return the value in parentheses (if it exists) or the raw info (if it does not)
+    # Inputs: val = value to parse, dt = date format string, tf = time format string
+    def parenOrRaw(self, val, df = None, tf = None, tz = None):
+        
+        retval = val    # Set default return as input value
+
+        # Search for '(XXX)' in value
+        pat = re.compile('\(.*\)')
+        match = re.search(pat, val)
+        if match:  # value found in parentheses
+            retval = val[match.regs[0][0]+1:match.regs[0][1]-1]
+        else:  # No parens found
+            if df != None:  # Looking for date/time
+                retval = drdatetime.toTimestamp(val, dfmt=df, tfmt=tf, utcOffset=tz)
+
+        return retval
     
     # Retrieve and process next message from server
     # Returns <Message-ID> or '<INVALID>' if there are more messages in queue, even if this message was unusable
@@ -247,7 +270,7 @@ class EmailServer:
 
             # Get date, subject, and message ID from headers
             msgParts['date'] = body[7].decode("utf-8").lstrip('Date: ').strip()
-            msgParts['subject'] = body[8].decode("utf-8").lstrip('Subject: ').strip()    
+            msgParts['subject'] = body[8].decode("utf-8").lstrip('Subject: ').strip('\n').strip()    # Strip any newlines from subject. See Issue #80
             msgParts['messageId'] = body[9].decode("utf-8").lstrip('Message-Id: ').strip()
         elif self.protocol == 'imap':
             # Get message header
@@ -263,8 +286,9 @@ class EmailServer:
             dataSpl = data[0][1].decode('utf-8').splitlines() # decode UTF-8 in case email is encoded as a byte object - See Issue #14
             globs.log.write(3, 'dataSpl=[{}]'.format(dataSpl))
 
+            # Extract the date, subject, & message-id
             msgParts['date'] = dataSpl[0].lstrip('Date: ').strip()
-            msgParts['subject'] = dataSpl[1].lstrip('Subject: ').strip()    
+            msgParts['subject'] = dataSpl[1].lstrip('Subject: ').strip('\n').strip()    # Strip any newlines from subject. See Issue #80
             msgParts['messageId'] = dataSpl[2].lstrip('Message-Id: ').strip()
         else:   # Invalid protocol spec
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
@@ -365,22 +389,22 @@ class EmailServer:
         # Adjust fields if not a clean run
         globs.log.write(3, "statusParts['failed']=[{}]".format(statusParts['failed']))
         if statusParts['failed'] == '':  # Looks like a good run
-            # See if there's a timestamp (xxxx.xxxx) already in the EndTime field
-            # If so, use that, else calculate timestamp
-            pat = re.compile('\(.*\)')
+            # These fields can be included in parentheses in later versions of Duplicati
+            # For example:
+            #   SizeOfModifiedFiles: 23 KB (23556)
+            #   SizeOfAddedFiles: 10.12 KB (10364)
+            #   SizeOfExaminedFiles: 44.42 GB (47695243956)
+            #   SizeOfOpenedFiles: 33.16 KB (33954)
+            # Extract the parenthesized value (if present) or the raw value (if not)
+            dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
+            dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
+            dateParts['beginTimestamp'] = self.parenOrRaw(statusParts['beginTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
 
-            match = re.search(pat, statusParts['endTimeStr'])
-            if match:  # Timestamp found in line
-                dateParts['endTimestamp'] = statusParts['endTimeStr'][match.regs[0][0]+1:match.regs[0][1]-1]
-            else:  # No timestamp found. Calculate timestamp
-                dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
-                dateParts['endTimestamp'] = drdatetime.toTimestamp(statusParts['endTimeStr'], dfmt=dt, tfmt=tm, utcOffset=msgParts['timezone'])
+            statusParts['sizeOfModifiedFiles'] = self.parenOrRaw(statusParts['sizeOfModifiedFiles'])
+            statusParts['sizeOfAddedFiles'] = self.parenOrRaw(statusParts['sizeOfAddedFiles'])
+            statusParts['sizeOfExaminedFiles'] = self.parenOrRaw(statusParts['sizeOfExaminedFiles'])
+            statusParts['sizeOfOpenedFiles'] = self.parenOrRaw(statusParts['sizeOfOpenedFiles'])
 
-            match = re.search(pat, statusParts['beginTimeStr'])
-            if match:  # Timestamp found in line
-                dateParts['beginTimestamp'] = statusParts['beginTimeStr'][match.regs[0][0]+1:match.regs[0][1]-1]
-            else:  # No timestamp found. Calculate timestamp
-                dateParts['beginTimestamp'] = drdatetime.toTimestamp(statusParts['beginTimeStr'], utcOffset=msgParts['timezone'])
         else:  # Something went wrong. Let's gather the details.
             statusParts['errors'] = statusParts['failed']
             statusParts['parsedResult'] = 'Failure'
