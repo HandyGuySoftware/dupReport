@@ -18,7 +18,7 @@ Bug reports and feature requests can be made on GitHub in the [Issues Section](h
 
 The discussion group for dupReport is on the Duplicati Forum in [this thread](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116).
 
-The program is released under an MIT license. Please see the LICENSE file for details.
+The program is released under an MIT license. Please see the LICENSE file for more details.
 
 Please follow dupReport on Twitter [@dupReport](https://twitter.com/DupReport)
 
