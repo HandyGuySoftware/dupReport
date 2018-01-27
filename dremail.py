@@ -227,6 +227,7 @@ class EmailServer:
     # This function will return the value in parentheses (if it exists) or the raw info (if it does not)
     # Inputs: val = value to parse, dt = date format string, tf = time format string
     def parenOrRaw(self, val, df = None, tf = None, tz = None):
+        globs.log.write(1,'dremail.parenOrRaw({}, {}, {}, {})'.format(val, df, tf, tz))
         
         retval = val    # Set default return as input value
 
@@ -239,7 +240,32 @@ class EmailServer:
             if df != None:  # Looking for date/time
                 retval = drdatetime.toTimestamp(val, dfmt=df, tfmt=tf, utcOffset=tz)
 
+        globs.log.write(1, 'retval=[{}]'.format(retval))
         return retval
+
+    # Extract specific fields from an email header
+    # Different email servers create email headers diffrently
+    # Also, fields like Subject can be split across multiple lines
+    # Our mission is to sort it all out
+    # Return date, subject, message-id
+    def extractHeaders(self, hdrs):
+        globs.log.write(3,'dremail.extractHeaders({})'.format(hdrs))
+        posLocs1 = []
+        posLocs2 = {}
+
+        hdr2 = hdrs.replace('\n', ' ')      # Create a copy of the headers data without newlines
+        for match in re.finditer('[A-Za-z-]+:', hdr2):                  # "<string>:" indicates the start of a header field. Find all instances of that in the data
+            tit = hdrs[match.regs[0][0]:match.regs[0][1]-1]             # Get the name of the field
+            posLocs1.append((tit, match.regs[0][0], match.regs[0][1]))  # Append the field name and the start/end locations of the field title to the list
+        posLen = len(posLocs1)
+        for i in range(posLen-1):                                       # Loop through most of header fields in data
+            # Different servers use different capilatlzations for field names
+            # Use lower() in the following because it makes it easier to match names
+            posLocs2[posLocs1[i][0].lower()] = hdrs[posLocs1[i][2]+1:posLocs1[i+1][1]-1].replace('\n','').replace('\r','')      # Get string starting from ':'+1 through to beginning of next field, then remove \r & \n
+        posLocs2[posLocs1[posLen-1][0].lower()] = hdrs[posLocs1[posLen-1][2]+1:len(hdrs)].replace('\n','').replace('\r','')     # Do same for last header in the data
+
+        globs.log.write(3,'returning: date=[{}] subject=[{}]  message-id=[{}]'.format(posLocs2['date'], posLocs2['subject'], posLocs2['message-id']))
+        return posLocs2['date'], posLocs2['subject'], posLocs2['message-id']
     
     # Retrieve and process next message from server
     # Returns <Message-ID> or '<INVALID>' if there are more messages in queue, even if this message was unusable
@@ -269,9 +295,8 @@ class EmailServer:
                 return '<INVALID>'
 
             # Get date, subject, and message ID from headers
-            msgParts['date'] = body[7].decode("utf-8").lstrip('Date: ').strip()
-            msgParts['subject'] = body[8].decode("utf-8").lstrip('Subject: ').strip('\n').strip()    # Strip any newlines from subject. See Issue #80
-            msgParts['messageId'] = body[9].decode("utf-8").lstrip('Message-Id: ').strip()
+            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(body.decode('utf-8'))
+
         elif self.protocol == 'imap':
             # Get message header
             retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
@@ -280,16 +305,8 @@ class EmailServer:
                 return '<INVALID>'
             globs.log.write(3,'Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
 
-            # Check all the vital parts of the message
-            # If any of these are missing it means: (1) they are not from Duplicati, and (2) if we keep processing things will blow up down the line
-            # To be safe, we'll just skip the message
-            dataSpl = data[0][1].decode('utf-8').splitlines() # decode UTF-8 in case email is encoded as a byte object - See Issue #14
-            globs.log.write(3, 'dataSpl=[{}]'.format(dataSpl))
-
-            # Extract the date, subject, & message-id
-            msgParts['date'] = dataSpl[0].lstrip('Date: ').strip()
-            msgParts['subject'] = dataSpl[1].lstrip('Subject: ').strip('\n').strip()    # Strip any newlines from subject. See Issue #80
-            msgParts['messageId'] = dataSpl[2].lstrip('Message-Id: ').strip()
+            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
+            
         else:   # Invalid protocol spec
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
             return None
