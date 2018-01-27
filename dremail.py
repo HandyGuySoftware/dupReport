@@ -227,6 +227,7 @@ class EmailServer:
     # This function will return the value in parentheses (if it exists) or the raw info (if it does not)
     # Inputs: val = value to parse, dt = date format string, tf = time format string
     def parenOrRaw(self, val, df = None, tf = None, tz = None):
+        globs.log.write(1,'dremail.parenOrRaw({}, {}, {}, {})'.format(val, df, tf, tz))
         
         retval = val    # Set default return as input value
 
@@ -239,6 +240,7 @@ class EmailServer:
             if df != None:  # Looking for date/time
                 retval = drdatetime.toTimestamp(val, dfmt=df, tfmt=tf, utcOffset=tz)
 
+        globs.log.write(1, 'retval=[{}]'.format(retval))
         return retval
 
     # Return date, subject, message-id
