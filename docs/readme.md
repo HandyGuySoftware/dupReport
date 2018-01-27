@@ -8,11 +8,11 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 
 There will now be only three available branches in the dupReport repository:
 
-| Branch Name  | Purpose                                  |
-| ------------ | ---------------------------------------- |
-| **master**   | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
-| **develop**  | This is an early-stage development and testing branch where code should be considered unstable. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.) **If you don't see a develop branch in the repository, that means there isn't any beta code available for testing.** |
+| Branch Name  | Current Version | Purpose                                  |
+| ------------ | --------------- | ---------------------------------------- |
+| **master**   | 2.1.0           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
+| **pre_prod** | 2.2.0           | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **develop**  |                 | This is an early-stage development and testing branch where code should be considered unstable. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.) **If you don't see a develop branch in the repository, that means there isn't any beta code available for testing.** |
 
 Bug reports and feature requests can be made on GitHub in the [Issues Section](https://github.com/HandyGuySoftware/dupReport/issuesdupReport). <u>Please do not issue pull requests</u> before discussing any problems or suggestions as an Issue. 
 
@@ -60,7 +60,7 @@ Where:
 - \<Source\> is a series of alphanumeric characters
 - \<delimiter\> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source-Destination pairs 
 - \<Destination\> is a series of alphanumeric characters
-- There can be NO SPACES in or between the \<Source>, \<delimiter>, and \<Destination> specifications
+- **There can be NO SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications
 
 dupReport allows you to define the format specification of the Source, Destination, and Delimiter in the [main] section of the dupReport.rc file. Each specification is the regular expression definition of that element. The defaults are: 
 
