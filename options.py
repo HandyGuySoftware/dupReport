@@ -417,6 +417,7 @@ class OptionManager:
             else:
                 globs.log.write(2, 'Invalid time format in .rc file, [{}{}{}]: dateformat={}'.format(src, globs.opts['srcdestdelimiter'], dest, tmp))
 
+        globs.log.write(3,'returning [{}][{}]'.format(dtfmt, tmfmt))
         return dtfmt, tmfmt
     
     # Strips trailing slash character from a path specification if one exists

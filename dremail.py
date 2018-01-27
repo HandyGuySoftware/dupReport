@@ -243,21 +243,26 @@ class EmailServer:
         globs.log.write(1, 'retval=[{}]'.format(retval))
         return retval
 
+    # Extract specific fields from an email header
+    # Different email servers create email headers diffrently
+    # Also, fields like Subject can be split across multiple lines
+    # Our mission is to sort it all out
     # Return date, subject, message-id
     def extractHeaders(self, hdrs):
         globs.log.write(3,'dremail.extractHeaders({})'.format(hdrs))
         posLocs1 = []
         posLocs2 = {}
 
-        hdr2 = hdrs.replace('\n', ' ')
-        for match in re.finditer('[A-Za-z-]+:', hdr2):
-            tit = hdrs[match.regs[0][0]:match.regs[0][1]-1]
-            #posLocs2[tit] = (match.regs[0][0], match.regs[0][1])
-            posLocs1.append((tit, match.regs[0][0], match.regs[0][1]))
+        hdr2 = hdrs.replace('\n', ' ')      # Create a copy of the headers data without newlines
+        for match in re.finditer('[A-Za-z-]+:', hdr2):                  # "<string>:" indicates the start of a header field. Find all instances of that in the data
+            tit = hdrs[match.regs[0][0]:match.regs[0][1]-1]             # Get the name of the field
+            posLocs1.append((tit, match.regs[0][0], match.regs[0][1]))  # Append the field name and the start/end locations of the field title to the list
         posLen = len(posLocs1)
-        for i in range(posLen-1):
-            posLocs2[posLocs1[i][0].lower()] = hdrs[posLocs1[i][2]+1:posLocs1[i+1][1]-1].replace('\n','').replace('\r','')
-        posLocs2[posLocs1[posLen-1][0].lower()] = hdrs[posLocs1[posLen-1][2]+1:len(hdrs)].replace('\n','').replace('\r','')
+        for i in range(posLen-1):                                       # Loop through most of header fields in data
+            # Different servers use different capilatlzations for field names
+            # Use lower() in the following because it makes it easier to match names
+            posLocs2[posLocs1[i][0].lower()] = hdrs[posLocs1[i][2]+1:posLocs1[i+1][1]-1].replace('\n','').replace('\r','')      # Get string starting from ':'+1 through to beginning of next field, then remove \r & \n
+        posLocs2[posLocs1[posLen-1][0].lower()] = hdrs[posLocs1[posLen-1][2]+1:len(hdrs)].replace('\n','').replace('\r','')     # Do same for last header in the data
 
         globs.log.write(3,'returning: date=[{}] subject=[{}]  message-id=[{}]'.format(posLocs2['date'], posLocs2['subject'], posLocs2['message-id']))
         return posLocs2['date'], posLocs2['subject'], posLocs2['message-id']
