@@ -19,33 +19,35 @@ import globs
 # Field     Purpose
 # 0         separator character
 # 1, 2, 3   Positions in format string for (year, month, day) or (hour, minute, seconds)
-# 4         regex to parse date/time string
 #
 # Note: There's only one recognized time string format. But with all the 
 #       problems I had with date string recoznition, this makes time strings
 #       more flexible should the need arise in the future.
+dtFmtDefs={
+    # Format Str    [0]Delimiter    [1]Y/H Col  [2]M/Mn Col [3]D/S Col
+    'YYYY/MM/DD':   ('/',           0,          1,          2),
+    'YYYY/DD/MM':   ('/',           0,          2,          1),
+    'MM/DD/YYYY':   ('/',           2,          0,          1),
+    'DD/MM/YYYY':   ('/',           2,          1,          0),
+    'YYYY-MM-DD':   ('-',           0,          1,          2),
+    'YYYY-DD-MM':   ('-',           0,          2,          1),
+    'MM-DD-YYYY':   ('-',           2,          0,          1),
+    'DD-MM-YYYY':   ('-',           2,          1,          0),
+    'YYYY.MM.DD':   ('.',           0,          1,          2),
+    'YYYY.DD.MM':   ('.',           0,          2,          1),
+    'MM.DD.YYYY':   ('.',           2,          0,          1),
+    'DD.MM.YYYY':   ('.',           2,          1,          0),
+    'HH:MM:SS'  :   (':',           0,          1,          2)
+    }
 
-# Issue #83. Changed regex for the date/time formats (column [4]) to allow any standard delimiter ('/', '-', or '.')
+# Issue #83. Changed regex for the date formats to allow any standard delimiter ('/', '-', or '.')
 # The program (via toTimestamp()) will use this regex to extract the date from the parsed emails
 # If the structure is correct (e.g., 'MM/DD/YYYY') but the delimiters are wrong (e.g., '04-30-2018') the program will still be able to parse it.
-# As a result, column [0] is no longer used by the program. It was left in the structure because removing it would mean re-numbering all the
-#   index references in the program. Not gonna happen.
-dtFmtDefs={
-    # Format Str    [0]Delimiter    [1]Y/H Col  [2]M/Mn Col [3]D/S Col  [4]Regex
-    'YYYY/MM/DD':   ('/',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'YYYY/DD/MM':   ('/',           0,          2,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'MM/DD/YYYY':   ('/',           2,          0,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'DD/MM/YYYY':   ('/',           2,          1,          0,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'YYYY-MM-DD':   ('-',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'YYYY-DD-MM':   ('-',           0,          2,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'MM-DD-YYYY':   ('-',           2,          0,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'DD-MM-YYYY':   ('-',           2,          1,          0,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'YYYY.MM.DD':   ('.',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'YYYY.DD.MM':   ('.',           0,          2,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'MM.DD.YYYY':   ('.',           2,          0,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'DD.MM.YYYY':   ('.',           2,          1,          0,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
-    'HH:MM:SS'  :   (':',           0,          1,          2,          '(\d)+[:](\d+)[:](\d+)')
-    }
+# As a result, all the rexex's for dtFmtDefs date fields are all the same now. (Change from previous versions)
+dateParseRegex = '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'     # i.e., <numbers>[/-.]<numbers>[/-.]<numbers>
+timeParseRegex = '(\d)+[:](\d+)[:](\d+)'                            # i.e., <numbers>:<numbers>:<numbers>
+validDateDelims = '[/\-\.]'                                         # Valid delimiters in a date string
+validTimeDelims = ':'                                               # Valid delimiters in a time string
 
 # Print error messages to the log and stderr if there is a date or time format problem.
 # It happens more often than you'd think!
@@ -62,7 +64,7 @@ def timeStampCrash(msg):
 # dtStr = date/time string
 # dfmt is date format - defaults to user-defined date format in .rc file
 # tfmt is time format - - defaults to user-defined time format in .rc file
-# utcOffset is UTC offset info as extracted from the incoming email message.
+# utcOffset is UTC offset info as extracted from the incoming email message header
 def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     globs.log.write(1,'drDateTime.toTimestamp({}, {}, {}, {})'.format(dtStr, dfmt, tfmt, utcOffset))
 
@@ -79,14 +81,14 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     dyCol = dtFmtDefs[dfmt][3] # Which field holds the day?
     
     # Extract the date
-    dtPat = re.compile(dtFmtDefs[dfmt][4])  # Compile regex for date/time pattern
-    dateMatch = re.match(dtPat,dtStr)        # Match regex against date/time
+    dtPat = re.compile(dateParseRegex)      # Compile regex for date/time pattern
+    dateMatch = re.match(dtPat,dtStr)       # Match regex against date/time
     if dateMatch:
         dateStr = dtStr[dateMatch.regs[0][0]:dateMatch.regs[0][1]]   # Extract the date string
     else:
         timeStampCrash('Can\'t find a match for date pattern {} in date/time string {}.'.format(dfmt, dtStr))   # Write error message, close program
     
-    datePart = re.split('[/\-\.]', dateStr)     # Split date string based on any valid delimeter
+    datePart = re.split(validDateDelims, dateStr)     # Split date string based on any valid delimeter
     year = int(datePart[yrCol])
     month = int(datePart[moCol])
     day = int(datePart[dyCol])
@@ -97,13 +99,13 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     seCol = dtFmtDefs[tfmt][3] # Which field holds the seconds?
  
     # Extract the time
-    tmPat = re.compile(dtFmtDefs[tfmt][4])
+    tmPat = re.compile(timeParseRegex)
     timeMatch = re.search(tmPat,dtStr)
     if timeMatch:
         timeStr = dtStr[timeMatch.regs[0][0]:timeMatch.regs[0][1]]
     else:
         timeStampCrash('Can\'t find a match for time pattern {} in date/time string {}.'.format(tfmt, dtStr))   # Write error message, close program
-    timePart = re.split(':', timeStr)
+    timePart = re.split(validTimeDelims, timeStr)
     hour = int(timePart[hrCol])
     minute = int(timePart[mnCol])
     second = int(timePart[seCol])

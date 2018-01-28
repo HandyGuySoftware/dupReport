@@ -57,6 +57,7 @@ class LogHandler:
         if (msg is not None) and (msg != ''):
             sys.stderr.write(msg)
             sys.stderr.write('\n')
+            sys.stderr.flush()
         return None
 
     # Write log info to stdout
@@ -65,6 +66,7 @@ class LogHandler:
             sys.stdout.write(msg)
             if newline:
                 sys.stdout.write('\n')
+            sys.stdout.flush()
         return None
 
     # Write log info to log file
