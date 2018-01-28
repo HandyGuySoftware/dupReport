@@ -189,6 +189,8 @@ if __name__ == "__main__":
         globs.closeEverythingAndExit(0)
 
     # Open email servers
+    if globs.opts['showprogress'] > 0:
+        globs.log.out('Connecting to email servers.')
     globs.inServer = dremail.EmailServer(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], \
         globs.opts['inpassword'], globs.opts['inencryption'], globs.opts['inkeepalive'], globs.opts['infolder'], )
     globs.outServer = dremail.EmailServer('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], \
@@ -200,6 +202,9 @@ if __name__ == "__main__":
         # Prep email list for potential purging (-p option or [main]purgedb=true)
         globs.db.execSqlStmt('UPDATE emails SET dbSeen = 0')
         globs.db.dbCommit()
+
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Analyzing email messages.')
 
         # Get new messages on server
         progCount = 0   # Count for progress indicator
@@ -222,6 +227,9 @@ if __name__ == "__main__":
     # Are we just reporting or not just collecting?
     if (globs.opts['report'] or not globs.opts['collect']):
         # All email has been collected. Create the report
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Producing report.')
+
         globs.report.extractReportData()
 
         # Select report module based on config parameters
@@ -247,10 +255,15 @@ if __name__ == "__main__":
 
     # Do we need to send output to file(s)?
     if globs.opts['file'] and not globs.opts['collect']:
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Creating report file(s).')
         report.sendReportToFile(msgHtml, msgText, msgCsv)
    
     # Are we forbidden from sending report to email?
     if not globs.opts['nomail'] and not globs.opts['collect']: 
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Sending report emails.')
+
         # Send email to SMTP server
         globs.outServer.sendEmail(msgHtml, msgText)
 
@@ -260,5 +273,7 @@ if __name__ == "__main__":
 
     globs.log.write(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
 
+    if globs.opts['showprogress'] > 0:
+        globs.log.out('Ending program.')
     # Bye, bye, bye, BYE, BYE!
     globs.closeEverythingAndExit(0)

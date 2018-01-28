@@ -24,28 +24,14 @@ import globs
 # Note: There's only one recognized time string format. But with all the 
 #       problems I had with date string recoznition, this makes time strings
 #       more flexible should the need arise in the future.
-"""
-dtFmtDefs={
-    # Format Str    [0]Delimiter    [1]Y/H Col  [2]M/Mn Col [3]D/S Col  [4]Regex
-    'YYYY/MM/DD':   ('/',           0,          1,          2,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'YYYY/DD/MM':   ('/',           0,          2,          1,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'MM/DD/YYYY':   ('/',           2,          0,          1,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'DD/MM/YYYY':   ('/',           2,          1,          0,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
-    'YYYY-MM-DD':   ('-',           0,          1,          2,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'YYYY-DD-MM':   ('-',           0,          2,          1,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'MM-DD-YYYY':   ('-',           2,          0,          1,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'DD-MM-YYYY':   ('-',           2,          1,          0,          '(\s)*(\d)+[-](\s)*(\d)+[-](\s)*(\d)+'),
-    'YYYY.MM.DD':   ('.',           0,          1,          2,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'YYYY.DD.MM':   ('.',           0,          2,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'MM.DD.YYYY':   ('.',           2,          0,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'DD.MM.YYYY':   ('.',           2,          1,          0,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
-    'HH:MM:SS'  :   (':',           0,          1,          2,          '(\d)+[:](\d+)[:](\d+)')
-    }
-    """
 
+# Issue #83. Changed regex for the date/time formats (column [4]) to allow any standard delimiter ('/', '-', or '.')
+# The program (via toTimestamp()) will use this regex to extract the date from the parsed emails
+# If the structure is correct (e.g., 'MM/DD/YYYY') but the delimiters are wrong (e.g., '04-30-2018') the program will still be able to parse it.
+# As a result, column [0] is no longer used by the program.
 dtFmtDefs={
     # Format Str    [0]Delimiter    [1]Y/H Col  [2]M/Mn Col [3]D/S Col  [4]Regex
-    'YYYY/MM/DD':   ('/',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),    # Regex will match any combination of [/-.] as a delimiter
+    'YYYY/MM/DD':   ('/',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
     'YYYY/DD/MM':   ('/',           0,          2,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
     'MM/DD/YYYY':   ('/',           2,          0,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
     'DD/MM/YYYY':   ('/',           2,          1,          0,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
@@ -98,7 +84,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
         dateStr = dtStr[dateMatch.regs[0][0]:dateMatch.regs[0][1]]   # Extract the date string
     else:
         timeStampCrash('Can\'t find a match for date pattern {} in date/time string {}.'.format(dfmt, dtStr))   # Write error message, close program
-    #datePart = re.split(re.escape(dtFmtDefs[dfmt][0]), dateStr)     # Split date string based on the delimeter
+    
     datePart = re.split('[/\-\.]', dateStr)     # Split date string based on any delimeter
     year = int(datePart[yrCol])
     month = int(datePart[moCol])
@@ -116,7 +102,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
         timeStr = dtStr[timeMatch.regs[0][0]:timeMatch.regs[0][1]]
     else:
         timeStampCrash('Can\'t find a match for time pattern {} in date/time string {}.'.format(tfmt, dtStr))   # Write error message, close program
-    timePart = re.split(re.escape(dtFmtDefs[tfmt][0]), timeStr)
+    timePart = re.split(':', timeStr)
     hour = int(timePart[hrCol])
     minute = int(timePart[mnCol])
     second = int(timePart[seCol])
