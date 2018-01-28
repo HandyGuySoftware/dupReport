@@ -41,6 +41,15 @@ dtFmtDefs={
     'HH:MM:SS'  :   (':',           0,          1,          2,          '(\d)+[:](\d+)[:](\d+)')
     }
 
+# Print error messages to the log and stderr if there is a date or time format problem.
+# It happens more than you'd think!
+def timeStampCrash(msg):
+    globs.log.write(1,msg)
+    globs.log.write(1,'This is likely caused by an email using a different date or time format than expected, particuly if you\'re collecting emails from multiple locations or time zones.')
+    globs.log.write(1,'Please check the \'dateformat=\' and \'timeformat=\' value(s) in the [main] section and any [<source>-<destination>] sections of your .rc file for accuracy.')
+    globs.log.err('Date/time format specification mismatch. See log file for details. Exiting program.')
+    globs.closeEverythingAndExit(1)
+
 # Convert a date/time string to a timestamp
 # Input string = YYYY/MM/DD HH:MM:SS AM/PM (epochDate)."
 # May also be variants of the above. Must check for all cases
@@ -69,7 +78,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     if dateMatch:
         dateStr = dtStr[dateMatch.regs[0][0]:dateMatch.regs[0][1]]   # Extract the date string
     else:
-        return None
+        timeStampCrash('Can\'t find a match for date pattern {} in date/time string {}.'.format(dfmt, dtStr))   # Write error message, close program
     datePart = re.split(re.escape(dtFmtDefs[dfmt][0]), dateStr)     # Split date string based on the delimeter
     year = int(datePart[yrCol])
     month = int(datePart[moCol])
@@ -86,7 +95,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     if timeMatch:
         timeStr = dtStr[timeMatch.regs[0][0]:timeMatch.regs[0][1]]
     else:
-        return None
+        timeStampCrash('Can\'t find a match for time pattern {} in date/time string {}.'.format(tfmt, dtStr))   # Write error message, close program
     timePart = re.split(re.escape(dtFmtDefs[tfmt][0]), timeStr)
     hour = int(timePart[hrCol])
     minute = int(timePart[mnCol])
@@ -103,8 +112,11 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
             hour += 12
 
     # Convert to datetime object, then get timestamp
-    ts = datetime.datetime(year, month, day, hour, minute, second).timestamp()
-
+    try:
+        ts = datetime.datetime(year, month, day, hour, minute, second).timestamp()
+    except ValueError:
+        timeStampCrash('Error creating timestamp: dateformat={} year={} month={} day={} hour={} minute={} second={}'.format(dfmt, year, month, day, hour, minute, second))   # Write error message, close program
+ 
     # Apply email's UTC offset to date/time
     # Need to separate the two 'if' statements because the init routines crash otherwise
     # (Referencing globs.opts[] before they're set)
@@ -113,7 +125,6 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
             ts += float(utcOffset)
 
     globs.log.write(1,'Date/Time converted to [{}]'.format(ts))
-
     return ts
 
 # Convert from timestamp to resulting time and date formats
@@ -129,6 +140,8 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
     if (tfmt is None):
         tfmt = globs.opts['timeformat']
     globs.log.write(1, 'drdatetime.fromTimestamp({}, {}, {})'.format(ts, dfmt, tfmt))
+    if ts is None:
+        timeStampCrash('Timestamp conversion error.')   # Write error message, close program
 
     # Get datetime object from incoming timestamp
     dt = datetime.datetime.fromtimestamp(float(ts))

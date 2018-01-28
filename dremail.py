@@ -311,6 +311,9 @@ class EmailServer:
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
             return None
             
+        # Log message basics
+        globs.log.write(1,'\n***** Next Message: Date=[{}] Subject=[{}] Message-Id=[{}]'.format(msgParts['date'], msgParts['subject'], msgParts['messageId']))
+        
         # Check if any of the vital parts are missing
         if msgParts['messageId'] is None or msgParts['messageId'] == '':
             globs.log.write(1,'No message-Id. Abandoning processNextMessage()')
@@ -397,7 +400,8 @@ class EmailServer:
                 msgBody = data[0][1].decode('utf-8')  # Get message body
             else:
                 msgBody = data[1][1].decode('utf-8')  # Get message body
-            globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
+        
+        globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
 
         # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in statusParts{}
         for section,regex,flag,typ in lineParts:
@@ -466,7 +470,7 @@ class EmailServer:
     # multiLine - 0=single line, 1=multi-line
     # type - 0=int or 1=string
     def searchMessagePart(self, msgField, regex, multiLine, typ):
-        globs.log.write(1, 'EmailServer.searchMesagePart({}, {}, {}, {}'.format(msgField, regex, multiLine, typ))
+        globs.log.write(1, 'EmailServer.searchMesagePart(msgField, {}, {}, {}'.format(regex, multiLine, typ))
 
         match = re.compile(regex, multiLine).search(msgField)  # Search msgField for regex match
         if match:  # Found a match - regex is in msgField
