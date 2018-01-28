@@ -264,7 +264,7 @@ class EmailServer:
             posLocs2[posLocs1[i][0].lower()] = hdrs[posLocs1[i][2]+1:posLocs1[i+1][1]-1].replace('\n','').replace('\r','')      # Get string starting from ':'+1 through to beginning of next field, then remove \r & \n
         posLocs2[posLocs1[posLen-1][0].lower()] = hdrs[posLocs1[posLen-1][2]+1:len(hdrs)].replace('\n','').replace('\r','')     # Do same for last header in the data
 
-        globs.log.write(3,'returning: date=[{}] subject=[{}]  message-id=[{}]'.format(posLocs2['date'], posLocs2['subject'], posLocs2['message-id']))
+        globs.log.write(2,'Header fields extracted: date=[{}] subject=[{}]  message-id=[{}]'.format(posLocs2['date'], posLocs2['subject'], posLocs2['message-id']))
         return posLocs2['date'], posLocs2['subject'], posLocs2['message-id']
     
     # Retrieve and process next message from server
@@ -360,7 +360,7 @@ class EmailServer:
 
             # Set date into a parseable string
             # It doesn't matter what date/time format we pass in (as long as it's valid)
-            # When it comes back out, it'll be parsed into the user-defined format from the .rc file
+            # When it comes back out later, it'll be parsed into the user-defined format from the .rc file
             # For now, we'll use YYYY/MM/DD HH:MM:SS
             xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])  
             dtTimStmp = drdatetime.toTimestamp(xDate, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
