@@ -45,8 +45,8 @@ dtFmtDefs={
 # It happens more than you'd think!
 def timeStampCrash(msg):
     globs.log.write(1,msg)
-    globs.log.write(1,'This is likely caused by an email using a different date or time format than expected, particuly if you\'re collecting emails from multiple locations or time zones.')
-    globs.log.write(1,'Please check the \'dateformat=\' and \'timeformat=\' value(s) in the [main] section and any [<source>-<destination>] sections of your .rc file for accuracy.')
+    globs.log.write(1,'This is likely caused by an email using a different date or time format than expected,\nparticularly if you\'re collecting emails from multiple locations or time zones.')
+    globs.log.write(1,'Please check the \'dateformat=\' and \'timeformat=\' value(s) in the [main] section\nand any [<source>-<destination>] sections of your .rc file for accuracy.')
     globs.log.err('Date/time format specification mismatch. See log file for details. Exiting program.')
     globs.closeEverythingAndExit(1)
 
@@ -115,7 +115,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     try:
         ts = datetime.datetime(year, month, day, hour, minute, second).timestamp()
     except ValueError:
-        timeStampCrash('Error creating timestamp: dateformat={} year={} month={} day={} hour={} minute={} second={}'.format(dfmt, year, month, day, hour, minute, second))   # Write error message, close program
+        timeStampCrash('Error creating timestamp: DateString={} DateFormat={} year={} month={} day={} hour={} minute={} second={}'.format(dtStr, dfmt, year, month, day, hour, minute, second))   # Write error message, close program
  
     # Apply email's UTC offset to date/time
     # Need to separate the two 'if' statements because the init routines crash otherwise

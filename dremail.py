@@ -328,7 +328,7 @@ class EmailServer:
         # See if it's a message of interest
         # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...')
         if re.search(globs.opts['subjectregex'], msgParts['subject']) == None:
-            globs.log.write(1, 'Message [{}] is not a Message of Interest. Skipping message.'.format(msgParts['messageId']))
+            globs.log.write(1, 'Message [{}] is not a Message of Interest. Can\'t match subjectregex from .rc file. Skipping message.'.format(msgParts['messageId']))
             return msgParts['messageId']    # Not a message of Interest
 
         # Get source & desination computers from email subject
@@ -338,17 +338,17 @@ class EmailServer:
         partsSrc = re.search(srcRegex, msgParts['subject'])
         partsDest = re.search(destRegex, msgParts['subject'])
         if (partsSrc is None) or (partsDest is None):    # Correct subject but delimeter not found. Something is wrong.
-            globs.log.write(2,'SrcDestDelimeter [{}] not found in subject. Skipping message.'.format(globs.opts['srcdestdelimiter']))
+            globs.log.write(2,'SrcDestDelimeter [{}] not found in subject line. Skipping message.'.format(globs.opts['srcdestdelimiter']))
             return msgParts['messageId']
 
         # See if the record is already in the database, meaning we've seen it before
-        if globs.db.searchForMessage(msgParts['messageId']):    # Message is already in database
+        if globs.db.searchForMessage(msgParts['messageId']):    # Is message is already in database?
             # Mark the email as being seen in the database
             globs.db.execSqlStmt('UPDATE emails SET dbSeen = 1 WHERE messageId = \"{}\"'.format(msgParts['messageId']))
             globs.db.dbCommit()
             return msgParts['messageId']
         # Message not yet in database. Proceed.
-        globs.log.write(1, 'Message ID [{}] does not exist in DB.'.format(msgParts['messageId']))
+        globs.log.write(1, 'Message ID [{}] does not yet exist in DB.'.format(msgParts['messageId']))
 
         dTup = email.utils.parsedate_tz(msgParts['date'])
         if dTup:
@@ -420,6 +420,7 @@ class EmailServer:
             dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
             dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
             dateParts['beginTimestamp'] = self.parenOrRaw(statusParts['beginTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
+            globs.log.write(3, 'Email indicates a successful backup. Date/time is: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
 
             statusParts['sizeOfModifiedFiles'] = self.parenOrRaw(statusParts['sizeOfModifiedFiles'])
             statusParts['sizeOfAddedFiles'] = self.parenOrRaw(statusParts['sizeOfAddedFiles'])
@@ -436,7 +437,7 @@ class EmailServer:
             # Since the backup job report never ran, we'll use the email date/time as the report date/time
             dateParts['endTimestamp'] = msgParts['emailTimestamp']
             dateParts['beginTimestamp'] = msgParts['emailTimestamp']
-            globs.log.write(3, 'Failure message. Replaced date/time: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
+            globs.log.write(3, 'Email indicates a failed backup. Replacing date/time with: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
 
         # Replace commas (,) with newlines (\n) in message fields. Sqlite really doesn't like commas in SQL statements!
         for part in ['messages', 'warnings', 'errors']:
@@ -455,7 +456,7 @@ class EmailServer:
 
             globs.outServer.sendErrorEmail(errMsg)
 
-        globs.log.write(3, 'endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
+        globs.log.write(3, 'Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
             
         sqlStmt = self.buildEmailSql(msgParts, statusParts, dateParts)
         globs.db.execSqlStmt(sqlStmt)
