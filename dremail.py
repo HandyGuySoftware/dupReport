@@ -312,7 +312,7 @@ class EmailServer:
             return None
             
         # Log message basics
-        globs.log.write(1,'\n***** Next Message: Date=[{}] Subject=[{}] Message-Id=[{}]'.format(msgParts['date'], msgParts['subject'], msgParts['messageId']))
+        globs.log.write(1,'\n*****\nNext Message: Date=[{}] Subject=[{}] Message-Id=[{}]'.format(msgParts['date'], msgParts['subject'], msgParts['messageId']))
         
         # Check if any of the vital parts are missing
         if msgParts['messageId'] is None or msgParts['messageId'] == '':
