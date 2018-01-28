@@ -24,6 +24,7 @@ import globs
 # Note: There's only one recognized time string format. But with all the 
 #       problems I had with date string recoznition, this makes time strings
 #       more flexible should the need arise in the future.
+"""
 dtFmtDefs={
     # Format Str    [0]Delimiter    [1]Y/H Col  [2]M/Mn Col [3]D/S Col  [4]Regex
     'YYYY/MM/DD':   ('/',           0,          1,          2,          '(\s)*(\d)+[/](\s)*(\d)+[/](\s)*(\d)+'),
@@ -38,6 +39,24 @@ dtFmtDefs={
     'YYYY.DD.MM':   ('.',           0,          2,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
     'MM.DD.YYYY':   ('.',           2,          0,          1,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
     'DD.MM.YYYY':   ('.',           2,          1,          0,          '(\s)*(\d)+[\.](\s)*(\d)+[\.](\s)*(\d)+'),
+    'HH:MM:SS'  :   (':',           0,          1,          2,          '(\d)+[:](\d+)[:](\d+)')
+    }
+    """
+
+dtFmtDefs={
+    # Format Str    [0]Delimiter    [1]Y/H Col  [2]M/Mn Col [3]D/S Col  [4]Regex
+    'YYYY/MM/DD':   ('/',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),    # Regex will match any combination of [/-.] as a delimiter
+    'YYYY/DD/MM':   ('/',           0,          2,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'MM/DD/YYYY':   ('/',           2,          0,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'DD/MM/YYYY':   ('/',           2,          1,          0,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'YYYY-MM-DD':   ('-',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'YYYY-DD-MM':   ('-',           0,          2,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'MM-DD-YYYY':   ('-',           2,          0,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'DD-MM-YYYY':   ('-',           2,          1,          0,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'YYYY.MM.DD':   ('.',           0,          1,          2,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'YYYY.DD.MM':   ('.',           0,          2,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'MM.DD.YYYY':   ('.',           2,          0,          1,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
+    'DD.MM.YYYY':   ('.',           2,          1,          0,          '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'),
     'HH:MM:SS'  :   (':',           0,          1,          2,          '(\d)+[:](\d+)[:](\d+)')
     }
 
@@ -79,7 +98,8 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
         dateStr = dtStr[dateMatch.regs[0][0]:dateMatch.regs[0][1]]   # Extract the date string
     else:
         timeStampCrash('Can\'t find a match for date pattern {} in date/time string {}.'.format(dfmt, dtStr))   # Write error message, close program
-    datePart = re.split(re.escape(dtFmtDefs[dfmt][0]), dateStr)     # Split date string based on the delimeter
+    #datePart = re.split(re.escape(dtFmtDefs[dfmt][0]), dateStr)     # Split date string based on the delimeter
+    datePart = re.split('[/\-\.]', dateStr)     # Split date string based on any delimeter
     year = int(datePart[yrCol])
     month = int(datePart[moCol])
     day = int(datePart[dyCol])
