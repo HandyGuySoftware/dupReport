@@ -264,7 +264,7 @@ class EmailServer:
             posLocs2[posLocs1[i][0].lower()] = hdrs[posLocs1[i][2]+1:posLocs1[i+1][1]-1].replace('\n','').replace('\r','')      # Get string starting from ':'+1 through to beginning of next field, then remove \r & \n
         posLocs2[posLocs1[posLen-1][0].lower()] = hdrs[posLocs1[posLen-1][2]+1:len(hdrs)].replace('\n','').replace('\r','')     # Do same for last header in the data
 
-        globs.log.write(3,'returning: date=[{}] subject=[{}]  message-id=[{}]'.format(posLocs2['date'], posLocs2['subject'], posLocs2['message-id']))
+        globs.log.write(2,'Header fields extracted: date=[{}] subject=[{}]  message-id=[{}]'.format(posLocs2['date'], posLocs2['subject'], posLocs2['message-id']))
         return posLocs2['date'], posLocs2['subject'], posLocs2['message-id']
     
     # Retrieve and process next message from server
@@ -311,6 +311,9 @@ class EmailServer:
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
             return None
             
+        # Log message basics
+        globs.log.write(1,'\n*****\nNext Message: Date=[{}] Subject=[{}] Message-Id=[{}]'.format(msgParts['date'], msgParts['subject'], msgParts['messageId']))
+        
         # Check if any of the vital parts are missing
         if msgParts['messageId'] is None or msgParts['messageId'] == '':
             globs.log.write(1,'No message-Id. Abandoning processNextMessage()')
@@ -325,7 +328,7 @@ class EmailServer:
         # See if it's a message of interest
         # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...')
         if re.search(globs.opts['subjectregex'], msgParts['subject']) == None:
-            globs.log.write(1, 'Message [{}] is not a Message of Interest. Skipping message.'.format(msgParts['messageId']))
+            globs.log.write(1, 'Message [{}] is not a Message of Interest. Can\'t match subjectregex from .rc file. Skipping message.'.format(msgParts['messageId']))
             return msgParts['messageId']    # Not a message of Interest
 
         # Get source & desination computers from email subject
@@ -335,17 +338,17 @@ class EmailServer:
         partsSrc = re.search(srcRegex, msgParts['subject'])
         partsDest = re.search(destRegex, msgParts['subject'])
         if (partsSrc is None) or (partsDest is None):    # Correct subject but delimeter not found. Something is wrong.
-            globs.log.write(2,'SrcDestDelimeter [{}] not found in subject. Skipping message.'.format(globs.opts['srcdestdelimiter']))
+            globs.log.write(2,'SrcDestDelimeter [{}] not found in subject line. Skipping message.'.format(globs.opts['srcdestdelimiter']))
             return msgParts['messageId']
 
         # See if the record is already in the database, meaning we've seen it before
-        if globs.db.searchForMessage(msgParts['messageId']):    # Message is already in database
+        if globs.db.searchForMessage(msgParts['messageId']):    # Is message is already in database?
             # Mark the email as being seen in the database
             globs.db.execSqlStmt('UPDATE emails SET dbSeen = 1 WHERE messageId = \"{}\"'.format(msgParts['messageId']))
             globs.db.dbCommit()
             return msgParts['messageId']
         # Message not yet in database. Proceed.
-        globs.log.write(1, 'Message ID [{}] does not exist in DB.'.format(msgParts['messageId']))
+        globs.log.write(1, 'Message ID [{}] does not yet exist in DB.'.format(msgParts['messageId']))
 
         dTup = email.utils.parsedate_tz(msgParts['date'])
         if dTup:
@@ -357,7 +360,7 @@ class EmailServer:
 
             # Set date into a parseable string
             # It doesn't matter what date/time format we pass in (as long as it's valid)
-            # When it comes back out, it'll be parsed into the user-defined format from the .rc file
+            # When it comes back out later, it'll be parsed into the user-defined format from the .rc file
             # For now, we'll use YYYY/MM/DD HH:MM:SS
             xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])  
             dtTimStmp = drdatetime.toTimestamp(xDate, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
@@ -397,7 +400,8 @@ class EmailServer:
                 msgBody = data[0][1].decode('utf-8')  # Get message body
             else:
                 msgBody = data[1][1].decode('utf-8')  # Get message body
-            globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
+        
+        globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
 
         # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in statusParts{}
         for section,regex,flag,typ in lineParts:
@@ -416,6 +420,7 @@ class EmailServer:
             dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
             dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
             dateParts['beginTimestamp'] = self.parenOrRaw(statusParts['beginTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
+            globs.log.write(3, 'Email indicates a successful backup. Date/time is: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
 
             statusParts['sizeOfModifiedFiles'] = self.parenOrRaw(statusParts['sizeOfModifiedFiles'])
             statusParts['sizeOfAddedFiles'] = self.parenOrRaw(statusParts['sizeOfAddedFiles'])
@@ -432,7 +437,7 @@ class EmailServer:
             # Since the backup job report never ran, we'll use the email date/time as the report date/time
             dateParts['endTimestamp'] = msgParts['emailTimestamp']
             dateParts['beginTimestamp'] = msgParts['emailTimestamp']
-            globs.log.write(3, 'Failure message. Replaced date/time: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
+            globs.log.write(3, 'Email indicates a failed backup. Replacing date/time with: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
 
         # Replace commas (,) with newlines (\n) in message fields. Sqlite really doesn't like commas in SQL statements!
         for part in ['messages', 'warnings', 'errors']:
@@ -451,7 +456,7 @@ class EmailServer:
 
             globs.outServer.sendErrorEmail(errMsg)
 
-        globs.log.write(3, 'endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
+        globs.log.write(3, 'Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
             
         sqlStmt = self.buildEmailSql(msgParts, statusParts, dateParts)
         globs.db.execSqlStmt(sqlStmt)
@@ -466,7 +471,7 @@ class EmailServer:
     # multiLine - 0=single line, 1=multi-line
     # type - 0=int or 1=string
     def searchMessagePart(self, msgField, regex, multiLine, typ):
-        globs.log.write(1, 'EmailServer.searchMesagePart({}, {}, {}, {}'.format(msgField, regex, multiLine, typ))
+        globs.log.write(1, 'EmailServer.searchMesagePart(msgField, {}, {}, {}'.format(regex, multiLine, typ))
 
         match = re.compile(regex, multiLine).search(msgField)  # Search msgField for regex match
         if match:  # Found a match - regex is in msgField
