@@ -201,5 +201,7 @@ def daysSince(tsIn):
     
     diff = (now-then).days
 
+    globs.log.write(3, 'daysSince() now=[{}]-[{}] then=[{}]-[{}] diff=[{}]'.format(nowTimestamp,fromTimestamp(nowTimestamp), tsIn, fromTimestamp(tsIn), diff))
+
     return diff
 
