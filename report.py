@@ -314,9 +314,11 @@ def lastSeenTable(opts):
 
     dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination")
     sdSets = dbCursor.fetchall()
+    globs.log.write(3,'sdSets=[{}]'.format(sdSets))
     for source, destination, lastTimestamp in sdSets:
         lastDate = drdatetime.fromTimestamp(lastTimestamp)
         days = drdatetime.daysSince(lastTimestamp)
+        globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
         if days <= opts['lastseenlow']:
             msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, opts['lastseenlowcolor'], lastDate[0], lastDate[1], days)
         elif days <= opts['lastseenmed']:

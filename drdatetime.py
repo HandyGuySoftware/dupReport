@@ -196,11 +196,8 @@ def daysSince(tsIn):
     # Get the current time (timestamp)
     nowTimestamp = datetime.datetime.now().timestamp()
     now = datetime.datetime.fromtimestamp(nowTimestamp)
-
     then = datetime.datetime.fromtimestamp(tsIn)
-    
     diff = (now-then).days
-
     globs.log.write(3, 'daysSince() now=[{}]-[{}] then=[{}]-[{}] diff=[{}]'.format(nowTimestamp,fromTimestamp(nowTimestamp), tsIn, fromTimestamp(tsIn), diff))
 
     return diff
