@@ -38,7 +38,7 @@ rcParts= [
     ('main','dateformat', 'MM/DD/YYYY', False),
     ('main','timeformat','HH:MM:SS', False),
     ('main','warnoncollect','false', True),
-    ('main','applyutcoffset','false', True),
+    ('main','applyutcoffset','true', True),
     ('main','show24hourtime', 'true', True),
     ('main','purgedb', 'false', True),
     ('main','showprogress', '0', True),
