@@ -304,6 +304,14 @@ def getLatestTimestamp(src, dest):
         globs.log.write(2, 'Didn\'t find any timestamp for {}-{}: something is wrong!'.format(src, dest))
         return None
 
+def getLastSeenColor(opts, days):
+    if days <= opts['lastseenlow']:
+        return opts['lastseenlowcolor']
+    elif days <= opts['lastseenmed']:
+        return opts['lastseenmedcolor']
+    else:
+        return opts['lastseenhighcolor']
+
 def lastSeenTable(opts):
     globs.log.write(1, 'report.lastSeenTable()')
 
@@ -319,20 +327,13 @@ def lastSeenTable(opts):
         lastDate = drdatetime.fromTimestamp(lastTimestamp)
         days = drdatetime.daysSince(lastTimestamp)
         globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
-        if days <= opts['lastseenlow']:
-            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, opts['lastseenlowcolor'], lastDate[0], lastDate[1], days)
-        elif days <= opts['lastseenmed']:
-            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, opts['lastseenmedcolor'], lastDate[0], lastDate[1], days)
-        else:
-            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, opts['lastseenhighcolor'], lastDate[0], lastDate[1], days)
-
+        msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, getLastSeenColor(opts, days), lastDate[0], lastDate[1], days)
         msgText += '{}{}{}: Last seen on {} {} ({} days ago)\n'.format(source, globs.opts['srcdestdelimiter'], destination, lastDate[0], lastDate[1], days)
         msgCsv += '\"{}\",\"{}\",\"{} {} ({} days ago)\"\n'.format(source, destination, lastDate[0], lastDate[1], days)
 
     msgHtml += '</table>'
 
     return msgHtml, msgText, msgCsv
-
 
 # Class for report management
 class Report:

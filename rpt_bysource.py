@@ -129,7 +129,7 @@ def runReport(startTime):
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
                 msgHtml += '<tr>'
                 msgHtml += report.printField('destination', destination, 'html')
-                msgHtml += '<td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, reportOpts['noactivitybg'], lastDateStr, lastTimeStr, diff)
+                msgHtml += '<td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, report.getLastSeenColor(reportOpts, diff), lastDateStr, lastTimeStr, diff)
                 msgHtml += '</tr>\n'
 
                 msgText += report.printField('destination', destination, 'text')

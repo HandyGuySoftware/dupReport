@@ -561,7 +561,7 @@ Background color for report subheadings. (HTML only)
 noactivitybg=#FF0000
 ```
 
-Background color for "No activity in X days" message in email report. (HTML only)
+**DEPRECATED as of version 2.2.0.**  This option is no longer referenced in the code and will likely be removed from the .RC file in future releases. It has been replaced by the [report] lastseen* set of options. See that description for information on how those options work. This option 
 
 ```
 jobmessagebg=#FFFFFF
@@ -628,6 +628,8 @@ These options set parameters for the Last Seen Summary table. lastseenlow= and l
 | \# days <= 'lastseenlow'                 | lastseenlowcolor (Defaut: white)   |
 | \# days > 'lastseenlow' and <= 'lastseenmed' | lastseenmedcolor (Default: yellow) |
 | \# days > 'lastseenmed'                  | lastseenhighcolor (Default: red)   |
+
+**NOTE:** Beginning with dupReport version 2.2.0, the lastseen* options and display rules also control the display of rows in the main report for backups that have not been seen in the last n days. This used to be controlled by the  [report] noactivitybg option in versions prior to 2.2.0.
 
 ## [headings] section
 
