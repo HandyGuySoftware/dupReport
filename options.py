@@ -76,7 +76,6 @@ rcParts= [
     ('report','displayerrors','true', True),
     ('report','titlebg','#FFFFFF', True),
     ('report','subheadbg','#D3D3D3', True),
-    ('report','noactivitybg','#FF0000', True),
     ('report','jobmessagebg','#FFFFFF', True),
     ('report','jobwarningbg','#FFFF00', True),
     ('report','joberrorbg','#FF0000', True),
@@ -192,6 +191,12 @@ class OptionManager:
                 needUpdate = True
                 if canCont == False:
                     newRc=True
+
+        # Remove deprecated options
+        if self.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in versoin 2.2.0
+            self.clearRcOption('report', 'noactivitybg')
+            needUpdate = True
+
 
         globs.log.write(3,'newRc={}'.format(newRc))
         if needUpdate:

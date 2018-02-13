@@ -19,6 +19,7 @@ import drdatetime
 
 def convertRc(oMgr, fromVersion):
     optList = [
+        # From-section  from-option         to-section      to-option
         ('main',        'dbpath',           'main',         'dbpath'),
         ('main',        'logpath',          'main',         'logpath'),
         ('main',        'verbose',          'main',         'verbose'),

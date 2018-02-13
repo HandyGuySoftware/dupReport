@@ -2,7 +2,7 @@
 
 dupReport is an email-based reporting system for Duplicati. It will gather all your Duplicati backup status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
 
-## Available Branches
+## Available Code Branches
 
 Beginning with release 2.1, the branch structure of the dupReport repository has changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
 
@@ -13,7 +13,7 @@ There are only two generally-available branches in the dupReport repository:
 | **master**   | 2.1.0           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
 | **pre_prod** | 2.2.0           | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
 
-If you see any additional branches in the repository, they are there for early-stage development or bug testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
+If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
 
 Bug reports and feature requests can be made on GitHub in the [Issues Section](https://github.com/HandyGuySoftware/dupReport/issuesdupReport). <u>Please do not issue pull requests</u> before discussing any problems or suggestions as an Issue. 
 
@@ -46,9 +46,10 @@ dupReport was born.
 
 dupReport identifies backup jobs as a series of "Source-Destination" pairs. dupReport uses Source-Destination Pairs to identify the source and destination systems for each backup job. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
 
-\*\*\*\*\* Fred_Home_Desktop to Homers_Minio \*\*\*\*\*\*
+> **Source:** Fred_Home_Desktop   **Destination:** Homers_Minio
 
 Note that spaces in job names are not supported, at least by the default pattern matching.
+
 Source-Destination pairs are specified in dupReport in the following format: 
 
 ```
@@ -59,7 +60,7 @@ Source-Destination pairs are specified in dupReport in the following format:
 Where:
 
 - \<Source\> is a series of alphanumeric characters
-- \<delimiter\> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source-Destination pairs 
+- \<delimiter\> is a single character (typically one of the "special" characters) and **CAN NOT** be a character you use in any of your Source-Destination pairs 
 - \<Destination\> is a series of alphanumeric characters
 - **There can be NO SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications
 
@@ -173,7 +174,7 @@ dupReport has the following command line options:
 | -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
 | -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source-destination pair from the database. |
 | -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
-| -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in the .rc file. See description of nobackwarn= option in "[source-destination] Sections" below. |
+| -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all "nobackupwarn" options in the .rc file. See description of nobackwarn= option in "[source-destination] Sections" below. |
 
 
 
@@ -561,7 +562,7 @@ Background color for report subheadings. (HTML only)
 noactivitybg=#FF0000
 ```
 
-Background color for "No activity in X days" message in email report. (HTML only)
+**DEPRECATED as of version 2.2.0.**  This option is no longer referenced in the code and will be removed from the .RC file if found. It has been replaced by the [report] lastseen* set of options. See that description for information on how those options work. 
 
 ```
 jobmessagebg=#FFFFFF
@@ -603,6 +604,26 @@ If the threshold defined by nobackupwarn is reached, the string specified by nbw
 - \#TIME# - The time of the last backup
 
 ```
+lastseenlow= 5
+lastseenmed = 10
+lastseenlowcolor = #FFFFFF
+lastseenmedcolor = #FFFF00
+lastseenhighcolor = #FF0000
+```
+
+These options set parameters for displaying "Last Seen" lines in the email report and the optional "Last Seen" Summary table (discussed below). If a known backup set was not seen during the program's run the following line will be added to the result email:
+
+![Last Seen report line](last_seen_line.jpg)
+
+lastseenlow= and lastseenmed= set thresholds for displaying the number of days since a backup has been seen. The lastseen*color= options set background colors for the display. The following chart shows how the thresholds and colors work:
+
+| Comparison                               | Background Color Display (HTML only) |
+| :--------------------------------------- | :----------------------------------- |
+| \# days <= 'lastseenlow'                 | lastseenlowcolor (Defaut: white)     |
+| \# days > 'lastseenlow' and <= 'lastseenmed' | lastseenmedcolor (Default: yellow)   |
+| \# days > 'lastseenmed'                  | lastseenhighcolor (Default: red)     |
+
+```
 lastseensummary = none
 lastseensummarytitle = Backup Sets Last Seen
 ```
@@ -612,22 +633,6 @@ Add a summary table of all the backup sets and the date they were last seen by d
 ![last_date_table](last_date_table.jpg)
 
 The default option is 'none' to skip this table. 'top' puts the table at the top of the summary report, 'bottom' places it at the bottom of the summary report. The lastseensummarytitle= option sets a custom title for the table.
-
-```
-lastseenlow= 85
-lastseenmed = 87
-lastseenlowcolor = #FFFFFF
-lastseenmedcolor = #FFFF00
-lastseenhighcolor = #FF0000
-```
-
-These options set parameters for the Last Seen Summary table. lastseenlow= and lastseenmed= set thresholds for the number of days a backup has been seen. The *color= options set background colors for the table display. The following chart shows how the thresholds and colors work:
-
-| Comparison                               | Background Color Display           |
-| :--------------------------------------- | :--------------------------------- |
-| \# days <= 'lastseenlow'                 | lastseenlowcolor (Defaut: white)   |
-| \# days > 'lastseenlow' and <= 'lastseenmed' | lastseenmedcolor (Default: yellow) |
-| \# days > 'lastseenmed'                  | lastseenhighcolor (Default: red)   |
 
 ## [headings] section
 
