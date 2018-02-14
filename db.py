@@ -24,17 +24,17 @@ class Database:
         # First, see if the database is there. If not, need to create it
         isThere = os.path.isfile(dbPath)
 
-        if self.dbConn:
+        if self.dbConn:     # If not None DB connection already exists. This is bad.
             globs.log.err('SQLite3 error: trying to reinitialize the database connection. Exiting program.')
             globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
 
         try:
-            self.dbConn = sqlite3.connect(dbPath)
+            self.dbConn = sqlite3.connect(dbPath)   # Connect to database
         except sqlite3.Error as err:
             globs.log.err('SQLite3 error connecting to {}: {}. Exiting program.'.format(dbPath, err.args[0]))
             globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
 
-        if not isThere:
+        if not isThere:     # Database did not exist. Need to initialize contents
             self.dbInitialize()
         return None
 
@@ -42,6 +42,7 @@ class Database:
     def dbClose(self):
         globs.log.write(1, 'Database.dbClose(): Closing database object.')
 
+        # Don't attempt to close a non-existant conmnection
         if self.dbConn:
             self.dbConn.close()
         self.dbConn = None
@@ -67,7 +68,7 @@ class Database:
     # Commit pending database transaction
     def dbCommit(self):
         globs.log.write(1, 'Database.dbCommit(): Commiting transaction.')
-        if self.dbConn:
+        if self.dbConn:     # Don't try to commit to a nonexistant connection
             self.dbConn.commit()
         return None
 
@@ -80,6 +81,7 @@ class Database:
         if not self.dbConn:
             return None
 
+        # Set db cursor
         curs = self.dbConn.cursor()
         try:
             curs.execute(stmt)
@@ -87,16 +89,19 @@ class Database:
             globs.log.err('SQLite error: {}\n'.format(err.args[0]))
             globs.log.write(1, 'SQLite error: {}\n'.format(err.args[0]))
             globs.closeEverythingAndExit(1)  # Abort program. Can't continue with DB error
+        
+        # Return the cursor to the executed command result.    
         return curs
 
     # Initialize database to empty, default tables
     def dbInitialize(self):
         globs.log.write(1, 'Database.dbInitialize()')
 
+        # Don't initialize a non-existant connection
         if not self.dbConn:
             return None
 
-        # Drop any tables that might already exist in the database
+        # Drop any tables and indices that might already exist in the database
         self.execSqlStmt("drop table if exists version")
         self.execSqlStmt("drop table if exists emails")
         self.execSqlStmt("drop table if exists backupsets")
@@ -168,29 +173,31 @@ class Database:
 
         return False
 
-    # Roll back database to pecific date/time
+    # Roll back database to specific date/time
     # Datespec = Date & time to roll back to
     def rollback(self, datespec):
         globs.log.write(1,'db.rollback({})'.format(datespec))
 
+        # Get timestamp for input date/time
         newTimeStamp = drdatetime.toTimestamp(datespec)
-        tsCheck = drdatetime.fromTimestamp(newTimeStamp)
 
+        # Delete all email records that happened after input datetime
         sqlStmt = 'DELETE FROM emails WHERE emailtimestamp > {}'.format(newTimeStamp)
         dbCursor = self.execSqlStmt(sqlStmt)
 
+        # Delete all backup set records that happened after input datetime
         sqlStmt = 'SELECT source, destination FROM backupsets WHERE lastTimestamp > {}'.format(newTimeStamp)
         dbCursor = self.execSqlStmt(sqlStmt)
         setRows= dbCursor.fetchall()
         for source, destination in setRows:
-            # Select largest timestamp from remaining data
+            # Select largest timestamp from remaining data for that source/destination
             sqlStmt = 'select max(endTimeStamp), examinedFiles, sizeOfExaminedFiles from emails where sourceComp = \'{}\' and destComp= \'{}\''.format(source, destination)
             dbCursor = self.execSqlStmt(sqlStmt)
             emailTimestamp, examinedFiles, sizeOfExaminedFiles = dbCursor.fetchone()
             if emailTimestamp is None:
                 # After the rollback, some srcdest pairs may have no corresponding entries in the the database, meaning they were not seen until after the rollback period
                 # We should remove these from the database, to return it to the state it was in before the rollback.
-                globs.log.write(2, 'Deleting {}{}{} from backupsets.'.format(source, globs.opts['srcdestdelimiter'], destination, 0))
+                globs.log.write(2, 'Deleting {}{}{} from backupsets. Not seen until after rollback.'.format(source, globs.opts['srcdestdelimiter'], destination))
                 sqlStmt = 'DELETE FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"'.format(source, destination)
                 dbCursor = self.execSqlStmt(sqlStmt)
             else:
@@ -206,6 +213,7 @@ class Database:
     def removeSrcDest(self, source, destination):
         globs.log.write(1, 'db.removeSrcDest({}, {})'.format(source, destination))
 
+        # Does the src/dest exist in the database?
         exists = self.searchSrcDestPair(source, destination, False)
         if not exists:
             globs.log.err('Pair {}{}{} does not exist in database. Check spelling and capitalization then try again.'.format(source, globs.opts['srcdestdelimiter'], destination))
@@ -238,6 +246,7 @@ class Database:
     # Compact database to eliminate unused space
     def dbCompact(self):
         globs.log.write(1, 'dbCompact()')
+
         # Need to reset connection isolation level in order to compress database
         # Why? Not sure, but see https://github.com/ghaering/pysqlite/issues/109 for details
         isoTmp = self.dbConn.isolation_level
