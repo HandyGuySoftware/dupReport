@@ -125,6 +125,8 @@ if __name__ == "__main__":
     # See LogHandler class description for more details
     globs.log = log.LogHandler()
     globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
+    globs.log.write(1,'Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
+    globs.log.write(1,'Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
     globs.log.write(1,'Python version {}'.format(sys.version))
     globs.log.write(3,'Program Path={}'.format(globs.progPath))
     # Check if we're running a compatible version of Python. Must be 3.0 or higher
