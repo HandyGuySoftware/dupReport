@@ -606,8 +606,8 @@ If the threshold defined by nobackupwarn is reached, the string specified by nbw
 ```
 lastseenlow= 5
 lastseenmed = 10
-lastseenlowcolor = #FFFFFF
-lastseenmedcolor = #FFFF00
+lastseenlowcolor = #FFFF00
+lastseenmedcolor = #FF4500
 lastseenhighcolor = #FF0000
 ```
 
@@ -617,11 +617,11 @@ These options set parameters for displaying "Last Seen" lines in the email repor
 
 lastseenlow= and lastseenmed= set thresholds for displaying the number of days since a backup has been seen. The lastseen*color= options set background colors for the display. The following chart shows how the thresholds and colors work:
 
-| Comparison                               | Background Color Display (HTML only) |
-| :--------------------------------------- | :----------------------------------- |
-| \# days <= 'lastseenlow'                 | lastseenlowcolor (Defaut: white)     |
-| \# days > 'lastseenlow' and <= 'lastseenmed' | lastseenmedcolor (Default: yellow)   |
-| \# days > 'lastseenmed'                  | lastseenhighcolor (Default: red)     |
+| Comparison                                   | Background Color Display (HTML only)   |
+| :------------------------------------------- | :------------------------------------- |
+| \# days <= 'lastseenlow'                     | lastseenlowcolor (Defaut: yellow)      |
+| \# days > 'lastseenlow' and <= 'lastseenmed' | lastseenmedcolor (Default: orange-red) |
+| \# days > 'lastseenmed'                      | lastseenhighcolor (Default: red)       |
 
 ```
 lastseensummary = none
@@ -633,6 +633,10 @@ Add a summary table of all the backup sets and the date they were last seen by d
 ![last_date_table](last_date_table.jpg)
 
 The default option is 'none' to skip this table. 'top' puts the table at the top of the summary report, 'bottom' places it at the bottom of the summary report. The lastseensummarytitle= option sets a custom title for the table.
+
+### **Report color selection:** 
+
+All color specifications in the [report] section follow standard HTML color codes. For a sample list of colors and their HTML codes, please refer to [https://www.w3schools.com/colors/colors_names.asp](https://www.w3schools.com/colors/colors_names.asp)
 
 ## [headings] section
 

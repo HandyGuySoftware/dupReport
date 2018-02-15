@@ -85,9 +85,9 @@ rcParts= [
     ('report','lastseensummary', 'none', True),
     ('report','lastseensummarytitle', 'Backup Sets Last Seen', True),
     ('report','lastseenlow', '5', True),
-    ('report','lastseenlowcolor', '#FFFFFF', True),
     ('report','lastseenmed', '10', True),
-    ('report','lastseenmedcolor', '#FFFF00', True),
+    ('report','lastseenlowcolor', '#FFFF00', True),
+    ('report','lastseenmedcolor', '#FF4500', True),
     ('report','lastseenhighcolor', '#FF0000', True),
 
     # [headings] section defaults
