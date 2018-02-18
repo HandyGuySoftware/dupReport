@@ -2,23 +2,24 @@
 
 dupReport is an email-based reporting system for Duplicati. It will gather all your Duplicati backup status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
 
-## Available Branches
+## Available Code Branches
 
-**<u>ATTENTION: AS OF JANUARY 24, 2018</u>** the branch structure of the dupReport repository has been changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
+Beginning with release 2.1, the branch structure of the dupReport repository has changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
 
-There will now usually be only three available branches in the dupReport repository:
+There are only two generally-available branches in the dupReport repository:
 
 | Branch Name  | Current Version | Purpose                                  |
 | ------------ | --------------- | ---------------------------------------- |
 | **master**   | 2.1.0           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | 2.2.0           | The Pre-Production branch. This is a late-stage beta branch where code should be <u>mostly-stable, but no guarantees</u>. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
-| **develop**  |                 | This is an early-stage development and testing branch where code should be considered <u>unstable</u>. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.) **If you don't see a develop branch in the repository, that means there isn't any beta code available for testing.** |
+| **pre_prod** | 2.2.0           | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+
+If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
 
 Bug reports and feature requests can be made on GitHub in the [Issues Section](https://github.com/HandyGuySoftware/dupReport/issuesdupReport). <u>Please do not issue pull requests</u> before discussing any problems or suggestions as an Issue. 
 
 The discussion group for dupReport is on the Duplicati Forum in [this thread](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116).
 
-The program is released under an MIT license. Please see the LICENSE file for details.
+The program is released under an MIT license. Please see the LICENSE file for more details.
 
 Please follow dupReport on Twitter [@dupReport](https://twitter.com/DupReport)
 
@@ -45,9 +46,10 @@ dupReport was born.
 
 dupReport identifies backup jobs as a series of "Source-Destination" pairs. dupReport uses Source-Destination Pairs to identify the source and destination systems for each backup job. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
 
-\*\*\*\*\* Fred_Home_Desktop to Homers_Minio \*\*\*\*\*\*
+> **Source:** Fred_Home_Desktop   **Destination:** Homers_Minio
 
 Note that spaces in job names are not supported, at least by the default pattern matching.
+
 Source-Destination pairs are specified in dupReport in the following format: 
 
 ```
@@ -58,9 +60,9 @@ Source-Destination pairs are specified in dupReport in the following format:
 Where:
 
 - \<Source\> is a series of alphanumeric characters
-- \<delimiter\> is a single character (typically one of the "special" characters) and CAN NOT be a character you use in any of your Source-Destination pairs 
+- \<delimiter\> is a single character (typically one of the "special" characters) and **CAN NOT** be a character you use in any of your Source-Destination pairs 
 - \<Destination\> is a series of alphanumeric characters
-- There can be NO SPACES in or between the \<Source>, \<delimiter>, and \<Destination> specifications
+- **There can be NO SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications
 
 dupReport allows you to define the format specification of the Source, Destination, and Delimiter in the [main] section of the dupReport.rc file. Each specification is the regular expression definition of that element. The defaults are: 
 
@@ -94,7 +96,7 @@ subjectregex=^Duplicati Backup report for
 
 If you change the subjectregex option, be sure that it will match the text specified in the Duplicati send-mail-subject advanced option or you will not be able to properly match incoming emails.
 
-Several users on the Duplicati Forum have found different ways to modify subjectregex= to get more control over finding Emails of Interest. [This idea from dcurrey](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116/15) shows one way to specify what types of report emails you are looking for.  [This post from Marc_Aronson](https://forum.duplicati.com/t/how-to-configure-automatic-email-notifications-via-gmail-for-every-backup-job/869) shows another approach. 
+Several users on the Duplicati Forum have found different ways to modify subjectregex= to get more control over finding Emails of Interest. [This idea from dcurrey](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116/15) shows one way to specify what types of report emails you are looking for.  [This post from Marc_Aronson](https://forum.duplicati.com/t/how-to-configure-automatic-email-notifications-via-gmail-for-every-backup-job/869) shows another approach.
 
 # System Requirements
 
@@ -172,7 +174,7 @@ dupReport has the following command line options:
 | -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
 | -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source-destination pair from the database. |
 | -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
-| -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in the .rc file. See description of nobackwarn= option in "[source-destination] Sections" below. |
+| -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all "nobackupwarn" options in the .rc file. See description of nobackwarn= option in "[source-destination] Sections" below. |
 
 
 
@@ -296,6 +298,12 @@ purgedb=true
 
 If true, emails in the database that are no longer found on the incoming email server will be purged from the database and the database will be compacted. **NOTE:** Any source-destination pairs referenced in purged emails will remain in the database in case emails for those pairs are seen in the future. To remove obsolete source-destination pairs from the database, use the -m option.
 
+```
+showprogress=0
+```
+
+If this option is greater than zero, dupReport will display a dot ('.') on stdout for every 'n' emails that are processed from the incoming server. For example, if showprogress=5, there will be one '.' for every 5 emails that are read.
+
 ## [incoming] section
 
 The [incoming] section contains settings for incoming email that dupReport reads to create the report. 
@@ -304,7 +312,7 @@ The [incoming] section contains settings for incoming email that dupReport reads
 transport=imap
 ```
 
- Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'
+ Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'. IMAP is *highly* recommended.
 
 ```
 inserver=localhost
@@ -341,6 +349,12 @@ infolder=INBOX
 ```
 
 Email account folder where incoming Duplicati email is stored. This parameter is used for IMAP systems and ignored for POP3 systems.
+
+```
+inkeepalive=false
+```
+
+Large inboxes may take a long time to scan and parse, and on some systems this can lead to a server connection timeout before processing has completed. This is more likely to happen on the outgoing connection (where there may be long periods of inactivity) than on the incoming connection. However, if you are experiencing timeout errors on your incoming server connection set this value to 'true'.
 
 ## [outgoing] section
 
@@ -401,6 +415,12 @@ Email address of report recipient. To add a "friendly name" to the receiver's em
 To send to multiple recipients, separate the recipients with a comma:
 
 ​	`outreceiver=adent@galaxy.org, Zaphod B <zbeeblebrox@galaxy.org>`
+
+```
+outkeepalive=false
+```
+
+Large inboxes may take a long time to scan and parse, and on some systems this can lead to a server connection timeout before processing has completed. This is more likely to happen on the outgoing connection (where there may be long periods of inactivity) than on the incoming connection. If you are experiencing timeout errors on your outgoing server connection set this value to 'true'.
 
 ## [report] section
 
@@ -542,7 +562,7 @@ Background color for report subheadings. (HTML only)
 noactivitybg=#FF0000
 ```
 
-Background color for "No activity in X days" message in email report. (HTML only)
+**DEPRECATED as of version 2.2.0.**  This option is no longer referenced in the code and will be removed from the .RC file if found. It has been replaced by the [report] lastseen* set of options. See that description for information on how those options work. 
 
 ```
 jobmessagebg=#FFFFFF
@@ -582,6 +602,41 @@ If the threshold defined by nobackupwarn is reached, the string specified by nbw
 - \#DAYS# - The number of days since the last backup
 - \#DATE# - The date of the last backup
 - \#TIME# - The time of the last backup
+
+```
+lastseenlow= 5
+lastseenmed = 10
+lastseenlowcolor = #FFFF00
+lastseenmedcolor = #FF4500
+lastseenhighcolor = #FF0000
+```
+
+These options set parameters for displaying "Last Seen" lines in the email report and the optional "Last Seen" Summary table (discussed below). If a known backup set was not seen during the program's run the following line will be added to the result email:
+
+![Last Seen report line](last_seen_line.jpg)
+
+lastseenlow= and lastseenmed= set thresholds for displaying the number of days since a backup has been seen. The lastseen*color= options set background colors for the display. The following chart shows how the thresholds and colors work:
+
+| Comparison                                   | Background Color Display (HTML only)   |
+| :------------------------------------------- | :------------------------------------- |
+| \# days <= 'lastseenlow'                     | lastseenlowcolor (Defaut: yellow)      |
+| \# days > 'lastseenlow' and <= 'lastseenmed' | lastseenmedcolor (Default: orange-red) |
+| \# days > 'lastseenmed'                      | lastseenhighcolor (Default: red)       |
+
+```
+lastseensummary = none
+lastseensummarytitle = Backup Sets Last Seen
+```
+
+Add a summary table of all the backup sets and the date they were last seen by dupReport to the final report. An example of the table looks like this:
+
+![last_date_table](last_date_table.jpg)
+
+The default option is 'none' to skip this table. 'top' puts the table at the top of the summary report, 'bottom' places it at the bottom of the summary report. The lastseensummarytitle= option sets a custom title for the table.
+
+### **Report color selection:** 
+
+All color specifications in the [report] section follow standard HTML color codes. For a sample list of colors and their HTML codes, please refer to [https://www.w3schools.com/colors/colors_names.asp](https://www.w3schools.com/colors/colors_names.asp)
 
 ## [headings] section
 

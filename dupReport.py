@@ -125,6 +125,8 @@ if __name__ == "__main__":
     # See LogHandler class description for more details
     globs.log = log.LogHandler()
     globs.log.write(1,'******** dupReport Log - Start: {}'.format(time.asctime(time.localtime(time.time()))))
+    globs.log.write(1,'Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
+    globs.log.write(1,'Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
     globs.log.write(1,'Python version {}'.format(sys.version))
     globs.log.write(3,'Program Path={}'.format(globs.progPath))
     # Check if we're running a compatible version of Python. Must be 3.0 or higher
@@ -189,15 +191,12 @@ if __name__ == "__main__":
         globs.closeEverythingAndExit(0)
 
     # Open email servers
-    globs.inServer = dremail.EmailServer()
-    retVal = globs.inServer.connect(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], globs.opts['inpassword'], globs.opts['inencryption'])
-    globs.log.write(3,'Open incoming server. retVal={}'.format(retVal))
-    retVal = globs.inServer.setFolder(globs.opts['infolder'])
-    globs.log.write(3,'Set folder. retVal={}'.format(retVal))
-
-    globs.outServer = dremail.EmailServer()
-    retVal = globs.outServer.connect('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], globs.opts['outpassword'], globs.opts['outencryption'])
-    globs.log.write(3,'Open outgoing server. retVal={}'.format(retVal))
+    if globs.opts['showprogress'] > 0:
+        globs.log.out('Connecting to email servers.')
+    globs.inServer = dremail.EmailServer(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], \
+        globs.opts['inpassword'], globs.opts['inencryption'], globs.opts['inkeepalive'], globs.opts['infolder'], )
+    globs.outServer = dremail.EmailServer('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], \
+        globs.opts['outpassword'], globs.opts['outencryption'], globs.opts['outkeepalive'])
 
     # Are we just collecting or not just reporting?
     if (globs.opts['collect'] or not globs.opts['report']):
@@ -206,13 +205,22 @@ if __name__ == "__main__":
         globs.db.execSqlStmt('UPDATE emails SET dbSeen = 0')
         globs.db.dbCommit()
 
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Analyzing email messages.')
+
         # Get new messages on server
+        progCount = 0   # Count for progress indicator
         newMessages = globs.inServer.checkForMessages()
         if newMessages > 0:
-            nxtMsg = globs.inServer.getNextMessage()
+            nxtMsg = globs.inServer.processNextMessage()
             while nxtMsg is not None:
-                globs.inServer.processMessage(nxtMsg)
-                nxtMsg = globs.inServer.getNextMessage()
+                if globs.opts['showprogress'] > 0:
+                    progCount += 1
+                    if (progCount % globs.opts['showprogress']) == 0:
+                        globs.log.out('.', newline = False)
+                nxtMsg = globs.inServer.processNextMessage()
+            if globs.opts['showprogress'] > 0:
+                globs.log.out(' ')   # Add newline at end.
 
     # Open report object and initialize report options
     # We may not be running reports, but the options will be needed later in the program 
@@ -221,6 +229,9 @@ if __name__ == "__main__":
     # Are we just reporting or not just collecting?
     if (globs.opts['report'] or not globs.opts['collect']):
         # All email has been collected. Create the report
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Producing report.')
+
         globs.report.extractReportData()
 
         # Select report module based on config parameters
@@ -238,7 +249,6 @@ if __name__ == "__main__":
 
         # Run selected report
         msgHtml, msgText, msgCsv = rpt.runReport(startTime)
-    
         globs.log.write(1,msgText)
 
     # Do we need to send any "backup not seen" warning messages?
@@ -247,10 +257,15 @@ if __name__ == "__main__":
 
     # Do we need to send output to file(s)?
     if globs.opts['file'] and not globs.opts['collect']:
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Creating report file(s).')
         report.sendReportToFile(msgHtml, msgText, msgCsv)
    
     # Are we forbidden from sending report to email?
     if not globs.opts['nomail'] and not globs.opts['collect']: 
+        if globs.opts['showprogress'] > 0:
+            globs.log.out('Sending report emails.')
+
         # Send email to SMTP server
         globs.outServer.sendEmail(msgHtml, msgText)
 
@@ -260,5 +275,7 @@ if __name__ == "__main__":
 
     globs.log.write(1,'Program completed in {:.3f} seconds. Exiting'.format(time.time() - startTime))
 
+    if globs.opts['showprogress'] > 0:
+        globs.log.out('Ending program.')
     # Bye, bye, bye, BYE, BYE!
     globs.closeEverythingAndExit(0)

@@ -49,83 +49,84 @@ def runReport(startTime):
     dbCursor = globs.db.execSqlStmt("SELECT max(timestamp) FROM report")    # Largest timestamp in the report table
     highestTs = dbCursor.fetchone()[0]
 
-    while currentTs <= highestTs:
-        currentDate, currentTime = drdatetime.fromTimestamp(currentTs, dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-        currentDateBeginTs = drdatetime.toTimestamp(currentDate + ' 00:00:00', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
-        currentDateEndTs = drdatetime.toTimestamp(currentDate + ' 23:59:59', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
+    if (currentTs is not None) and (highestTs is not None): #Report table was not empty. There are rows to report
+        while currentTs <= highestTs:
+            currentDate, currentTime = drdatetime.fromTimestamp(currentTs, dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+            currentDateBeginTs = drdatetime.toTimestamp(currentDate + ' 00:00:00', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
+            currentDateEndTs = drdatetime.toTimestamp(currentDate + ' 23:59:59', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
         
-        sqlStmt = "SELECT source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-            addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors \
-            FROM report WHERE timestamp >= {} AND timestamp <= {}".format(currentDateBeginTs, currentDateEndTs)
-        if reportOpts['sortby'] == 'source':
-            sqlStmt += ' ORDER BY source, destination'
-        elif reportOpts['sortby'] == 'destination':
-            sqlStmt += ' ORDER BY destination, source'
-        else:
-            sqlStmt += ' ORDER BY timestamp'
-
-        dbCursor = globs.db.execSqlStmt(sqlStmt)
-        reportRows = dbCursor.fetchall()
-        globs.log.write(3, 'reportRows=[{}]'.format(reportRows))
-
-        if len(reportRows) != 0:
-            subHead = globs.optionManager.getRcOption('report', 'subheading')
-            if subHead is not None:
-                    # Substitute subheading keywords
-                    subHead = subHead.replace('#DATE#', currentDate)
-            if subHead is None or subHead == '':
-                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], rptTits['date'], currentDate)
-                msgText += '***** {}: {} *****\n'.format(rptTits['date'], currentDate)
-                msgCsv += '\"***** {}: {} *****\"\n'.format(rptTits['date'], currentDate)
+            sqlStmt = "SELECT source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+                addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors \
+                FROM report WHERE timestamp >= {} AND timestamp <= {}".format(currentDateBeginTs, currentDateEndTs)
+            if reportOpts['sortby'] == 'source':
+                sqlStmt += ' ORDER BY source, destination'
+            elif reportOpts['sortby'] == 'destination':
+                sqlStmt += ' ORDER BY destination, source'
             else:
-                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
-                msgText += '***** {} *****\n'.format(subHead)
-                msgCsv += '\"***** {} *****\"\n'.format(subHead)
+                sqlStmt += ' ORDER BY timestamp'
 
-            # Print column titles if printing for each section
-            if reportOpts['repeatheaders'] is True:
-                msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
+            dbCursor = globs.db.execSqlStmt(sqlStmt)
+            reportRows = dbCursor.fetchall()
+            globs.log.write(3, 'reportRows=[{}]'.format(reportRows))
+
+            if len(reportRows) != 0:
+                subHead = globs.optionManager.getRcOption('report', 'subheading')
+                if subHead is not None:
+                        # Substitute subheading keywords
+                        subHead = subHead.replace('#DATE#', currentDate)
+                if subHead is None or subHead == '':
+                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>{}:</b> {}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], rptTits['date'], currentDate)
+                    msgText += '***** {}: {} *****\n'.format(rptTits['date'], currentDate)
+                    msgCsv += '\"***** {}: {} *****\"\n'.format(rptTits['date'], currentDate)
+                else:
+                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{}</td></tr>\n'.format(nFields, reportOpts['subheadbg'], subHead)
+                    msgText += '***** {} *****\n'.format(subHead)
+                    msgCsv += '\"***** {} *****\"\n'.format(subHead)
+
+                # Print column titles if printing for each section
+                if reportOpts['repeatheaders'] is True:
+                    msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
 
-        for source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-            addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
-            warnings, errors in reportRows:
+            for source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+                addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
+                warnings, errors in reportRows:
             
-            # Get date and time from timestamp
-            dateStr, timeStr = drdatetime.fromTimestamp(timestamp)
+                # Get date and time from timestamp
+                dateStr, timeStr = drdatetime.fromTimestamp(timestamp)
 
-            # Print report fields
-            # Each field takes up one column/cell in the table
-            msgHtml += '<tr>'
+                # Print report fields
+                # Each field takes up one column/cell in the table
+                msgHtml += '<tr>'
 
-            # The full list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
-            titles = ['source', 'destination','time', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result']
-            fields = [source, destination, timeStr, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
+                # The full list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
+                titles = ['source', 'destination','time', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result']
+                fields = [source, destination, timeStr, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
 
-            for ttl, fld in zip(titles, fields):
-                msgHtml += report.printField(ttl, fld, 'html')
-                msgText += report.printField(ttl, fld, 'text')
-                msgCsv += report.printField(ttl, fld, 'csv')
+                for ttl, fld in zip(titles, fields):
+                    msgHtml += report.printField(ttl, fld, 'html')
+                    msgText += report.printField(ttl, fld, 'text')
+                    msgCsv += report.printField(ttl, fld, 'csv')
 
-            msgHtml += '</tr>\n'
-            msgText += '\n'
-            msgCsv += '\n'
+                msgHtml += '</tr>\n'
+                msgText += '\n'
+                msgCsv += '\n'
 
-            fields = [messages, warnings, errors ]
-            options = ['displaymessages', 'displaywarnings', 'displayerrors']
-            backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg']
-            titles = ['jobmessages', 'jobwarnings', 'joberrors']
-            # Print message/warning/error fields
-            # Each of these spans all the table columns
-            for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
-                if ((fld != '') and (reportOpts[opt] == True)):
-                    msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>\n'.format(nFields, reportOpts[bg], rptTits[tit], fld)
-                    msgText += '{}: {}\n'.format(rptTits[tit], fld)
-                    msgCsv += '\"{}: {}\"\n'.format(rptTits[tit], fld)
+                fields = [messages, warnings, errors ]
+                options = ['displaymessages', 'displaywarnings', 'displayerrors']
+                backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg']
+                titles = ['jobmessages', 'jobwarnings', 'joberrors']
+                # Print message/warning/error fields
+                # Each of these spans all the table columns
+                for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
+                    if ((fld != '') and (reportOpts[opt] == True)):
+                        msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><details><summary>{}</summary>{}</details></td></tr>\n'.format(nFields, reportOpts[bg], rptTits[tit], fld)
+                        msgText += '{}: {}\n'.format(rptTits[tit], fld)
+                        msgCsv += '\"{}: {}\"\n'.format(rptTits[tit], fld)
 
 
-        # Move current timestamp ahead 1 second
-        currentTs = currentDateEndTs + 1
+            # Move current timestamp ahead 1 second
+            currentTs = currentDateEndTs + 1
 
     # Now see which systems didn't report in
     dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination")
@@ -147,7 +148,7 @@ def runReport(startTime):
 
             diff = drdatetime.daysSince(lastTimestamp)
             lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, reportOpts['noactivitybg'], source, destination, lastDateStr, lastTimeStr, diff)
+            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, report.getLastSeenColor(reportOpts, diff), source, destination, lastDateStr, lastTimeStr, diff)
             msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
             msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
 

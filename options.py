@@ -38,9 +38,10 @@ rcParts= [
     ('main','dateformat', 'MM/DD/YYYY', False),
     ('main','timeformat','HH:MM:SS', False),
     ('main','warnoncollect','false', True),
-    ('main','applyutcoffset','false', True),
+    ('main','applyutcoffset','true', True),
     ('main','show24hourtime', 'true', True),
     ('main','purgedb', 'false', True),
+    ('main','showprogress', '0', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -50,6 +51,7 @@ rcParts= [
     ('incoming','inaccount','someacct@hostmail.com', False),
     ('incoming','inpassword','********', False),
     ('incoming','infolder','INBOX', False),
+    ('incoming','inkeepalive','false', True),
 
     # [outgoing] section defaults
     ('outgoing','outserver','localhost', False),
@@ -59,6 +61,7 @@ rcParts= [
     ('outgoing','outpassword','********', False),
     ('outgoing','outsender','sender@hostmail.com', False),
     ('outgoing','outreceiver','receiver@hostmail.com', False),
+    ('outgoing','outkeepalive','false', True),
 
     # [report] section defaults
     ('report','style','srcdest', True),
@@ -73,13 +76,19 @@ rcParts= [
     ('report','displayerrors','true', True),
     ('report','titlebg','#FFFFFF', True),
     ('report','subheadbg','#D3D3D3', True),
-    ('report','noactivitybg','#FF0000', True),
     ('report','jobmessagebg','#FFFFFF', True),
     ('report','jobwarningbg','#FFFF00', True),
     ('report','joberrorbg','#FF0000', True),
     ('report','repeatheaders','false', True),
     ('report','nobackupwarn', '0', True),
     ('report','nbwsubject', 'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
+    ('report','lastseensummary', 'none', True),
+    ('report','lastseensummarytitle', 'Backup Sets Last Seen', True),
+    ('report','lastseenlow', '5', True),
+    ('report','lastseenmed', '10', True),
+    ('report','lastseenlowcolor', '#FFFF00', True),
+    ('report','lastseenmedcolor', '#FF4500', True),
+    ('report','lastseenhighcolor', '#FF0000', True),
 
     # [headings] section defaults
     ('headings','Source','Source', True),
@@ -140,7 +149,7 @@ class OptionManager:
             verParts = rcVersion.split('.')
             currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
             # Split RC version into component parts
-            newVerNum = (globs.version[0] * 100) + (globs.version[1] * 10) + globs.version[2]
+            newVerNum = (globs.rcVersion[0] * 100) + (globs.rcVersion[1] * 10) + globs.rcVersion[2]
             globs.log.write(3,'RC file versions: current={} new={}.'.format(currVerNum, newVerNum))
             if currVerNum < newVerNum: # Need an upgrade
                 needToUpgrade = True
@@ -167,20 +176,31 @@ class OptionManager:
         globs.log.write(1, 'rc.setDefaults({})'.format(self.rcFileName))
 
         newRc = False
+        needUpdate = False
         # Loop through all the required parts of the RC file. If not there, add them
         for section, option, default, canCont in rcParts:
             if self.parser.has_section(section) == False: # Whole section is missing. Probably a new install.
                 globs.log.write(2, 'Adding RC section: [{}]'.format(section))
                 self.parser.add_section(section)
                 newRc=True
+                needUpdate = True
+
             if self.parser.has_option(section, option) == False: # Option is missing. Might be able to continue if non-critical.
                 globs.log.write(2, 'Adding RC option: [{}] {}={}'.format(section, option, default))
                 self.parser.set(section, option, default)
+                needUpdate = True
                 if canCont == False:
                     newRc=True
 
-        self.updateRc()
+        # Remove deprecated options
+        if self.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in versoin 2.2.0
+            self.clearRcOption('report', 'noactivitybg')
+            needUpdate = True
+
+
         globs.log.write(3,'newRc={}'.format(newRc))
+        if needUpdate:
+            self.updateRc()
         return newRc
 
     # Read .rc file options
@@ -210,6 +230,9 @@ class OptionManager:
         self.options['applyutcoffset'] = self.options['applyutcoffset'].lower() in ('true')   # boolean
         self.options['show24hourtime'] = self.options['show24hourtime'].lower() in ('true')   # boolean
         self.options['purgedb'] = self.options['purgedb'].lower() in ('true')   # boolean
+        self.options['inkeepalive'] = self.options['inkeepalive'].lower() in ('true')   # boolean
+        self.options['outkeepalive'] = self.options['outkeepalive'].lower() in ('true')   # boolean
+        self.options['showprogress'] = int(self.options['showprogress'])  # integer
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
@@ -399,6 +422,7 @@ class OptionManager:
             else:
                 globs.log.write(2, 'Invalid time format in .rc file, [{}{}{}]: dateformat={}'.format(src, globs.opts['srcdestdelimiter'], dest, tmp))
 
+        globs.log.write(3,'returning [{}][{}]'.format(dtfmt, tmfmt))
         return dtfmt, tmfmt
     
     # Strips trailing slash character from a path specification if one exists
