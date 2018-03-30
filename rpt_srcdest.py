@@ -88,6 +88,13 @@ def runReport(startTime):
         reportRows = dbCursor.fetchall()
         globs.log.write(3, 'reportRows=[{}]'.format(reportRows))
         if not reportRows: # No rows found = no recent activity
+
+            # If src/dest is known offline, skip
+            srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+            offline = globs.optionManager.getRcOption(srcDest, 'offline')
+            if offline == "true":
+                continue
+
             # Calculate days since last activity
             diff = drdatetime.daysSince(lastTimestamp)
 

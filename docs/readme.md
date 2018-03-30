@@ -723,6 +723,12 @@ These options specify the parameters for warning emails if a backup has not been
 | nbwsubject= | [report] nbwsubject=    |
 | receiver=   | [outgoing] outreceiver= |
 
+```
+offline = True
+```
+
+This suppresses mention of the source-destination pair in the output report. Useful when you know a system is going to be offline for a while and you don't want to see the "not seen in X days" warning message in the report.
+
 # Report Formats
 
 dupReport has several formats for reporting that are specified in the “style” parameter in the [report] section of the dupReport.rc file. Each report can be sorted in various ways. Sorting options are configured using the “sortby” option in the [report] section.

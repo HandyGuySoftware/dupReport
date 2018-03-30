@@ -324,6 +324,13 @@ def lastSeenTable(opts):
     sdSets = dbCursor.fetchall()
     globs.log.write(3,'sdSets=[{}]'.format(sdSets))
     for source, destination, lastTimestamp in sdSets:
+
+        # If src/dest is known offline, skip
+        srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+        offline = globs.optionManager.getRcOption(srcDest, 'offline')
+        if offline == "true":
+            continue
+
         lastDate = drdatetime.fromTimestamp(lastTimestamp)
         days = drdatetime.daysSince(lastTimestamp)
         globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
