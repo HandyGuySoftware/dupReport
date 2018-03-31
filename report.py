@@ -328,8 +328,9 @@ def lastSeenTable(opts):
         # If src/dest is known offline, skip
         srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
         offline = globs.optionManager.getRcOption(srcDest, 'offline')
-        if offline == "true":
-            continue
+        if offline != None:
+            if offline.lower() in ('true'):
+                continue
 
         lastDate = drdatetime.fromTimestamp(lastTimestamp)
         days = drdatetime.daysSince(lastTimestamp)

@@ -228,6 +228,7 @@ class Database:
         self.dbCommit()
 
         globs.log.out('Pair {}{}{} removed from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
+        globs.log.out("Please remove all emails referencing the \'{}{}{}\' backup,\nor they will be added back into the database the next time dupReport is run.".format(source, globs.opts['srcdestdelimiter'], destination))
 
         return True
 

@@ -144,8 +144,9 @@ def runReport(startTime):
             # If src/dest is known offline, skip
             srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
             offline = globs.optionManager.getRcOption(srcDest, 'offline')
-            if offline == "true":
-                continue
+            if offline != None:
+                if offline.lower() in ('true'):
+                    continue
 
             if hdrFlag == 0:
                 msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>Missing Backup Sets</b></td></tr>\n'.format(nFields, reportOpts['subheadbg'])

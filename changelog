@@ -1,6 +1,7 @@
 2.2.1
 -----
 - Added "offline=" option in [source-destination] section to suppress "not seen" message in report (issue #88)
+- Addressed issue #90
 
 2.2.0
 -----

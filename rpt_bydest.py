@@ -128,8 +128,9 @@ def runReport(startTime):
                 # If src/dest is known offline, skip
                 srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destKey[0])
                 offline = globs.optionManager.getRcOption(srcDest, 'offline')
-                if offline == "true":
-                    continue
+                if offline != None:
+                    if offline.lower() in ('true'):
+                        continue
 
                 # Calculate days since last activity
                 diff = drdatetime.daysSince(lastTimestamp)
