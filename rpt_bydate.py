@@ -140,6 +140,14 @@ def runReport(startTime):
         seenRows = dbCursor.fetchone()[0]
         globs.log.write(3, 'seenRows=[{}]'.format(seenRows))
         if seenRows == 0:   # Didn't get any rows for source/Destination pair. Add to report
+
+            # If src/dest is known offline, skip
+            srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+            offline = globs.optionManager.getRcOption(srcDest, 'offline')
+            if offline != None:
+                if offline.lower() in ('true'):
+                    continue
+
             if hdrFlag == 0:
                 msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><b>Missing Backup Sets</b></td></tr>\n'.format(nFields, reportOpts['subheadbg'])
                 msgText += 'Missing Back Sets\n'

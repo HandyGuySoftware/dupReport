@@ -7,8 +7,8 @@
 
 
 # Define version info
-version=[2,2,0]     # Program Version
-status='Release 1'
+version=[2,2,1]     # Program Version
+status='Release'
 dbVersion=[1,0,1]   # Required DB version
 rcVersion=[2,1,0]   # Required RC version
 copyright='Copyright (c) 2018 Stephen Fried for HandyGuy Software.'

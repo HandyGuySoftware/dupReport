@@ -124,6 +124,14 @@ def runReport(startTime):
             dbCursor = globs.db.execSqlStmt('SELECT count(*) FROM report WHERE source=\"{}\" AND destination=\"{}\"'.format(source, destKey[0]))
             countRows = dbCursor.fetchone()
             if countRows[0] == 0:
+
+                # If src/dest is known offline, skip
+                srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destKey[0])
+                offline = globs.optionManager.getRcOption(srcDest, 'offline')
+                if offline != None:
+                    if offline.lower() in ('true'):
+                        continue
+
                 # Calculate days since last activity
                 diff = drdatetime.daysSince(lastTimestamp)
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)

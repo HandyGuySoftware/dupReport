@@ -10,8 +10,8 @@ There are only two generally-available branches in the dupReport repository:
 
 | Branch Name  | Current Version | Purpose                                                      |
 | ------------ | --------------- | ------------------------------------------------------------ |
-| **master**   | 2.2.0           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | 2.2.1           | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **master**   | 2.2.1           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
+| **pre_prod** | \<None\>        | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
 
 If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
 
@@ -722,6 +722,12 @@ These options specify the parameters for warning emails if a backup has not been
 | nobackwarn= | [report] nobackupwarn=  |
 | nbwsubject= | [report] nbwsubject=    |
 | receiver=   | [outgoing] outreceiver= |
+
+```
+offline = True
+```
+
+This suppresses mention of the source-destination pair in the output report. Useful when you know a system is going to be offline for a while and you don't want to see the "not seen in X days" warning message in the report.
 
 # Report Formats
 
