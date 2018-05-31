@@ -134,17 +134,33 @@ def runReport(startTime):
 
                 # Calculate days since last activity
                 diff = drdatetime.daysSince(lastTimestamp)
-                lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                msgHtml += '<tr>'
-                msgHtml += report.printField('destination', destination, 'html')
-                msgHtml += '<td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, report.getLastSeenColor(reportOpts, diff), lastDateStr, lastTimeStr, diff)
-                msgHtml += '</tr>\n'
+                
+                # See if we're past the backup interval before reporting
+                result, interval = report.pastBackupInterval(srcDest, diff)
+                if result is False:
+                    globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
+                    msgHtml += '<tr>'
+                    msgHtml += report.printField('destination', destination, 'html')
+                    msgHtml += '<td colspan="{}" align="center"><i>Last activity {} days ago. Backup interval is {} days.</i></td>'.format(nFields-1, diff, interval)
+                    msgHtml += '</tr>\n'
 
-                msgText += report.printField('destination', destination, 'text')
-                msgText += '{}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(destination, lastDateStr, lastTimeStr, diff)
+                    msgText += report.printField('destination', destination, 'text')
+                    msgText += '{}: Last activity {} days ago. Backup interval is {}\n'.format(destination, diff, interval)
 
-                msgCsv += report.printField('destination', destination, 'csv')
-                msgCsv += '\"{}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(destination, lastDateStr, lastTimeStr, diff)
+                    msgCsv += report.printField('destination', destination, 'csv')
+                    msgCsv += '\"{}: Last activity {} days ago. Backup interval is {}.\"\n'.format(destination, diff, interval)
+                else:
+                    lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
+                    msgHtml += '<tr>'
+                    msgHtml += report.printField('destination', destination, 'html')
+                    msgHtml += '<td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td>'.format(nFields-1, report.getLastSeenColor(reportOpts, diff, interval), lastDateStr, lastTimeStr, diff)
+                    msgHtml += '</tr>\n'
+
+                    msgText += report.printField('destination', destination, 'text')
+                    msgText += '{}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(destination, lastDateStr, lastTimeStr, diff)
+
+                    msgCsv += report.printField('destination', destination, 'csv')
+                    msgCsv += '\"{}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(destination, lastDateStr, lastTimeStr, diff)
 
     # Add report footer
     msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)

@@ -155,10 +155,16 @@ def runReport(startTime):
                 hdrFlag = 1
 
             diff = drdatetime.daysSince(lastTimestamp)
-            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, report.getLastSeenColor(reportOpts, diff), source, destination, lastDateStr, lastTimeStr, diff)
-            msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
-            msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
+            result, interval = report.pastBackupInterval(srcDest, diff)
+            if result is False:
+                msgHtml += '<tr><td colspan="{}" align="center">{} to {}: <i>Last activity {} days ago. Backup interval is {} days.</i></td></tr>\n'.format(nFields, source, destination, diff, interval)
+                msgText += '{} to {}: Last activity {} days ago. Backup interval is {} days.\n'.format(source, destination, diff, interval)
+                msgCsv += '\"{} to {}: Last activity {} days ago. Backup interval is {} days.\"\n'.format(source, destination, diff, interval)
+            else:
+                lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}">{} to {}: <i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, report.getLastSeenColor(reportOpts, diff, interval), source, destination, lastDateStr, lastTimeStr, diff)
+                msgText += '{} to {}: No new activity. Last activity on {} at {} ({} days ago)\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
+                msgCsv += '\"{} to {}: No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(source, destination, lastDateStr, lastTimeStr, diff)
 
     # Add report footer
     msgHtml, msgText, msgCsv = report.rptBottom(msgHtml, msgText, msgCsv, startTime, nFields)

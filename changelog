@@ -1,3 +1,7 @@
+2.2.2
+-----
+- Added option to specify backup cycle other than 1 day (Issue 91)
+
 2.2.1
 -----
 - Added "offline=" option in [source-destination] section to suppress "not seen" message in report (issue #88)

@@ -99,10 +99,18 @@ def runReport(startTime):
             # Calculate days since last activity
             diff = drdatetime.daysSince(lastTimestamp)
 
-            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-            msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, report.getLastSeenColor(reportOpts, diff), lastDateStr, lastTimeStr, diff)
-            msgText += 'No new activity. Last activity on {} at {} ({} days ago)\n'.format(lastDateStr, lastTimeStr, diff)
-            msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(lastDateStr, lastTimeStr, diff)
+            # No activiy seen. See if we're past the backup interval before reporting
+            result, interval = report.pastBackupInterval(srcDest, diff)
+            if result is False:
+                globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
+                msgHtml += '<tr><td colspan="{}" align="center"><i>Last activity {} days ago. Backup interval is {} days.</i></td></tr>\n'.format(nFields, diff, interval)
+                msgText += 'Last activity {} days ago. Backup interval is {} days.\n'.format(diff, interval)
+                msgCsv += '\"Last activity {} days ago. Backup interval is {} days.\"\n'.format(diff, interval)
+            else:
+                lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
+                msgHtml += '<tr><td colspan="{}" align="center" bgcolor="{}"><i>No new activity. Last activity on {} at {} ({} days ago)</i></td></tr>\n'.format(nFields, report.getLastSeenColor(reportOpts, diff, interval), lastDateStr, lastTimeStr, diff)
+                msgText += 'No new activity. Last activity on {} at {} ({} days ago)\n'.format(lastDateStr, lastTimeStr, diff)
+                msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(lastDateStr, lastTimeStr, diff)
         else:
             # Loop through each new job email and report
             for timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
