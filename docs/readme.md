@@ -729,6 +729,16 @@ offline = True
 
 This suppresses mention of the source-destination pair in the output report. Useful when you know a system is going to be offline for a while and you don't want to see the "not seen in X days" warning message in the report.
 
+```
+backupinterval = 1
+```
+
+This option can be used if a backup set is run at some interval other than once a day. If a backup from a source/destination pair is not seen while scanning the emails but the number of days since the last backup is less than the backupinterval= value, the program will simply print a notification message rather than the standard warning message. For example (from the 'bydest' report):
+
+![1527784244664](C:\Users\parents\AppData\Local\Temp\1527784244664.png)
+
+The first line represents a backup that missed its daily execution. The second line represents a backup that only runs every 5 days. If no backupinterval= value is specified in a [source-destination] section, the default is 1.
+
 # Report Formats
 
 dupReport has several formats for reporting that are specified in the “style” parameter in the [report] section of the dupReport.rc file. Each report can be sorted in various ways. Sorting options are configured using the “sortby” option in the [report] section.
