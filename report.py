@@ -323,7 +323,7 @@ def pastBackupInterval(srcDest, days):
     # Get backup interval from rc file. Default is 1
     backupInterval = globs.optionManager.getRcOption(srcDest, 'backupinterval')
     if backupInterval is None:
-        backupInterval = 1
+        backupInterval = 0
     else:
         backupInterval = int(backupInterval)    # Change value to an int type
 
