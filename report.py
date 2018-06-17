@@ -304,13 +304,34 @@ def getLatestTimestamp(src, dest):
         globs.log.write(2, 'Didn\'t find any timestamp for {}-{}: something is wrong!'.format(src, dest))
         return None
 
-def getLastSeenColor(opts, days):
-    if days <= opts['lastseenlow']:
+def getLastSeenColor(opts, days, interval = 0):
+    
+    # Need to account for the backup interval when calculating "overtime" days
+    if interval != 0:
+        ndays = days - interval
+    else:
+        ndays = days
+
+    if ndays <= opts['lastseenlow']:
         return opts['lastseenlowcolor']
-    elif days <= opts['lastseenmed']:
+    elif ndays <= opts['lastseenmed']:
         return opts['lastseenmedcolor']
     else:
         return opts['lastseenhighcolor']
+
+def pastBackupInterval(srcDest, days):
+    # Get backup interval from rc file. Default is 1
+    backupInterval = globs.optionManager.getRcOption(srcDest, 'backupinterval')
+    if backupInterval is None:
+        backupInterval = 0
+    else:
+        backupInterval = int(backupInterval)    # Change value to an int type
+
+    # If we're not past the backup interval, skip reporting this src/dest as missing
+    if days >= backupInterval:
+        return True, backupInterval     # At or past the backup interval
+    else:
+        return False, backupInterval    # Not yet past the backup interval
 
 def lastSeenTable(opts):
     globs.log.write(1, 'report.lastSeenTable()')
@@ -334,10 +355,18 @@ def lastSeenTable(opts):
 
         lastDate = drdatetime.fromTimestamp(lastTimestamp)
         days = drdatetime.daysSince(lastTimestamp)
-        globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
-        msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, getLastSeenColor(opts, days), lastDate[0], lastDate[1], days)
-        msgText += '{}{}{}: Last seen on {} {} ({} days ago)\n'.format(source, globs.opts['srcdestdelimiter'], destination, lastDate[0], lastDate[1], days)
-        msgCsv += '\"{}\",\"{}\",\"{} {} ({} days ago)\"\n'.format(source, destination, lastDate[0], lastDate[1], days)
+
+        result, interval = pastBackupInterval(srcDest, days)
+        if result is False:
+            globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
+            msgHtml += '<tr><td>{}</td><td>{}</td><td>{} {} ({} days ago. Backup interval is {} days)</td></tr>\n'.format(source, destination, lastDate[0], lastDate[1], days, interval)
+            msgText += '{}{}{}: Last seen on {} {} ({} days ago. Backup interval is {} days.)\n'.format(source, globs.opts['srcdestdelimiter'], destination, lastDate[0], lastDate[1], days, interval)
+            msgCsv += '\"{}\",\"{}\",\"{} {} ({} days ago. Backup interval is {} days.)\"\n'.format(source, destination, lastDate[0], lastDate[1], days, interval)
+        else:            
+            globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
+            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, getLastSeenColor(opts, days), lastDate[0], lastDate[1], days)
+            msgText += '{}{}{}: Last seen on {} {} ({} days ago)\n'.format(source, globs.opts['srcdestdelimiter'], destination, lastDate[0], lastDate[1], days)
+            msgCsv += '\"{}\",\"{}\",\"{} {} ({} days ago)\"\n'.format(source, destination, lastDate[0], lastDate[1], days)
 
     msgHtml += '</table>'
 

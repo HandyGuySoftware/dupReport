@@ -7,7 +7,7 @@
 
 
 # Define version info
-version=[2,2,1]     # Program Version
+version=[2,2,2]     # Program Version
 status='Release'
 dbVersion=[1,0,1]   # Required DB version
 rcVersion=[2,1,0]   # Required RC version
