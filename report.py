@@ -372,6 +372,24 @@ def lastSeenTable(opts):
 
     return msgHtml, msgText, msgCsv
 
+# Truncate warning & error messages
+def truncateWarnErrMsgs(msg, msgLen, warn, warnLen, err, errLen):
+
+    # Set defaults to original messages
+    msgRet = msg
+    warnRet = warn
+    errRet = err
+
+    # Truncate string if length of string is > desired length
+    if msgLen != 0:
+        msgRet = (msg[:msgLen]) if len(msg) > msgLen else msg  
+    if warnLen != 0:
+        warnRet = (warn[:warnLen]) if len(warn) > warnLen else warn  
+    if errLen != 0:
+        errRet = (err[:errLen]) if len(err) > errLen else err
+
+    return msgRet, warnRet, errRet
+
 # Class for report management
 class Report:
 
@@ -396,6 +414,9 @@ class Report:
         self.reportOpts['nobackupwarn'] = int(self.reportOpts['nobackupwarn'])                          # Convert to integer
         self.reportOpts['lastseenlow'] = int(self.reportOpts['lastseenlow'])                            # Convert to integer
         self.reportOpts['lastseenmed'] = int(self.reportOpts['lastseenmed'])                            # Convert to integer
+        self.reportOpts['truncatemessage'] = int(self.reportOpts['truncatemessage'])                    # Convert to integer
+        self.reportOpts['truncatewarning'] = int(self.reportOpts['truncatewarning'])                    # Convert to integer
+        self.reportOpts['truncateerror'] = int(self.reportOpts['truncateerror'])                        # Convert to integer
 
         # Basic field value checking
         # See if valid report name

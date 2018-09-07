@@ -589,6 +589,14 @@ nobackupwarn=5
 Sets the threshold of the number of days to go without a backup from a source-destination pair before sending a separate email warning. If nobackupwarn is set to 0 no email notices will be sent. The warning email will be sent to the email address specified by the "outreceiver" option in the [outgoing] section unless overridden by a "receiver=" option in a [source-destination] section. 
 
 ```
+truncatemessage = 0
+truncatewarning = 0
+truncateerror = 0
+```
+
+These settings truncate the message, warning, and error fields generated during backup job execution. Duplicati job messages can be quite lengthy and take up a lot of room in the report. These options allow you to truncate those messages to a reasonable length. A length of 0 (zero) indicates that the message should not be truncated. If the length of the message/warning/error is less than the size indicated, the entire message/warning/error will be displayed. To view the original (full) message string, refer to the email generated for that backup job.
+
+```
 nbwsubject = Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days
 ```
 
