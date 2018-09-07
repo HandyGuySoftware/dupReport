@@ -5,10 +5,9 @@
 # 
 #####
 
-
 # Define version info
-version=[2,2,2]     # Program Version
-status='Release'
+version=[2,2,3]     # Program Version
+status='Beta 1'
 dbVersion=[1,0,1]   # Required DB version
 rcVersion=[2,1,0]   # Required RC version
 copyright='Copyright (c) 2018 Stephen Fried for HandyGuy Software.'
@@ -38,6 +37,7 @@ outServer =  None     # Outbound email server
 
 # Close everything and exit cleanly
 def closeEverythingAndExit(errcode):
+    
     log.write(1,'Closing everything...')
 
     if inServer is not None:
@@ -53,6 +53,8 @@ def closeEverythingAndExit(errcode):
         log.write(1,'Closing log file...')
         log.closeLog()
 
-    exit(errcode)
-
-
+    try:
+        #sys.exit(1)
+        exit(errcode)
+    except:
+        log.write(1,'Exiting program...')
