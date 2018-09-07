@@ -1,3 +1,8 @@
+2.2.3
+-----
+- Fixed bug where "Not Seen" email was being sent even if backupset was listed as offline (Issue #94)
+- Fixed Unhandled Exception bug on CloseEverythingAnd Exit()
+
 2.2.2
 -----
 - Added option to specify backup cycle other than 1 day (Issue 91)

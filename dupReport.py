@@ -107,6 +107,13 @@ def sendNoBackupWarnings():
     srcDestRows = dbCursor.fetchall()
     if len(srcDestRows) != 0:
         for source, destination in srcDestRows:
+			# First, see if SrcDest is listed as offline. If so, skip.
+            srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+            offline = globs.optionManager.getRcOption(srcDest, 'offline')
+            if offline != None:
+                if offline.lower() in ('true'):
+                    continue
+
             latestTimeStamp = report.getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
             if report.pastBackupWarningThreshold(source, destination, diff, globs.report.reportOpts) is True:
