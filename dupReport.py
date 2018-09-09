@@ -22,6 +22,7 @@ import report
 import options
 import dremail
 import drdatetime
+import dupapprise
 
 # Print program verersion info
 def versionInfo():
@@ -166,6 +167,10 @@ if __name__ == "__main__":
     # Open log file (finally!)
     globs.log.openLog(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose'])
 
+    # see if [apprise] section exists in .rc file. If so, initialize Apprise options
+    if globs.optionManager.parser.has_section("apprise"):
+        globs.appriseObj = dupapprise.dupApprise()
+
     # Open SQLITE database
     globs.db = db.Database(globs.opts['dbpath'])
     if globs.opts['initdb'] is True:    
@@ -261,6 +266,9 @@ if __name__ == "__main__":
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn']:
         sendNoBackupWarnings()
+
+    if globs.appriseObj is not None:
+        globs.appriseObj.sendNotifications()
 
     # Do we need to send output to file(s)?
     if globs.opts['file'] and not globs.opts['collect']:

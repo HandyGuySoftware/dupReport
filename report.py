@@ -320,7 +320,7 @@ def getLastSeenColor(opts, days, interval = 0):
         return opts['lastseenhighcolor']
 
 def pastBackupInterval(srcDest, days):
-    # Get backup interval from rc file. Default is 1
+    # Get backup interval from rc file. Default is 0
     backupInterval = globs.optionManager.getRcOption(srcDest, 'backupinterval')
     if backupInterval is None:
         backupInterval = 0

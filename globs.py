@@ -5,6 +5,8 @@
 # 
 #####
 
+import sys
+
 # Define version info
 version=[2,2,3]     # Program Version
 status='Beta 1'
@@ -25,6 +27,7 @@ ofileList = None                    # List of output files
 optionManager = None                # Option Manager
 opts = None                         # Global program options
 progPath = None                     # Path to script files
+appriseObj = None                   # dupApprise instance
 
 # Text & format fields for report email
 emailText=[]      # List of email text components
@@ -54,7 +57,6 @@ def closeEverythingAndExit(errcode):
         log.closeLog()
 
     try:
-        #sys.exit(1)
-        exit(errcode)
+        sys.exit(errcode)
     except:
         log.write(1,'Exiting program...')
