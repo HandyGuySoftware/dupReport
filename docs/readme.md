@@ -762,7 +762,7 @@ See the [Apprise GitHub page](https://github.com/caronc/apprise) for instruction
  Apprise is enabled in dupReport by adding an [apprise] section to the dupReport.rc file. If dupReport sees an [apprise] section in the .rc file it will load the Apprise libraries and configure the proper notifications. If dupReport does not see an [apprise] section in the .rc file it will simply carry on without loading any Apprise support. The [apprise] section contains the following options:
 
 ```
-Services = <service 1>[, <service 2>, <service 3>, …]
+services = <service 1>[, <service 2>, <service 3>, …]
 ```
 
 The services option contains the URL(s) that Apprise will use for its notifications. These are the same URLs that you used when testing Apprise from the command line. For example, if the Apprise command line is: 
