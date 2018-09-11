@@ -5,7 +5,7 @@
 # 
 #####
 
-import sys
+import os
 
 # Define version info
 version=[2,2,3]     # Program Version
@@ -56,7 +56,4 @@ def closeEverythingAndExit(errcode):
         log.write(1,'Closing log file...')
         log.closeLog()
 
-    try:
-        sys.exit(errcode)
-    except:
-        log.write(1,'Exiting program...')
+    os._exit(errcode)

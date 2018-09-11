@@ -207,8 +207,15 @@ if __name__ == "__main__":
         globs.log.out('Connecting to email servers.')
     globs.inServer = dremail.EmailServer(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], \
         globs.opts['inpassword'], globs.opts['inencryption'], globs.opts['inkeepalive'], globs.opts['infolder'], )
-    globs.outServer = dremail.EmailServer('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], \
-        globs.opts['outpassword'], globs.opts['outencryption'], globs.opts['outkeepalive'])
+
+    # Don't need to open output email server if we're not sending email
+    # This is used for Apprise support, especially if you're using Apprise to notify you through email. Thus, you may not want to also send redundant emails through dupReport.
+    # However, if you haven't supressed backup warnings (i.e., -w), you'll still need an outgoing server connection
+    # So, basically, if you've suppressed BOTH backup warnings AND outgoing email, skip opening the outgoing server
+    # If EITHER of these is false (i.e., you want either of these to work), open the server connection
+    if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
+        globs.outServer = dremail.EmailServer('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], \
+            globs.opts['outpassword'], globs.opts['outencryption'], globs.opts['outkeepalive'])
 
     # Are we just collecting or not just reporting?
     if (globs.opts['collect'] or not globs.opts['report']):
@@ -264,7 +271,7 @@ if __name__ == "__main__":
         globs.log.write(1,msgText)
 
     # Do we need to send any "backup not seen" warning messages?
-    if not globs.opts['stopbackupwarn']:
+    if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
         sendNoBackupWarnings()
 
     if globs.appriseObj is not None:
