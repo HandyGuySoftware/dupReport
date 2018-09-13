@@ -57,8 +57,8 @@ class dupApprise:
         # Add individual service URLs to connection
         self.services =  self.appriseOpts['services'].split(",")
         for i in self.services:
-            self.appriseConn.add(i)
-            globs.log.write(2, 'Apprise: added service {}'.format(i))
+            result = self.appriseConn.add(i)
+            globs.log.write(2, 'Apprise: added service {}, result {}'.format(i, result))
 
         return None
 
@@ -90,14 +90,20 @@ class dupApprise:
 
         for source, destination, parsedResult, messages, warnings, errors, timestamp in reportRows:
 
+            globs.log.write(3, 'Preparing Apprise message for {}-{}, parsedResult={} msglevel={}'.format(source, destination, parsedResult, self.appriseOpts['msglevel']))
+
             # See if we need to send a notification based on the result status
             if self.appriseOpts['msglevel'] == 'warning':
                 if parsedResult.lower() not in ('warning', 'failure'):
+                    globs.log.write(3, 'msglevel mismatch at warning level - skipping')
                     continue
             elif self.appriseOpts['msglevel'] == 'failure':
                 if parsedResult.lower() != 'failure':
+                    globs.log.write(3, 'msglevel mismatch at failure level - skipping')
                     continue
 
+            globs.log.write(3, "Apprise message is sendable.")
+           
             newTitle = self.parseMessage(self.appriseOpts['title'], source, destination, parsedResult, messages, warnings, errors, drdatetime.fromTimestamp(timestamp))
             newBody = self.parseMessage(self.appriseOpts['body'], source, destination, parsedResult, messages, warnings, errors, drdatetime.fromTimestamp(timestamp))
 
@@ -109,6 +115,9 @@ class dupApprise:
                 newBody = (newBody[:bLen]) if len(newBody) > bLen else newBody  
 
             globs.log.write(3, 'Sending notification: title=[[]] body=[{}]'.format(newTitle, newBody))
-            self.appriseConn.notify(title=newTitle, body=newBody)
+            result = self.appriseConn.notify(title=newTitle, body=newBody)
+            globs.log.write(3, "Apprise send() result={}.".format(result))
 
+
+        globs.log.write(1, 'dupApprise.sendNotifications() - Exit')
         return
