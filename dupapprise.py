@@ -52,7 +52,9 @@ class dupApprise:
 
         # Initialize apprise library
         globs.log.write(2, 'Initializing Apprise library.')
-        self.appriseConn = apprise.Apprise()
+        result = self.appriseConn = apprise.Apprise()
+        globs.log.write(2, 'Initialize Apprise() instance: result={}.'.format(result))
+
 
         # Add individual service URLs to connection
         self.services =  self.appriseOpts['services'].split(",")
