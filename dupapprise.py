@@ -62,6 +62,7 @@ class dupApprise:
             result = self.appriseConn.add(i)
             globs.log.write(2, 'Apprise: added service {}, result {}'.format(i, result))
 
+        globs.log.write(1, 'Apprise(): initialization complete.')
         return None
 
     def parseMessage(self, msg, source, destination, result, message, warningmessage, errormessage, completetime):
