@@ -74,7 +74,7 @@ class dupApprise:
         newMsg = newMsg.replace('#DESTINATION#',destination)
         newMsg = newMsg.replace('#SRCDEST#','{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination))
         newMsg = newMsg.replace('#RESULT#',result)
-        newMsg = newMsg.replace('#STATUS#',message)
+        newMsg = newMsg.replace('#MESSAGE#',message)
         newMsg = newMsg.replace('#ERRMSG#',errormessage)
         newMsg = newMsg.replace('#WARNMSG#',warningmessage)
         newMsg = newMsg.replace('#COMPLETETIME#','{} {}'.format(completetime[0], completetime[1]))
