@@ -89,6 +89,9 @@ rcParts= [
     ('report','lastseenlowcolor', '#FFFF00', True),
     ('report','lastseenmedcolor', '#FF4500', True),
     ('report','lastseenhighcolor', '#FF0000', True),
+    ('report','truncatemessage', '0', True),
+    ('report','truncatewarning', '0', True),
+    ('report','truncateerror', '0', True),
 
     # [headings] section defaults
     ('headings','Source','Source', True),

@@ -84,6 +84,9 @@ def runReport(startTime):
             addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
             warnings, errors in reportRows:
             
+            # Truncate message, warning, & error if indicated in .rc file
+            messages, warnings, errors = report.truncateWarnErrMsgs(messages, reportOpts['truncatemessage'], warnings, reportOpts['truncatewarning'], errors, reportOpts['truncateerror'])
+            
             # Get date and time from timestamp
             dateStr, timeStr = drdatetime.fromTimestamp(timestamp)
 

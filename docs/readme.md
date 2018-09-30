@@ -10,8 +10,8 @@ There are only two generally-available branches in the dupReport repository:
 
 | Branch Name  | Current Version | Purpose                                                      |
 | ------------ | --------------- | ------------------------------------------------------------ |
-| **master**   | 2.2.2           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | \<None\>        | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **master**   | 2.2.3           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
+| **pre_prod** | \<None>         | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
 
 If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
 
@@ -100,7 +100,7 @@ Several users on the Duplicati Forum have found different ways to modify subject
 
 # System Requirements
 
-dupReport has been formally tested on Linux (Debian 8) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page on the Duplicati Forum](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)   have stated they’ve installed and run the program on a wide variety of operating systems. The python code uses standard Python libraries, so it *should* run on any platform where Python can be run. *Should*.
+dupReport has been formally tested on Linux (Debian 8 and 9) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page on the Duplicati Forum](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)   have stated they’ve installed and run the program on a wide variety of operating systems. The python code uses standard Python libraries, so it *should* run on any platform where Python can be run. *Should*.
 
 In addition to the dupReport program files, the only other software dupReport needs is Python3. Installation instructions for Python are beyond our scope here, but instructions are widely available on the Internet.
 
@@ -156,25 +156,25 @@ Command line options alter the way dupReport operates. Many command line options
 
 dupReport has the following command line options:
 
-| Short Version               | Long Version                      | Description                              |
-| --------------------------- | --------------------------------- | ---------------------------------------- |
-| -h                          | --help                            | Display command line options.            |
+| Short Version               | Long Version                      | Description                                                  |
+| --------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| -h                          | --help                            | Display command line options.                                |
 | -r \<rcpath\>               | --rcpath \<rcpath\>               | Sets \<rcpath\> as the directory where the dupReport.rc file is located. \<rcpath\> should point to the directory only, not a full file path specification. |
 | -d \<dbpath\>               | --dbpath \<dbpath\>               | Sets \<dbpath\> as the directory where the dupReport.rc file is located. Overrides the [main] dbpath= option in dupReport.rc file. \<dbpath\> should point to the directory only, not a full file path specification. |
 | -l \<logpath\>              | --logpath \<logpath\>             | Sets \<logpath\> as the directory where the dupReport.log file is located. Overrides the [main] logpath= option in dupReport.rc file. \<logpath\> should point to the directory only, not a full file path specification. |
 | -v {0,1,2, 3}               | --verbose {0,1,2, 3}              | Sets the verbosity of the information in the log file. 1=General program execution info. 2=Program flow and status information. 3=Full debugging output |
 | -a                          | --append                          | Append new logs to existing log file. Overrides [main] logappend= in dupReport.rc file. |
-| -s {‘byte’, ‘mega’, ‘giga’} | --size {‘byte’, ‘mega’, ‘giga’}   | Display file sizes in bytes, megabytes, or gigabytes |
+| -s {‘byte’, ‘mega’, ‘giga’} | --size {‘byte’, ‘mega’, ‘giga’}   | Display file sizes in bytes, megabytes, or gigabytes         |
 | -i                          | --initdb                          | Erase all information from the database and resets the tables. |
 | -c                          | --collect                         | Collect new emails only and don't run summary report. -c and -t options can not be used together. |
 | -t                          | --report                          | Run summary report only and don't collect emails. -c and -t options can not be used together. |
 | -b \<DateTimeSpec>          | --rollback \<DateTimeSpec>        | Roll back database to a specified date and time, then continue processing emails. \<DateTimeSpec\> must be in the following format: “\<datespec> \<timespec>”, where \<datespec> and \<timespec> are in the same format specified by the “dateformat=” and “timeformat=” options specified in the [main] section of the dupReport.rc file. For example, if dateformat="MM/DD/YYYY" and timeformat="HH:MM:SS" \<DateTimeSpec> should be set to "12/17/2017 12:37:45". See the discussion of the dateformat= and timeformat= options below. To roll back the database to the beginning of a day, use "00:00:00" for \<timespec>. |
 | -B \<DateTimeSpec>          | --rollbackx \<DateTimeSpec>       | Roll back database to a specified date and time. Same operation as -b, except program will exit after rolling back the database. |
 | -f \<filespec\>,\<type\>    | --file \<filespec\>,\<type\>      | Send the report to a file in text, HTML, or CSV format. -f may be used multiple times to send the output to multiple files. \<filespec\> can be one of the following: A full path specification for a file; 'stdout', to send to the standard output device; 'stderr', to send to the standard error device. \<type\> can be one of the following: “Txt”, “Html”, or “csv” |
-| -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. |
-| -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source-destination pair from the database. |
+| -x                          | --nomail                          | Do not send the report through email. This is typically used in conjunction with the -f option to save the report to a file rather than send it through email. **NOTE**: If you suppress the sending of emails using '-x' you do not need to enter valid outgoing email server information in the dupReport.rc file. The [outgoing] section still needs to be present in the .rc file, but it does not need valid server or account information. |
+| -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source-destination pair from the database.          |
 | -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
-| -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all "nobackupwarn" options in the .rc file. See description of nobackwarn= option in "[source-destination] Sections" below. |
+| -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all "nobackupwarn" options in the .rc file. See description of nobackwarn= option in "[report]" and "[source-destination]" sections below. **NOTE**: If you suppress emails using the '-x' option (above) but still want unseen backup warning messages sent (i.e., you *don't* use the '-w' option), you must enter valid email server and account information in the [outgoing] section of the dupReport.rc file. |
 
 
 
@@ -402,7 +402,7 @@ outsender=sender@somemail.com
 
 Email address of report sender. To add a "friendly name" to the sender's email address, use the form:
 
-​	 `outsender=Arthur Dent <adent@galaxy.org>`
+	 `outsender=Arthur Dent <adent@galaxy.org>`
 
 ```
 outreceiver=receiver@somemail.com
@@ -410,11 +410,11 @@ outreceiver=receiver@somemail.com
 
 Email address of report recipient. To add a "friendly name" to the receiver's email address, use the form:
 
-​	`outreceiver=Arthur Dent <adent@galaxy.org>`
+	`outreceiver=Arthur Dent <adent@galaxy.org>`
 
 To send to multiple recipients, separate the recipients with a comma:
 
-​	`outreceiver=adent@galaxy.org, Zaphod B <zbeeblebrox@galaxy.org>`
+	`outreceiver=adent@galaxy.org, Zaphod B <zbeeblebrox@galaxy.org>`
 
 ```
 outkeepalive=false
@@ -589,6 +589,14 @@ nobackupwarn=5
 Sets the threshold of the number of days to go without a backup from a source-destination pair before sending a separate email warning. If nobackupwarn is set to 0 no email notices will be sent. The warning email will be sent to the email address specified by the "outreceiver" option in the [outgoing] section unless overridden by a "receiver=" option in a [source-destination] section. 
 
 ```
+truncatemessage = 0
+truncatewarning = 0
+truncateerror = 0
+```
+
+These settings truncate the message, warning, and error fields generated during backup job execution. Duplicati job messages can be quite lengthy and take up a lot of room in the report. These options allow you to truncate those messages to a reasonable length. A length of 0 (zero) indicates that the message should not be truncated. If the length of the message/warning/error is less than the size indicated, the entire message/warning/error will be displayed. To view the original (full) message string, refer to the email generated for that backup job.
+
+```
 nbwsubject = Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days
 ```
 
@@ -737,7 +745,111 @@ This option can be used if a backup set is run at some interval other than once 
 
 ![interval_example](interval_example.jpg)
 
-The first line represents a backup that missed its daily execution. The second line represents a backup that only runs every 5 days. If no backupinterval= value is specified in a [source-destination] section, the default is 1.
+The first line represents a backup that missed its daily execution. The second line represents a backup that only runs every 5 days. If no backupinterval= value is specified in a [source-destination] section, the default is 0.
+
+## [apprise] Section - Apprise Push Notifications 
+
+Beginning with version 2.2.3, dupReport supports the Apprise push notification package from [@caronc](https://github.com/caronc). From the [Apprise GitHub page](https://github.com/caronc/apprise):
+
+> "Apprise allows you to take advantage of just about every notification service available to us today. Send a notification to almost all of the most popular services out there today (such as Telegram, Slack, Twitter, etc). The ones that don't exist can be adapted and supported too!"
+
+Once Apprise is enabled in dupReport, you can send configurable push notifications of backup job status to any service that Apprise supports. Apprise is not required to run dupReport. If you don't want to use Apprise notifications, you can still use all the other features of dupReport without worry.
+
+See the [Apprise GitHub page](https://github.com/caronc/apprise) for instructions on installing Apprise on your system. The installation page also includes instructions for running Apprise directly from the command line. Properly configuring the Apprise URLs for notification can be a tricky business and may involve a lot of trial-and-error before you get it right. Therefore, **<u>we strongly suggest</u>** you test out your Apprise URLs using the command line tool to make sure they work properly **<u>before</u>** trying to use them through dupReport. 
+
+**<u>Notification timing</u>**: Because dupReport runs as a "batch" process and does not receive Duplicati backup job notifications in real time, Apprise notifications will only be sent at the time dupReport is run. For example, if the backup job completes at 1:00 AM but dupReport does not run until 6:00 PM, the Apprise notification will not be sent until 6:00 PM once dupReport has completed its processing.
+
+ Apprise is enabled in dupReport by adding an [apprise] section to the dupReport.rc file. If dupReport sees an [apprise] section in the .rc file it will load the Apprise libraries and configure the proper notifications. If dupReport does not see an [apprise] section in the .rc file it will simply carry on without loading any Apprise support. The [apprise] section contains the following options:
+
+```
+services = <service 1>[, <service 2>, <service 3>, …]
+```
+
+The services option contains the URL(s) that Apprise will use for its notifications. These are the same URLs that you used when testing Apprise from the command line. For example, if the Apprise command line is: 
+
+```
+apprise -t 'my title' -b 'my notification body' '<mailto://myemail:mypass@gmail.com>' 
+```
+
+ The services option would be: 
+
+```
+services = mailto://myemail:mypass@gmail.com
+```
+
+(Note that the "services=" option does not use quotes ('))
+
+If you want to use multiple notification services, separate the URLs for each service with a comma, for example: 
+
+```
+services = <mailto://myemail:mypass@gmail.com>, \
+pbul://o.gn5kj6nfhv736I7jC3cj3QLRiyhgl98b
+```
+
+ 
+
+```
+title = <title text>
+```
+
+This is the text that will be used for the title of the Apprise message. The default title text is: 
+
+*Apprise Notification for #SRCDEST# Backup*
+
+(See the "Keyword Substitution" section below for more information on title text.)
+
+```
+body = <body text>
+```
+
+This is the text that will be used for the body of the Apprise message. The default body text is:
+
+*Completed at #COMPLETETIME#: #RESULT# - #ERRMSG#*
+
+(See the "Keyword Substitution" section below for more information on body text.)
+
+**Keyword Substitution**: You can supply keywords within the title= and body= options to customize the way it looks. Available keywords are:
+
+- \#SOURCE#: Inserts the backup job's  source      name
+- \#DESTINATION#: Inserts the backup job's destination name
+- \#SRCDEST#: Inserts the backup job's full \<source>-\<destination> name
+- \#RESULT#: Insert's the backup job's result status
+- \#MESSAGE#: Inserts the 'Message" field from the status email
+- \#WARNMSG#: Inserts the "Warning" message field from the status email
+- \#ERRMSG#: Inserts the "Error" message field from the status email
+- \#COMPLETETIME#: Inserts the backup job completion time
+
+```
+titletruncate = 0
+```
+
+Truncates the length of the title field. May be useful for notification services that limit available space in the title field. The default is 0 (no truncation).
+
+```
+bodytruncate = 0
+```
+
+Truncates the length of the body field. May be useful for notification services that limit available space in the body field. The default is 0 (no truncation).
+
+```
+msglevel = failure
+```
+
+Indicates the types of messages that dupReport will send to Apprise. This is based on the Parsed Result field from the Duplicati status emails. The following table shows the possible values and their meaning.
+
+| Value   | Types of Messages   Sent      |
+| ------- | ----------------------------- |
+| success | success, warning, and failure |
+| warning | warning and failure           |
+| failure | Failure only                  |
+
+**Apprise and Email interaction**: If you want to use Apprise instead of email for notifications (or you are using email notifications *through* Apprise) , use the '-x' option on the command line to suppress sending of report emails. A couple of notes about the interaction between dupReport, Apprise, and email:
+
+1. If you suppress emails
+
+**<u>Important Support Note</u>**: dupReport has included Apprise notifications because we feel it would be a useful feature for our users. While we can support and address issues with dupReport's use of Apprise, we cannot provide support for Apprise issues or feature requests. Please contact the Apprise developer directly on the [Apprise GitHub page](https://github.com/caronc/apprise).
+
+
 
 # Report Formats
 
