@@ -32,6 +32,7 @@ fldDefs = {
     'destination':          ('Destination',         'destination',         'left',     False,      '20',       '20'),
     'date':                 ('Date',                'dateStr',             'left',     False,      '13',       '13'),
     'time':                 ('Time',                'timeStr',             'left',     False,      '11',       '11'),
+    'duration':             ('Duration',            'duration',            'left',     False,      '15',       '15'),
     'files':                ('Files',               'examinedFiles',       'right',    False,      '>12',      '>12,'),
     'filesplusminus':       ('+/-',                 'examinedFilesDelta',  'right',    False,      '>12',      '>+12,'),
     'size':                 ('Size',                'sizeOfExaminedFiles', 'right',    True,       '>20',      '>20,',      '>20,.2f', '>20,.2f'),
@@ -47,7 +48,7 @@ fldDefs = {
     }
 
 # List of columns in the report
-rptColumns = ['source', 'destination', 'date', 'time', 'files', 'filesplusminus', 'size',  'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result', 'jobmessages', 'jobwarnings', 'joberrors']
+rptColumns = ['source', 'destination', 'date', 'time', 'duration', 'files', 'filesplusminus', 'size',  'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result', 'jobmessages', 'jobwarnings', 'joberrors']
 
 # Provide a field format specification for the titles in the report
 def printTitle(fld, typ):
@@ -478,7 +479,7 @@ class Report:
                 destination, lastTimestamp, lastFileCount, lastFileSize))
 
             # Select all activity for src/dest pair since last report run
-            sqlStmt = 'SELECT endTimestamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
+            sqlStmt = 'SELECT endTimestamp, beginTimeStamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                 filesWithError, parsedResult, warnings, errors, messages FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
                 AND  endTimestamp > {} order by endTimestamp'.format(source, destination, lastTimestamp)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
@@ -487,7 +488,7 @@ class Report:
             globs.log.write(3, 'emailRows=[{}]'.format(emailRows))
             if emailRows: 
                 # Loop through each new activity and report
-                for endTimeStamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
+                for endTimeStamp, beginTimeStamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                     filesWithError, parsedResult, warnings, errors, messages in emailRows:
             
                     # Determine file count & size difference from last run
@@ -499,9 +500,12 @@ class Report:
                     # Convert from timestamp to date & time strings
                     dateStr, timeStr = drdatetime.fromTimestamp(endTimeStamp)
 
-                    sqlStmt = "INSERT INTO report (source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+                    # Get backup duration
+                    backupDuration = endTimeStamp - beginTimeStamp
+
+                    sqlStmt = "INSERT INTO report (source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                         addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors) \
-                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, \"{}\", \"{}\", \"{}\", \"{}\")".format(source, destination, endTimeStamp, examinedFiles, \
+                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \"{}\", \"{}\", \"{}\", \"{}\")".format(source, destination, endTimeStamp, backupDuration, examinedFiles, \
                         examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors)
                     globs.db.execSqlStmt(sqlStmt)
 

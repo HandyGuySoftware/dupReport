@@ -56,7 +56,6 @@ lineParts = [
     ('verboseErrors', 'VerboseErrors: \w+', 0, 1),
     ('endTimeStr', 'EndTime: .*', 0, 1),
     ('beginTimeStr', 'BeginTime: .*', 0, 1),
-    ('duration', 'Duration: .*', 0, 1),
     ('messages', 'Messages: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
@@ -507,10 +506,10 @@ class EmailServer:
             sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, \
             modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, \
             dryRun, mainOperation, parsedResult, verboseOutput, verboseErrors, endTimestamp, \
-            beginTimestamp, duration, messages, warnings, errors, dbSeen) \
+            beginTimestamp, messages, warnings, errors, dbSeen) \
             VALUES \
             ('{}', '{}', '{}', {}, {}, {}, {}, {}, {}, {}, {},{},{},{},{},{},{},{},{},{},{}, \
-            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\", 1)".format(mParts['messageId'], \
+            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\", 1)".format(mParts['messageId'], \
             mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
             sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
             sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
@@ -518,7 +517,7 @@ class EmailServer:
             sParts['modifiedFolders'], sParts['modifiedSymlinks'], sParts['addedSymlinks'], sParts['deletedSymlinks'], \
             sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
             sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
-            sParts['duration'], sParts['messages'], sParts['warnings'], sParts['errors'])
+            sParts['messages'], sParts['warnings'], sParts['errors'])
                 
         globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
         return sqlStmt

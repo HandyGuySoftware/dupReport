@@ -98,6 +98,7 @@ rcParts= [
     ('headings','Destination','Destination', True),
     ('headings','Date','Date', True),
     ('headings','Time','Time', True),
+    ('headings','Duration','Duration', True),
     ('headings','Files','Files', True),
     ('headings','FilesPlusMinus','+/-', True),
     ('headings','Size','Size', True),

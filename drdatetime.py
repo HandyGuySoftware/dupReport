@@ -202,3 +202,12 @@ def daysSince(tsIn):
 
     return diff
 
+# Calculate time difference between two dates
+def timeDiff(td):
+
+    tDelt = datetime.timedelta(seconds = td)
+    days = tDelt.days
+    hours, remainder = divmod(tDelt.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    seconds += tDelt.microseconds / 1e6
+    return "{}d {}h {}m {}s".format(days, hours, minutes, seconds)
