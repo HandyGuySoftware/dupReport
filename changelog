@@ -1,7 +1,7 @@
 2.2.4
 -----
 - Added backup duration to reports (Issue #102)
-- Altered database schema to accommodate backup duration in reports. Will require (automatic) DB upgrade. BACKUP YOUR DATABSE BEFORE EXECUTING
+- Altered database schema to accommodate backup duration in reports. Will require (automatic) DB upgrade. BACKUP YOUR DATABSE AND .RC FILE BEFORE EXECUTING!
 - Updated report footer to add program version number
 
 2.2.3
