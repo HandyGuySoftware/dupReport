@@ -32,7 +32,7 @@ fldDefs = {
     'destination':          ('Destination',         'destination',         'left',     False,      '20',       '20'),
     'date':                 ('Date',                'dateStr',             'left',     False,      '13',       '13'),
     'time':                 ('Time',                'timeStr',             'left',     False,      '11',       '11'),
-    'duration':             ('Duration',            'duration',            'left',     False,      '15',       '15'),
+    'duration':             ('Duration',            'duration',            'right',    False,      '15',       '15'),
     'files':                ('Files',               'examinedFiles',       'right',    False,      '>12',      '>12,'),
     'filesplusminus':       ('+/-',                 'examinedFilesDelta',  'right',    False,      '>12',      '>+12,'),
     'size':                 ('Size',                'sizeOfExaminedFiles', 'right',    True,       '>20',      '>20,',      '>20,.2f', '>20,.2f'),
@@ -418,6 +418,7 @@ class Report:
         self.reportOpts['truncatemessage'] = int(self.reportOpts['truncatemessage'])                    # Convert to integer
         self.reportOpts['truncatewarning'] = int(self.reportOpts['truncatewarning'])                    # Convert to integer
         self.reportOpts['truncateerror'] = int(self.reportOpts['truncateerror'])                        # Convert to integer
+        self.reportOpts['durationzeroes'] = self.reportOpts['durationzeroes'].lower() in ('true')       # Convert to boolean
 
         # Basic field value checking
         # See if valid report name

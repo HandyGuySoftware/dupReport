@@ -92,6 +92,7 @@ rcParts= [
     ('report','truncatemessage', '0', True),
     ('report','truncatewarning', '0', True),
     ('report','truncateerror', '0', True),
+    ('report','durationzeroes', 'true', True),
 
     # [headings] section defaults
     ('headings','Source','Source', True),

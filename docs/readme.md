@@ -644,6 +644,12 @@ Add a summary table of all the backup sets and the date they were last seen by d
 
 The default option is 'none' to skip this table. 'top' puts the table at the top of the summary report, 'bottom' places it at the bottom of the summary report. The lastseensummarytitle= option sets a custom title for the table.
 
+```
+durationzeroes = true
+```
+
+This modifies the display of the backup job "Duration" column in the report. If set to 'true' (the default), job duration will be displayed as "0d 13h 0m 32s." If set to "false", any unit that equals zero (0) will not be displayed, so the previous example will be displayed as "13h 32s."
+
 ### **Report color selection:** 
 
 All color specifications in the [report] section follow standard HTML color codes. For a sample list of colors and their HTML codes, please refer to [https://www.w3schools.com/colors/colors_names.asp](https://www.w3schools.com/colors/colors_names.asp)
