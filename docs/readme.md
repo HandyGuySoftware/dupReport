@@ -684,7 +684,7 @@ added =
 | destination      | The destination system for the backup                        |
 | date             | The date of the backup                                       |
 | time             | The time of the backup                                       |
-| duration         | The duration of the backup job (days/hours/minutes/seconds)  |
+| duration         | The duration of the backup job (days/hours/minutes/seconds). This column can be modified to remove units that equal zero (0) by setting suppresszeroes=true in the [report] section. |
 | files            | Number of files examined by the backup job                   |
 | filesplusminus   | The increase (+) or decrease (-) in the number of files examined since the previous backup |
 | jobsize          | The total size of the files examined by the backup           |
