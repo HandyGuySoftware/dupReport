@@ -99,60 +99,64 @@ def convertRc(oMgr, fromVersion):
 
 
 def convertDb(fromVersion):
-    globs.log.write(1, 'Converting database to version 1.0.1')
+    globs.log.write(1, 'convertDb(): Converting database from version {} to version {}.{}.{}'.format(fromVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
 
     # Update DB version number
-    globs.db.execSqlStmt("UPDATE version SET major = 1, minor = 0, subminor = 1 WHERE desc = 'database'")
+    globs.db.execSqlStmt("UPDATE version SET major = {}, minor = {}, subminor = {} WHERE desc = 'database'".format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
 
-    sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, examinedFiles int, examinedFilesDelta int, \
-    sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
-    warnings varchar(255), errors varchar(255), failedMsg varchar(100))"
-    globs.db.execSqlStmt(sqlStmt)
-    
-    # Add timestamp fields to tables
-    globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN emailTimestamp real")
-    globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN endTimestamp real")
-    globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN beginTimestamp real")
-    globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN dbSeen int")
-
-    # Clean up bad data left from older versions. Not sure how this happened, but it really screws things up
-    globs.db.execSqlStmt("DELETE FROM emails WHERE beginTime > '23:59:59' or endTime > '23:59:59'")
-
-    # Loop through emails table
-    dbCursor = globs.db.execSqlStmt("SELECT messageId, emailDate, emailTime, endDate, endTime, beginDate, beginTime FROM emails")
-    emailRows = dbCursor.fetchall()
-    for messageId, emailDate, emailTime, endDate, endTime, beginDate, beginTime in emailRows:
-        # Create email timestamp
-        dateStr = '{} {}'.format(emailDate,emailTime) 
-        emailTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY-MM-DD', 'HH:MM:SS')
-        
-        # Create endTime timestamp
-        dateStr = '{} {}'.format(endDate,endTime) 
-        endTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY/MM/DD', 'HH:MM:SS')
-
-        # Create beginTime timestamp
-        dateStr = '{} {}'.format(beginDate,beginTime) 
-        beginTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY/MM/DD', 'HH:MM:SS')
-
-        # Update emails table with new data
-        if endTimestamp is not None and beginTimestamp is not None:
-            sqlStmt = "UPDATE emails SET emailTimestamp = {}, endTimestamp = {}, beginTimestamp = {} WHERE messageId = \'{}\'".format(emailTimestamp, endTimestamp, beginTimestamp, messageId)
-            globs.log.write(1, sqlStmt)
-            globs.db.execSqlStmt(sqlStmt)
-
-        globs.log.write(1, 'messageId:{}  emailDate={} emailTime={} emailTimestamp={} endDate={} endTime={} endTimestamp={} beginDate={} beginTime={} beginTimestamp={}'.format(messageId, emailDate, emailTime, emailTimestamp,\
-            endDate, endTime, endTimestamp, beginDate, beginTime, beginTimestamp))
-
-    globs.db.execSqlStmt("ALTER TABLE backupsets ADD COLUMN lastTimestamp real")
-    dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastDate, lastTime from backupsets")
-    setRows = dbCursor.fetchall()
-    for source, destination, lastDate, lastTime in setRows:
-        dateStr = '{} {}'.format(lastDate,lastTime) 
-        lastTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY/MM/DD', 'HH:MM:SS')
-
-        sqlStmt = "UPDATE backupsets SET lastTimestamp = {} WHERE source = \'{}\' AND destination = \'{}\'".format(lastTimestamp, source, destination)
+    if fromVersion == 100: # Upgrade from DB version 100 (original format)
+        sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, duration real, examinedFiles int, examinedFilesDelta int, \
+        sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
+        warnings varchar(255), errors varchar(255), failedMsg varchar(100))"
         globs.db.execSqlStmt(sqlStmt)
-        globs.log.write(1, 'Source={}  destination={} lastDate={} lastTime={} lastTimestamp={}'.format(source, destination, lastDate, lastTime, lastTimestamp))
+    
+        # Add timestamp fields to tables
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN emailTimestamp real")
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN endTimestamp real")
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN beginTimestamp real")
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN dbSeen int")
+
+        # Clean up bad data left from older versions. Not sure how this happened, but it really screws things up
+        globs.db.execSqlStmt("DELETE FROM emails WHERE beginTime > '23:59:59' or endTime > '23:59:59'")
+
+        # Loop through emails table
+        dbCursor = globs.db.execSqlStmt("SELECT messageId, emailDate, emailTime, endDate, endTime, beginDate, beginTime FROM emails")
+        emailRows = dbCursor.fetchall()
+        for messageId, emailDate, emailTime, endDate, endTime, beginDate, beginTime in emailRows:
+            # Create email timestamp
+            dateStr = '{} {}'.format(emailDate,emailTime) 
+            emailTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY-MM-DD', 'HH:MM:SS')
+        
+            # Create endTime timestamp
+            dateStr = '{} {}'.format(endDate,endTime) 
+            endTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY/MM/DD', 'HH:MM:SS')
+
+            # Create beginTime timestamp
+            dateStr = '{} {}'.format(beginDate,beginTime) 
+            beginTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY/MM/DD', 'HH:MM:SS')
+
+            # Update emails table with new data
+            if endTimestamp is not None and beginTimestamp is not None:
+                sqlStmt = "UPDATE emails SET emailTimestamp = {}, endTimestamp = {}, beginTimestamp = {} WHERE messageId = \'{}\'".format(emailTimestamp, endTimestamp, beginTimestamp, messageId)
+                globs.log.write(1, sqlStmt)
+                globs.db.execSqlStmt(sqlStmt)
+
+            globs.log.write(1, 'messageId:{}  emailDate={} emailTime={} emailTimestamp={} endDate={} endTime={} endTimestamp={} beginDate={} beginTime={} beginTimestamp={}'.format(messageId, emailDate, emailTime, emailTimestamp,\
+                endDate, endTime, endTimestamp, beginDate, beginTime, beginTimestamp))
+
+        globs.db.execSqlStmt("ALTER TABLE backupsets ADD COLUMN lastTimestamp real")
+        dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastDate, lastTime from backupsets")
+        setRows = dbCursor.fetchall()
+        for source, destination, lastDate, lastTime in setRows:
+            dateStr = '{} {}'.format(lastDate,lastTime) 
+            lastTimestamp = drdatetime.toTimestamp(dateStr, 'YYYY/MM/DD', 'HH:MM:SS')
+
+            sqlStmt = "UPDATE backupsets SET lastTimestamp = {} WHERE source = \'{}\' AND destination = \'{}\'".format(lastTimestamp, source, destination)
+            globs.db.execSqlStmt(sqlStmt)
+            globs.log.write(1, 'Source={}  destination={} lastDate={} lastTime={} lastTimestamp={}'.format(source, destination, lastDate, lastTime, lastTimestamp))
+    elif fromVersion == 101: # Upgrade from version 101
+        globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN duration real")
+        globs.db.execSqlStmt("UPDATE report SET duration = 0")
 
     globs.db.dbCommit()
     return None

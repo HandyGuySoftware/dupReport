@@ -1,3 +1,10 @@
+2.2.4
+-----
+- Added backup duration to reports (Issue #102)
+     - Altered database schema to accommodate backup duration in reports. Will require (automatic) DB upgrade. BACKUP YOUR DATABSE AND .RC FILE BEFORE EXECUTING!
+     - Added durationzeroes option in [report] section to determine if zero units should be displayed in the time duration
+- Updated report footer to add program version number
+
 2.2.3
 -----
 - Fixed bug where "Not Seen" email was being sent even if backupset was listed as offline (Issue #94)
