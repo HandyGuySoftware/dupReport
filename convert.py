@@ -99,7 +99,7 @@ def convertRc(oMgr, fromVersion):
 
 
 def convertDb(fromVersion):
-    globs.log.write(1, 'Converting database to version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+    globs.log.write(1, 'convertDb(): Converting database from version {} to version {}.{}.{}'.format(fromVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
 
     # Update DB version number
     globs.db.execSqlStmt("UPDATE version SET major = {}, minor = {}, subminor = {} WHERE desc = 'database'".format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
