@@ -480,7 +480,7 @@ class Report:
                 destination, lastTimestamp, lastFileCount, lastFileSize))
 
             # Select all activity for src/dest pair since last report run
-            sqlStmt = 'SELECT endTimestamp, beginTimeStamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
+            sqlStmt = 'SELECT endTimestamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                 filesWithError, parsedResult, warnings, errors, messages FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
                 AND  endTimestamp > {} order by endTimestamp'.format(source, destination, lastTimestamp)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
@@ -489,7 +489,7 @@ class Report:
             globs.log.write(3, 'emailRows=[{}]'.format(emailRows))
             if emailRows: 
                 # Loop through each new activity and report
-                for endTimeStamp, beginTimeStamp, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
+                for endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                     filesWithError, parsedResult, warnings, errors, messages in emailRows:
             
                     # Determine file count & size difference from last run
@@ -501,12 +501,9 @@ class Report:
                     # Convert from timestamp to date & time strings
                     dateStr, timeStr = drdatetime.fromTimestamp(endTimeStamp)
 
-                    # Get backup duration
-                    backupDuration = endTimeStamp - beginTimeStamp
-
                     sqlStmt = "INSERT INTO report (source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                         addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors) \
-                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \"{}\", \"{}\", \"{}\", \"{}\")".format(source, destination, endTimeStamp, backupDuration, examinedFiles, \
+                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \"{}\", \"{}\", \"{}\", \"{}\")".format(source, destination, endTimeStamp, duration, examinedFiles, \
                         examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors)
                     globs.db.execSqlStmt(sqlStmt)
 
