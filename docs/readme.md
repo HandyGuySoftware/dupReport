@@ -227,7 +227,9 @@ Append new logs to the log file (true) or reset log file for each run (false). C
 subjectregex=^Duplicati Backup report for
 ```
 
-A regular expression used to find backup message Emails Of Interest. This should somewhat match the text specified in the ‘send-mail-subject’ advanced option in Duplicati.
+A regular expression used to find backup message Emails Of Interest. This should somewhat match the text specified in the ‘send-mail-subject’ advanced option in Duplicati. 
+
+**NOTE**: If you modify the subject line of your Duplicati emails by changing the ‘send-mail-subject’ option, make sure that the subject line you construct ***does not*** use the character you specify as the Source/Destination delimiter in the srcdestdelimiter= option in dupReport.rc (see below). If the subject line uses the same character as the Source/Destination delimiter, dupReport will get confused and not parse your emails properly.
 
 ```
 srcregex=\w*

@@ -4,6 +4,7 @@
      - Altered database schema to accommodate backup duration in reports. Will require (automatic) DB upgrade. BACKUP YOUR DATABSE AND .RC FILE BEFORE EXECUTING!
      - Added durationzeroes option in [report] section to determine if zero units should be displayed in the time duration
 - Updated report footer to add program version number
+- Fixed an issue where the colon (:) is used as part of the subject line. (Issue #104)
 
 2.2.3
 -----
