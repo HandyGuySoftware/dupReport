@@ -55,7 +55,7 @@ def runReport(startTime):
             currentDateBeginTs = drdatetime.toTimestamp(currentDate + ' 00:00:00', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
             currentDateEndTs = drdatetime.toTimestamp(currentDate + ' 23:59:59', dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])  # Convert the string into a timestamp
         
-            sqlStmt = "SELECT source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+            sqlStmt = "SELECT source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                 addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors \
                 FROM report WHERE timestamp >= {} AND timestamp <= {}".format(currentDateBeginTs, currentDateEndTs)
             if reportOpts['sortby'] == 'source':
@@ -88,9 +88,12 @@ def runReport(startTime):
                     msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
 
-            for source, destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+            for source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                 addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
                 warnings, errors in reportRows:
+
+                # Convert duration to string
+                rptDuration = drdatetime.timeDiff(duration)    
 
                # Truncate message, warning, & error if indicated in .rc file
                 messages, warnings, errors = report.truncateWarnErrMsgs(messages, reportOpts['truncatemessage'], warnings, reportOpts['truncatewarning'], errors, reportOpts['truncateerror'])
@@ -103,8 +106,8 @@ def runReport(startTime):
                 msgHtml += '<tr>'
 
                 # The full list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
-                titles = ['source', 'destination','time', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result']
-                fields = [source, destination, timeStr, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
+                titles = ['source', 'destination','time', 'duration', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result']
+                fields = [source, destination, timeStr, rptDuration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
 
                 for ttl, fld in zip(titles, fields):
                     msgHtml += report.printField(ttl, fld, 'html')

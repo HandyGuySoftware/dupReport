@@ -92,12 +92,14 @@ rcParts= [
     ('report','truncatemessage', '0', True),
     ('report','truncatewarning', '0', True),
     ('report','truncateerror', '0', True),
+    ('report','durationzeroes', 'true', True),
 
     # [headings] section defaults
     ('headings','Source','Source', True),
     ('headings','Destination','Destination', True),
     ('headings','Date','Date', True),
     ('headings','Time','Time', True),
+    ('headings','Duration','Duration', True),
     ('headings','Files','Files', True),
     ('headings','FilesPlusMinus','+/-', True),
     ('headings','Size','Size', True),

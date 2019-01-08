@@ -122,12 +122,12 @@ class Database:
             modifiedFolders int, modifiedSymlinks int, addedSymlinks int, deletedSymlinks int, partialBackup varchar(30), \
             dryRun varchar(30), mainOperation varchar(30), parsedResult varchar(30), verboseOutput varchar(30), \
             verboseErrors varchar(30), endTimestamp real, \
-            beginTimestamp real, duration varchar(30), messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100), dbSeen int)"
+            beginTimestamp real, duration real, messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100), dbSeen int)"
         self.execSqlStmt(sqlStmt)
         self.execSqlStmt("create index emailindx on emails (messageId)")
         self.execSqlStmt("create index srcdestindx on emails (sourceComp, destComp)")
 
-        sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, examinedFiles int, examinedFilesDelta int, \
+        sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, duration real, examinedFiles int, examinedFilesDelta int, \
             sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
             warnings varchar(255), errors varchar(255), failedMsg varchar(100))"
         self.execSqlStmt(sqlStmt)

@@ -68,7 +68,7 @@ def runReport(startTime):
         if reportOpts['repeatheaders'] is True:
             msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
-        sqlStmt = "SELECT destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, \
+        sqlStmt = "SELECT destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, \
             parsedResult, messages, warnings, errors FROM report WHERE source=\'{}\'".format(srcKey[0])
         if reportOpts['sortby'] == 'destination':
             sqlStmt += ' ORDER BY destination'
@@ -80,9 +80,12 @@ def runReport(startTime):
         globs.log.write(3, 'reportRows=[{}]'.format(reportRows))
 
         # Loop through each new activity for the source/destination and add to report
-        for destination, timestamp, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+        for destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
             addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
             warnings, errors in reportRows:
+
+            # Convert duration to string
+            rptDuration = drdatetime.timeDiff(duration)    
 
             # Truncate message, warning, & error if indicated in .rc file
             messages, warnings, errors = report.truncateWarnErrMsgs(messages, reportOpts['truncatemessage'], warnings, reportOpts['truncatewarning'], errors, reportOpts['truncateerror'])
@@ -94,9 +97,9 @@ def runReport(startTime):
             # Each field takes up one column/cell in the table
             msgHtml += '<tr>'
 
-            # The fill list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
-            titles = ['destination', 'date','time', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added','deleted',  'modified', 'errors', 'result']
-            fields = [destination, dateStr, timeStr, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
+            # The full list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
+            titles = ['destination', 'date','time', 'duration', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added','deleted',  'modified', 'errors', 'result']
+            fields = [destination, dateStr, timeStr, rptDuration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
 
             for ttl, fld in zip(titles, fields):
                 msgHtml += report.printField(ttl, fld, 'html')

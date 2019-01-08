@@ -56,7 +56,6 @@ lineParts = [
     ('verboseErrors', 'VerboseErrors: \w+', 0, 1),
     ('endTimeStr', 'EndTime: .*', 0, 1),
     ('beginTimeStr', 'BeginTime: .*', 0, 1),
-    ('duration', 'Duration: .*', 0, 1),
     ('messages', 'Messages: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
     ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
@@ -249,23 +248,21 @@ class EmailServer:
     # Our mission is to sort it all out
     # Return date, subject, message-id
     def extractHeaders(self, hdrs):
-        globs.log.write(3,'dremail.extractHeaders({})'.format(hdrs))
-        posLocs1 = []
-        posLocs2 = {}
+        globs.log.write(1,'dremail.extractHeaders({})'.format(hdrs))
+        hdrFields={}                            # Dictionary to hold the header fields we found
+        splitlines = hdrs.split("\r\n")         # Split header into separate lines
+        for line in splitlines:
+            if line == "":                      # Some lines are just \r\n
+                continue
+            sections = line.split(':',1)                # Look for the FIRST colon. Protects against the subject having a colon in it (Issue #104)
+            if len(sections) == 1:                      # No header field. This is a continuation of the last header line
+                hdrFields[lastHeader] += sections[0]    # Just concatenate this line to the next one
+            else:
+                hdrFields[sections[0].lower()] = sections[1].lstrip().rstrip()  # Add field to hdrFields dictionary
+                lastHeader = sections[0].lower()                                # Remember this header, in case the next line is a continuation
 
-        hdr2 = hdrs.replace('\n', ' ')      # Create a copy of the headers data without newlines
-        for match in re.finditer('[A-Za-z-]+:', hdr2):                  # "<string>:" indicates the start of a header field. Find all instances of that in the data
-            tit = hdrs[match.regs[0][0]:match.regs[0][1]-1]             # Get the name of the field
-            posLocs1.append((tit, match.regs[0][0], match.regs[0][1]))  # Append the field name and the start/end locations of the field title to the list
-        posLen = len(posLocs1)
-        for i in range(posLen-1):                                       # Loop through most of header fields in data
-            # Different servers use different capilatlzations for field names
-            # Use lower() in the following because it makes it easier to match names
-            posLocs2[posLocs1[i][0].lower()] = hdrs[posLocs1[i][2]+1:posLocs1[i+1][1]-1].replace('\n','').replace('\r','')      # Get string starting from ':'+1 through to beginning of next field, then remove \r & \n
-        posLocs2[posLocs1[posLen-1][0].lower()] = hdrs[posLocs1[posLen-1][2]+1:len(hdrs)].replace('\n','').replace('\r','')     # Do same for last header in the data
-
-        globs.log.write(2,'Header fields extracted: date=[{}] subject=[{}]  message-id=[{}]'.format(posLocs2['date'], posLocs2['subject'], posLocs2['message-id']))
-        return posLocs2['date'], posLocs2['subject'], posLocs2['message-id']
+        globs.log.write(1,'Header fields extracted: date=[{}] subject=[{}]  message-id=[{}]'.format(hdrFields['date'], hdrFields['subject'], hdrFields['message-id']))
+        return hdrFields['date'], hdrFields['subject'], hdrFields['message-id']
     
     # Retrieve and process next message from server
     # Returns <Message-ID> or '<INVALID>' if there are more messages in queue, even if this message was unusable
@@ -501,6 +498,7 @@ class EmailServer:
         globs.log.write(1, 'build_email_sql_statement(()')
         globs.log.write(2, 'messageId={}  sourceComp={}  destComp={}'.format(mParts['messageId'],mParts['sourceComp'],mParts['destComp']))
 
+        durVal = float(dParts['endTimestamp']) - float(dParts['beginTimestamp'])
         sqlStmt = "INSERT INTO emails(messageId, sourceComp, destComp, emailTimestamp, \
             deletedFiles, deletedFolders, modifiedFiles, examinedFiles, \
             openedFiles, addedFiles, sizeOfModifiedFiles, sizeOfAddedFiles, sizeOfExaminedFiles, \
@@ -518,7 +516,7 @@ class EmailServer:
             sParts['modifiedFolders'], sParts['modifiedSymlinks'], sParts['addedSymlinks'], sParts['deletedSymlinks'], \
             sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
             sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
-            sParts['duration'], sParts['messages'], sParts['warnings'], sParts['errors'])
+            durVal, sParts['messages'], sParts['warnings'], sParts['errors'])
                 
         globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
         return sqlStmt
