@@ -1,3 +1,5 @@
+
+
 # WELCOME TO dupReport!!!
 
 dupReport is an email-based reporting system for Duplicati. It will gather all your Duplicati backup status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
@@ -10,8 +12,8 @@ There are only two generally-available branches in the dupReport repository:
 
 | Branch Name  | Current Version | Purpose                                                      |
 | ------------ | --------------- | ------------------------------------------------------------ |
-| **master**   | 2.2.3           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | 2.2.4           | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **master**   | 2.2.4           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
+| **pre_prod** | \<None>         | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
 
 If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
 
@@ -225,7 +227,9 @@ Append new logs to the log file (true) or reset log file for each run (false). C
 subjectregex=^Duplicati Backup report for
 ```
 
-A regular expression used to find backup message Emails Of Interest. This should somewhat match the text specified in the ‘send-mail-subject’ advanced option in Duplicati.
+A regular expression used to find backup message Emails Of Interest. This should somewhat match the text specified in the ‘send-mail-subject’ advanced option in Duplicati. 
+
+**NOTE**: If you modify the subject line of your Duplicati emails by changing the ‘send-mail-subject’ option, make sure that the subject line you construct ***does not*** use the character you specify as the Source/Destination delimiter in the srcdestdelimiter= option in dupReport.rc (see below). If the subject line uses the same character as the Source/Destination delimiter, dupReport will get confused and not parse your emails properly.
 
 ```
 srcregex=\w*
@@ -642,6 +646,12 @@ Add a summary table of all the backup sets and the date they were last seen by d
 
 The default option is 'none' to skip this table. 'top' puts the table at the top of the summary report, 'bottom' places it at the bottom of the summary report. The lastseensummarytitle= option sets a custom title for the table.
 
+```
+durationzeroes = true
+```
+
+This modifies the display of the backup job "Duration" column in the report. If set to 'true' (the default), job duration will be displayed as "0d 13h 0m 32s." If set to "false", any unit that equals zero (0) will not be displayed, so the previous example will be displayed as "13h 32s."
+
 ### **Report color selection:** 
 
 All color specifications in the [report] section follow standard HTML color codes. For a sample list of colors and their HTML codes, please refer to [https://www.w3schools.com/colors/colors_names.asp](https://www.w3schools.com/colors/colors_names.asp)
@@ -670,20 +680,21 @@ To prevent a field from displaying on a report, leave the heading specification 
 added =
 ```
 
-| Heading Field    | Notes                                    |
-| ---------------- | ---------------------------------------- |
-| source           | The source system for the backup         |
-| destination      | The destination system for the backup    |
-| date             | The date of the backup                   |
-| time             | The time of the backup                   |
-| files            | Number of files examined by the backup job |
+| Heading Field    | Notes                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| source           | The source system for the backup                             |
+| destination      | The destination system for the backup                        |
+| date             | The date of the backup                                       |
+| time             | The time of the backup                                       |
+| duration         | The duration of the backup job (days/hours/minutes/seconds). This column can be modified to remove units that equal zero (0) by setting durationzeroes=false in the [report] section. |
+| files            | Number of files examined by the backup job                   |
 | filesplusminus   | The increase (+) or decrease (-) in the number of files examined since the previous backup |
-| jobsize          | The total size of the files examined by the backup |
+| jobsize          | The total size of the files examined by the backup           |
 | jobsizeplusminus | The increase (+) or decrease (-) in the total size of files examined since the previous backup job |
-| added            | Number of blocks added to the backup     |
-| deleted          | Number of blocks deleted from the backup |
-| modified         | Number of blocks modified by the backup  |
-| errors           | Number of errors encountered during the backup |
+| added            | Number of blocks added to the backup                         |
+| deleted          | Number of blocks deleted from the backup                     |
+| modified         | Number of blocks modified by the backup                      |
+| errors           | Number of errors encountered during the backup               |
 | result           | The final result of the backup job (e.g., Success, Failure, etc) |
 | jobmessages      | Messages generated by the backup job during its run. This column can also be suppressed by setting displaymessages=false in the [report] section. |
 | jobwarnings      | Warning messages generated by the backup job during its run. This column can also be suppressed by setting displaywarnings=false in the [report] section |
