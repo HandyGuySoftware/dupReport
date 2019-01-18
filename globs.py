@@ -42,16 +42,14 @@ outServer =  None     # Outbound email server
 # Mask sensitive data in log files
 # Replace incoming string with string of '*' the same length of the original
 def maskData(inData, force = False):
-    if inData is None:
+    if inData is None or opts is None:  # Empty input or global options haven't been processed yet. Return unmasked input.
         return inData
-    elif force:   # Mask regardless of what parameter says. Useful if masking before options are processed
+    elif force:                         # Mask regardless of what parameter says. Useful if masking before options are processed.
         return "*" * len(inData)
-    elif opts is None:
-        return inData
     elif 'masksensitive' in opts and opts['masksensitive'] is True:
-        return "*" * len(inData)
+        return "*" * len(inData)        # Mask data.
     else:
-        return inData
+        return inData                   # Return unmasked input
 
 # Close everything and exit cleanly
 def closeEverythingAndExit(errcode):
