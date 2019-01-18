@@ -83,7 +83,7 @@ class EmailServer:
         return 'protocol=[{}] address=[{}] port=[{}] account=[{}] passwd=[{}] encryption=[{}] keepalive=[{}] folder=[{}]'.format(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption, self.keepalive, self.folder)
 
     def connect(self):
-        globs.log.write(1, 'EmailServer.Connect({})'.format(self.dump()))
+        globs.log.write(1, 'EmailServer.Connect()')
         globs.log.write(3, 'server={} keepalive={}'.format(self.server, self.keepalive))
 
         # See if a server connection is already established
@@ -132,7 +132,7 @@ class EmailServer:
                     else:
                         self.server = imaplib.IMAP4(self.address,self.port)
                     retVal, data = self.server.login(self.accountname, self.passwd)
-                    globs.log.write(3,'IMAP Logged in. retVal={} data={}'.format(retVal, data))
+                    globs.log.write(3,'IMAP Logged in. retVal={} data={}'.format(retVal, globs.maskData(data)))
                     retVal, data = self.server.select(self.folder)
                     globs.log.write(3,'IMAP Setting folder. retVal={} data={}'.format(retVal, data))
                     return retVal
@@ -148,7 +148,7 @@ class EmailServer:
                     else:
                         self.server = poplib.POP3(self.address,self.port)
                     retVal = self.server.user(self.accountname)
-                    globs.log.write(3,'Logged in. retVal={}'.format(retVal))
+                    globs.log.write(3,'Logged in. retVal={}'.format(globs.maskData(retVal)))
                     retVal = self.server.pass_(self.passwd)
                     globs.log.write(3,'Entered password. retVal={}'.format(retVal))
                     return retVal.decode()
@@ -567,7 +567,7 @@ class EmailServer:
 
         # Send the message via SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        globs.log.write(2,'Sending email to [{}]'.format(receiver.split(',')))
+        globs.log.write(2,'Sending email to [{}]'.format(globs.maskData(receiver.split(','))))
         self.server.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
         return None
 

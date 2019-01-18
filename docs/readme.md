@@ -308,6 +308,12 @@ showprogress=0
 
 If this option is greater than zero, dupReport will display a dot ('.') on stdout for every 'n' emails that are processed from the incoming server. For example, if showprogress=5, there will be one '.' for every 5 emails that are read.
 
+```
+masksensitive = true
+```
+
+Masks sensitive data in the log file. If set to "true" (the default), fields such as user name, password, server name, and file paths will be masked with asterisks in the log file. This is useful for maintaining privacy if the log file needs to be stored or transmitted somewhere else for debugging or analysis purposes. **NOTE**: this setting **<u>will not</u>** mask any information found in the actual emails pulled from your email server, such as sending and receiving email address, server names, etc. It only affects the data that dupReport generates as part of its operation.
+
 ## [incoming] section
 
 The [incoming] section contains settings for incoming email that dupReport reads to create the report. 

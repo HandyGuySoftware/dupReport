@@ -188,8 +188,8 @@ if __name__ == "__main__":
             globs.log.out('Database file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
 
     # Write startup information to log file
-    globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose']))
-    globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.opts['dbpath'], globs.opts['rcfilename']))
+    globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.maskData(globs.opts['logpath']), globs.opts['logappend'], globs.opts['verbose']))
+    globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.maskData(globs.opts['dbpath']), globs.maskData(globs.opts['rcfilename'])))
 
     # Remove source/destination from database?
     if globs.opts['remove']:

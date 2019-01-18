@@ -127,9 +127,9 @@ class OptionManager:
         return None
 
     def openRcFile(self, rcFileSpec):
-        globs.log.write(1,'options.openRcFile({})'.format(rcFileSpec))
+        globs.log.write(1,'options.openRcFile({})'.format(globs.maskData(rcFileSpec, True)))
         if self.rcFileName:     # Rc file already initiailzed. Something is wrong.
-            globs.log.write(2, 'RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, filespec))
+            globs.log.write(2, 'RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, globs.maskData(rcFileSpec, True)))
             return False
 
         try:
@@ -179,7 +179,7 @@ class OptionManager:
             globs.log.err('RC file not yet opened. Can not set defaults')
             return False
 
-        globs.log.write(1, 'rc.setDefaults({})'.format(self.rcFileName))
+        globs.log.write(1, 'rc.setDefaults({})'.format(globs.maskData(self.rcFileName, True)))
 
         newRc = False
         needUpdate = False
@@ -218,7 +218,7 @@ class OptionManager:
     def readRcOptions(self):
         restart = False
 
-        globs.log.write(1, 'options.readRcOptions({})'.format(self.rcFileName))
+        globs.log.write(1, 'options.readRcOptions({})'.format(globs.maskData(self.rcFileName, True)))
     
         # Extract sections and options from .rc file
         # Only need [main], [incoming], and [outgoing] sections
@@ -302,7 +302,12 @@ class OptionManager:
         if self.options['file']:
             globs.ofileList = self.options['file']
 
-        globs.log.write(3, 'Parsed config options=[{}]'.format(self.options))
+        for opName in self.options:
+            if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'):
+                globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, globs.maskData(self.options[opName], self.options['masksensitive'])))
+            else:
+                globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, self.options[opName]))
+
         globs.log.write(1, 'Need to restart? {}'.format(restart))
 
         return restart
@@ -350,19 +355,36 @@ class OptionManager:
         # Store results in 'args'
         self.cmdLineArgs = argParser.parse_args()
 
-        globs.log.write(3, 'Command line parsed. args=[{}]'.format(self.cmdLineArgs))
-        
+        globs.log.write(3, 'Command line parsed:')
+        globs.log.write(3, '- rcpath = [{}]'.format(globs.maskData(self.cmdLineArgs.rcpath, True)))
+        globs.log.write(3, '- dbpath = [{}]'.format(globs.maskData(self.cmdLineArgs.dbpath, True)))
+        globs.log.write(3, '- logpath = [{}]'.format(globs.maskData(self.cmdLineArgs.logpath, True)))
+        globs.log.write(3, '- verbose = [{}]'.format(self.cmdLineArgs.verbose))
+        globs.log.write(3, '- Version = [{}]'.format(self.cmdLineArgs.Version))
+        globs.log.write(3, '- append = [{}]'.format(self.cmdLineArgs.append))
+        globs.log.write(3, '- size = [{}]'.format(self.cmdLineArgs.size))
+        globs.log.write(3, '- initdb = [{}]'.format(self.cmdLineArgs.initdb))
+        globs.log.write(3, '- rollback = [{}]'.format(self.cmdLineArgs.rollback))
+        globs.log.write(3, '- rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
+        globs.log.write(3, '- file = [{}]'.format(self.cmdLineArgs.file))
+        globs.log.write(3, '- nomail = [{}]'.format(self.cmdLineArgs.nomail))
+        globs.log.write(3, '- remove = [{}]'.format(self.cmdLineArgs.remove))
+        globs.log.write(3, '- purgedb = [{}]'.format(self.cmdLineArgs.purgedb))
+        globs.log.write(3, '- stopbackupwarn = [{}]'.format(self.cmdLineArgs.stopbackupwarn))
+        globs.log.write(3, '- collect = [{}]'.format(self.cmdLineArgs.collect))
+        globs.log.write(3, '- report = [{}]'.format(self.cmdLineArgs.report))
+    
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
-            globs.log.write(2, 'RC path specified on command line: {}'.format(self.cmdLineArgs.rcpath))
+            globs.log.write(2, 'RC path specified on command line.')
             rc = '{}/{}'.format(self.processPath(self.cmdLineArgs.rcpath),globs.rcName)
         else: # RC path not specified on command line. use default location
             path = os.path.dirname(os.path.realpath(sys.argv[0]))
-            globs.log.write(2, 'RC path not specified on command line. Using default: {}.'.format(path))
+            globs.log.write(2, 'RC path not specified on command line. Using default.')
             rc = '{}/{}'.format(path, globs.rcName)
 
         self.options['rcfilename'] = rc
-        globs.log.write(3, 'RC path=[{}]'.format(self.options['rcfilename']))
+        globs.log.write(3, 'Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], True)))
 
     # Get individual .rc file option
     def getRcOption(self, section, option):
