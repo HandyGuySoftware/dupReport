@@ -136,7 +136,7 @@ if __name__ == "__main__":
     globs.log.write(1,'Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
     globs.log.write(1,'Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
     globs.log.write(1,'Python version {}'.format(sys.version))
-    globs.log.write(3,'Program Path={}'.format(globs.progPath))
+    globs.log.write(3,'Program Path={}'.format(globs.maskData(globs.progPath, True)))
     # Check if we're running a compatible version of Python. Must be 3.0 or higher
     if sys.version_info.major < 3:
         globs.log.err('dupReport requires Python 3.0 or higher to run. Your installation is on version {}.{}.{}.\nPlease install a newer version of Python.'.format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
@@ -153,6 +153,7 @@ if __name__ == "__main__":
     # Initialize program options
     # This includes command line options and .rc file options
     canContinue = initOptions() 
+
     if not canContinue: # Something changed in the .rc file that needs manual editing
         globs.closeEverythingAndExit(0)
 

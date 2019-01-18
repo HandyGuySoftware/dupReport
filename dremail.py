@@ -92,7 +92,7 @@ class EmailServer:
             if self.keepalive is False: # Do we care about keepalives?
                 return None
 
-            globs.log.write(3,'Cheeking server connection')
+            globs.log.write(3,'Checking server connection')
             if self.protocol == 'imap':
                 try:
                     status = self.server.noop()[0]
@@ -109,7 +109,7 @@ class EmailServer:
                 except:
                     status = '+NO'
 
-                if status != '+OK':
+                if status.decode() != '+OK':        # Stats from POP3 returned as byte string. Need to decode before compare (Issue #107)
                     globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
                     self.server = None
                     self.connect()
@@ -242,6 +242,18 @@ class EmailServer:
         globs.log.write(1, 'retval=[{}]'.format(retval))
         return retval
 
+    # Issue 105
+    # POP3 manages headers different than IMAP
+    # Need to transform POP3 headers into IMAP style so the rest of the program
+    # Can process them properly
+    def mergePop3Headers(self, hdrBody):
+        globs.log.write(1,'dremail.mergePop3Headers({})'.format(hdrBody))
+        hdrLine = ""
+        for nxtHdr in hdrBody:
+            hdrLine += nxtHdr.decode('utf-8') + "\r\n"
+
+        return hdrLine
+
     # Extract specific fields from an email header
     # Different email servers create email headers diffrently
     # Also, fields like Subject can be split across multiple lines
@@ -292,7 +304,8 @@ class EmailServer:
                 return '<INVALID>'
 
             # Get date, subject, and message ID from headers
-            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(body.decode('utf-8'))
+            hdrLine = self.mergePop3Headers(body)       # Convert to IMAP format
+            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(hdrLine)
 
         elif self.protocol == 'imap':
             # Get message header

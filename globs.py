@@ -8,8 +8,8 @@
 import os
 
 # Define version info
-version=[2,2,4]     # Program Version
-status='Release'
+version=[2,2,5]     # Program Version
+status='Beta 1'
 dbVersion=[1,0,2]   # Required DB version
 rcVersion=[2,1,0]   # Required RC version
 copyright='Copyright (c) 2018 Stephen Fried for HandyGuy Software.'
@@ -37,6 +37,17 @@ emailFormat=[]    # Corresponding list of emial components print formats
 log = None              # Log file handling
 inServer = None      # Inbound email server
 outServer =  None     # Outbound email server
+
+
+# Mask sensitive data in log files
+# Replace incoming string with string of '*' the same length of the original
+def maskData(inData, force = False):
+    if force:   # Mask regardless of what parameter says. Useful if masking before options are processed
+        return "*" * len(inData)
+    elif opts['masksensitive']:
+        return "*" * len(inData)
+    else:
+        return inData
 
 # Close everything and exit cleanly
 def closeEverythingAndExit(errcode):

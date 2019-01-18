@@ -316,7 +316,7 @@ The [incoming] section contains settings for incoming email that dupReport reads
 transport=imap
 ```
 
- Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'. IMAP is *highly* recommended.
+Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'. **IMAP is highly recommended**. POP3 has some severe limitations when it comes to handling email. If you must use POP3 for whatever reason, make sure the "Leave messages on server" option is enabled in all your POP3 clients and/or your POP3 server. The default behavior for POP3 is to remove messages from the email server as soon as they are read, so using multiple email clients on the same server will interfere with each's ability to read email. Setting this option tells the system it to leave the messages on the server for other clients to use. Different systems configure this option differently, so check the documentation for your email system to see where this is set.
 
 ```
 inserver=localhost
@@ -328,7 +328,7 @@ DNS name or IP address of email server where Duplicati result emails are stored.
 inport=995
 ```
 
-IMAP or POP3 port for incoming email server. 
+IMAP or POP3 port for incoming email server.
 
 ```
 inencryption=tls
@@ -340,7 +340,13 @@ Specify encryption used by incoming email server. Can be 'none', 'tls' (default)
 inaccount=<account_name>
 ```
 
-User ID on incoming email system
+User ID on incoming email system.
+
+***NOTE:*** If you are using Gmail as your email server *and* using POP3 as your transport, put the prefix "recent:" in front of your email address, as in 
+
+> inaccount=recent:user@gmail.com
+
+The Gmail default is to retrieve email starting from the oldest, with a maximum of 250 emails. If you have a large inbox this will cause you to lose the most recent emails. The "recent:" prefix tells Gmail to retrieve the most recent 30 days of email. 
 
 ```
 inpassword=<password>

@@ -42,6 +42,7 @@ rcParts= [
     ('main','show24hourtime', 'true', True),
     ('main','purgedb', 'false', True),
     ('main','showprogress', '0', True),
+    ('main','masksensitive', 'true', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -238,6 +239,7 @@ class OptionManager:
         self.options['inkeepalive'] = self.options['inkeepalive'].lower() in ('true')   # boolean
         self.options['outkeepalive'] = self.options['outkeepalive'].lower() in ('true')   # boolean
         self.options['showprogress'] = int(self.options['showprogress'])  # integer
+        self.options['masksensitive'] = self.options['masksensitive'].lower() in ('true')   # boolean
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:

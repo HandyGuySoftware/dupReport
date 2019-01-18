@@ -19,7 +19,7 @@ import drdatetime
 class Database:
     dbConn = None
     def __init__(self, dbPath):
-        globs.log.write(1, 'Database.__init__({})'.format(dbPath))
+        globs.log.write(1, 'Database.__init__({})'.format(globs.maskData(dbPath)))
 
         # First, see if the database is there. If not, need to create it
         isThere = os.path.isfile(dbPath)
