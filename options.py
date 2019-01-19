@@ -126,7 +126,7 @@ class OptionManager:
     def __init__(self):
         return None
 
-    # Determine if masking is on based on value of command line option
+    # Determine if masking is required based on value of command line option
     # Only needed until RC file is processed. After that the options[] list will determine if need to mask
     def maskPath(self):
         mask = True
