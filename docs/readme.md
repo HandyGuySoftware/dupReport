@@ -177,6 +177,8 @@ dupReport has the following command line options:
 | -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source-destination pair from the database.          |
 | -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
 | -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all "nobackupwarn" options in the .rc file. See description of nobackwarn= option in "[report]" and "[source-destination]" sections below. **NOTE**: If you suppress emails using the '-x' option (above) but still want unseen backup warning messages sent (i.e., you *don't* use the '-w' option), you must enter valid email server and account information in the [outgoing] section of the dupReport.rc file. |
+| -k                          | --masksensitive                   | Force masking of sensitive data (such as user names, passwords, and file paths) with asterisks (*) in the log file. Overrides the "masksensitive" option in the .rc file. The -k and -K options can not be used together. See description of "masksensitive" option below for more details. |
+| -K                          | --nomasksensitive                 | Force display of sensitive data (such as user names, passwords, and file paths) in the log file. Overrides the "masksensitive" option in the .rc file. The -k and -K options can not be used together. See description of "masksensitive" option below for more details. |
 
 
 

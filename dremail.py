@@ -536,7 +536,7 @@ class EmailServer:
 
     # Send final email result
     def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):
-        globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, sender, receiver))
+        globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, globs.maskData(sender), globs.maskData(receiver)))
         self.connect()
 
         # Build email message
@@ -589,7 +589,7 @@ class EmailServer:
 
         # Send the message via local SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        globs.log.write(2,'Sending error email to [{}]'.format(globs.opts['outreceiver'].split(',')))
+        globs.log.write(2,'Sending error email to [{}]'.format(globs.maskData(globs.opts['outreceiver'].split(','))))
         self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'].split(','), msg.as_string().encode('utf-8'))
 
         return None
