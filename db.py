@@ -67,7 +67,7 @@ class Database:
 
     # Commit pending database transaction
     def dbCommit(self):
-        globs.log.write(1, 'Database.dbCommit(): Commiting transaction.')
+        globs.log.write(1, 'Database.dbCommit(): Committing transaction.')
         if self.dbConn:     # Don't try to commit to a nonexistant connection
             self.dbConn.commit()
         return None
