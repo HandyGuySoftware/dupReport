@@ -411,7 +411,7 @@ class EmailServer:
             else:
                 msgBody = data[1][1].decode('utf-8')  # Get message body
         
-        globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
+        globs.log.write(3, 'Message Body=[{}]'.format(msgBody.encode('utf-8')))
 
         # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in statusParts{}
         for section,regex,flag,typ in lineParts:
