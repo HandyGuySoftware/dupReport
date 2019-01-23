@@ -29,9 +29,9 @@ class LogHandler:
         if path is not None:    # Path provided. Open log file for write or append
             try:
                 if append is True:
-                    self.logFile = open(path,'a')
+                    self.logFile = open(path,'a', encoding="utf-8")
                 else:
-                    self.logFile = open(path,'w')
+                    self.logFile = open(path,'w', encoding="utf-8")
                 # Now,copy any existing data from the temp file
                 if self.tmpFile is not None:
                     self.tmpFile.close()
