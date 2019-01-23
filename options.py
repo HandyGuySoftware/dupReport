@@ -42,6 +42,7 @@ rcParts= [
     ('main','show24hourtime', 'true', True),
     ('main','purgedb', 'false', True),
     ('main','showprogress', '0', True),
+    ('main','masksensitive', 'true', True),
     
     # [incoming] section defaults
     ('incoming','intransport','imap', False),
@@ -125,18 +126,26 @@ class OptionManager:
     def __init__(self):
         return None
 
+    # Determine if masking is required based on value of command line option
+    # Only needed until RC file is processed. After that the options[] list will determine if need to mask
+    def maskPath(self):
+        mask = True
+        if self.cmdLineArgs.nomasksensitive:
+            mask = False
+        return mask
+   
     def openRcFile(self, rcFileSpec):
-        globs.log.write(1,'options.openRcFile({})'.format(rcFileSpec))
+        globs.log.write(1,'options.openRcFile({})'.format(globs.maskData(rcFileSpec, self.maskPath())))
         if self.rcFileName:     # Rc file already initiailzed. Something is wrong.
-            globs.log.write(2, 'RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, filespec))
+            globs.log.write(2, 'RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, globs.maskData(rcFileSpec, self.maskPath())))
             return False
 
         try:
             self.parser = configparser.SafeConfigParser()
             self.parser.read(rcFileSpec)
         except configparser.ParsingError as err:
-            globs.log.err('RC file parsing error: {} {}\n'.format(rcFileSpec, err))
-            globs.log.write(1, 'RC file parsing error: {} {}\n'.format(rcFileSpec, err))
+            globs.log.err('RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))
+            globs.log.write(1, 'RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))
             return False
 
         self.rcFileName = rcFileSpec
@@ -178,7 +187,7 @@ class OptionManager:
             globs.log.err('RC file not yet opened. Can not set defaults')
             return False
 
-        globs.log.write(1, 'rc.setDefaults({})'.format(self.rcFileName))
+        globs.log.write(1, 'rc.setDefaults({})'.format(globs.maskData(self.rcFileName, self.maskPath())))
 
         newRc = False
         needUpdate = False
@@ -202,7 +211,6 @@ class OptionManager:
             self.clearRcOption('report', 'noactivitybg')
             needUpdate = True
 
-
         globs.log.write(3,'newRc={}'.format(newRc))
         if needUpdate:
             self.updateRc()
@@ -217,7 +225,7 @@ class OptionManager:
     def readRcOptions(self):
         restart = False
 
-        globs.log.write(1, 'options.readRcOptions({})'.format(self.rcFileName))
+        globs.log.write(1, 'options.readRcOptions({})'.format(globs.maskData(self.rcFileName, self.maskPath())))
     
         # Extract sections and options from .rc file
         # Only need [main], [incoming], and [outgoing] sections
@@ -238,6 +246,7 @@ class OptionManager:
         self.options['inkeepalive'] = self.options['inkeepalive'].lower() in ('true')   # boolean
         self.options['outkeepalive'] = self.options['outkeepalive'].lower() in ('true')   # boolean
         self.options['showprogress'] = int(self.options['showprogress'])  # integer
+        self.options['masksensitive'] = self.options['masksensitive'].lower() in ('true')   # boolean
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
@@ -266,6 +275,12 @@ class OptionManager:
             self.options['logpath'] = '{}/{}'.format(globs.progPath, globs.logName)
         else:  # Path specified in rc file. Add dbname for full path
             self.options['logpath'] = '{}/{}'.format(self.processPath(self.options['logpath']), globs.logName)
+
+        # Mask Sensitive Data
+        if self.cmdLineArgs.masksensitive: # Force sensitive data masking
+            self.options['masksensitive'] = True
+        elif self.cmdLineArgs.nomasksensitive: # Force sensitive data unmasking
+            self.options['masksensitive'] = False
 
         self.options['version'] = self.cmdLineArgs.Version
         self.options['collect'] = self.cmdLineArgs.collect
@@ -300,7 +315,12 @@ class OptionManager:
         if self.options['file']:
             globs.ofileList = self.options['file']
 
-        globs.log.write(3, 'Parsed config options=[{}]'.format(self.options))
+        for opName in self.options:
+            if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'):
+                globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, globs.maskData(self.options[opName], self.options['masksensitive'])))
+            else:
+                globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, self.options[opName]))
+
         globs.log.write(1, 'Need to restart? {}'.format(restart))
 
         return restart
@@ -340,27 +360,51 @@ class OptionManager:
         argParser.add_argument("-p", "--purgedb", help="Purge emails that are no longer on the server from the database. Same as [main]purgedb=true in rc file.", action="store_true")
         argParser.add_argument("-w", "--stopbackupwarn", help="Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in rc file.", action="store_true")
 
-        opGroup = argParser.add_mutually_exclusive_group()
-        opGroup.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
-        opGroup.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
+        opGroup1 = argParser.add_mutually_exclusive_group()
+        opGroup1.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
+        opGroup1.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
+
+        opGroup2 = argParser.add_mutually_exclusive_group()
+        opGroup2.add_argument("-k", "--masksensitive", help="Mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
+        opGroup2.add_argument("-K", "--nomasksensitive", help="Don't mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
 
         # Parse the arguments based on the argument definitions above.
         # Store results in 'args'
         self.cmdLineArgs = argParser.parse_args()
 
-        globs.log.write(3, 'Command line parsed. args=[{}]'.format(self.cmdLineArgs))
-        
+        globs.log.write(3, 'Command line parsed:')
+        globs.log.write(3, '- rcpath = [{}]'.format(globs.maskData(self.cmdLineArgs.rcpath, True)))
+        globs.log.write(3, '- dbpath = [{}]'.format(globs.maskData(self.cmdLineArgs.dbpath, True)))
+        globs.log.write(3, '- logpath = [{}]'.format(globs.maskData(self.cmdLineArgs.logpath, True)))
+        globs.log.write(3, '- verbose = [{}]'.format(self.cmdLineArgs.verbose))
+        globs.log.write(3, '- Version = [{}]'.format(self.cmdLineArgs.Version))
+        globs.log.write(3, '- append = [{}]'.format(self.cmdLineArgs.append))
+        globs.log.write(3, '- size = [{}]'.format(self.cmdLineArgs.size))
+        globs.log.write(3, '- initdb = [{}]'.format(self.cmdLineArgs.initdb))
+        globs.log.write(3, '- rollback = [{}]'.format(self.cmdLineArgs.rollback))
+        globs.log.write(3, '- rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
+        globs.log.write(3, '- file = [{}]'.format(self.cmdLineArgs.file))
+        globs.log.write(3, '- nomail = [{}]'.format(self.cmdLineArgs.nomail))
+        globs.log.write(3, '- remove = [{}]'.format(self.cmdLineArgs.remove))
+        globs.log.write(3, '- purgedb = [{}]'.format(self.cmdLineArgs.purgedb))
+        globs.log.write(3, '- stopbackupwarn = [{}]'.format(self.cmdLineArgs.stopbackupwarn))
+        globs.log.write(3, '- collect = [{}]'.format(self.cmdLineArgs.collect))
+        globs.log.write(3, '- report = [{}]'.format(self.cmdLineArgs.report))
+        globs.log.write(3, '- masksensitive = [{}]'.format(self.cmdLineArgs.masksensitive))
+        globs.log.write(3, '- nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
+    
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
-            globs.log.write(2, 'RC path specified on command line: {}'.format(self.cmdLineArgs.rcpath))
+            globs.log.write(2, 'RC path specified on command line.')
             rc = '{}/{}'.format(self.processPath(self.cmdLineArgs.rcpath),globs.rcName)
         else: # RC path not specified on command line. use default location
             path = os.path.dirname(os.path.realpath(sys.argv[0]))
-            globs.log.write(2, 'RC path not specified on command line. Using default: {}.'.format(path))
+            globs.log.write(2, 'RC path not specified on command line. Using default.')
             rc = '{}/{}'.format(path, globs.rcName)
 
         self.options['rcfilename'] = rc
-        globs.log.write(3, 'RC path=[{}]'.format(self.options['rcfilename']))
+        
+        globs.log.write(3, 'Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], self.maskPath())))
 
     # Get individual .rc file option
     def getRcOption(self, section, option):

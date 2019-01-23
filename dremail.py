@@ -83,7 +83,7 @@ class EmailServer:
         return 'protocol=[{}] address=[{}] port=[{}] account=[{}] passwd=[{}] encryption=[{}] keepalive=[{}] folder=[{}]'.format(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption, self.keepalive, self.folder)
 
     def connect(self):
-        globs.log.write(1, 'EmailServer.Connect({})'.format(self.dump()))
+        globs.log.write(1, 'EmailServer.Connect()')
         globs.log.write(3, 'server={} keepalive={}'.format(self.server, self.keepalive))
 
         # See if a server connection is already established
@@ -92,7 +92,7 @@ class EmailServer:
             if self.keepalive is False: # Do we care about keepalives?
                 return None
 
-            globs.log.write(3,'Cheeking server connection')
+            globs.log.write(3,'Checking server connection')
             if self.protocol == 'imap':
                 try:
                     status = self.server.noop()[0]
@@ -109,7 +109,7 @@ class EmailServer:
                 except:
                     status = '+NO'
 
-                if status != '+OK':
+                if status.decode() != '+OK':        # Stats from POP3 returned as byte string. Need to decode before compare (Issue #107)
                     globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
                     self.server = None
                     self.connect()
@@ -132,7 +132,7 @@ class EmailServer:
                     else:
                         self.server = imaplib.IMAP4(self.address,self.port)
                     retVal, data = self.server.login(self.accountname, self.passwd)
-                    globs.log.write(3,'IMAP Logged in. retVal={} data={}'.format(retVal, data))
+                    globs.log.write(3,'IMAP Logged in. retVal={} data={}'.format(retVal, globs.maskData(data)))
                     retVal, data = self.server.select(self.folder)
                     globs.log.write(3,'IMAP Setting folder. retVal={} data={}'.format(retVal, data))
                     return retVal
@@ -148,7 +148,7 @@ class EmailServer:
                     else:
                         self.server = poplib.POP3(self.address,self.port)
                     retVal = self.server.user(self.accountname)
-                    globs.log.write(3,'Logged in. retVal={}'.format(retVal))
+                    globs.log.write(3,'Logged in. retVal={}'.format(globs.maskData(retVal)))
                     retVal = self.server.pass_(self.passwd)
                     globs.log.write(3,'Entered password. retVal={}'.format(retVal))
                     return retVal.decode()
@@ -242,6 +242,18 @@ class EmailServer:
         globs.log.write(1, 'retval=[{}]'.format(retval))
         return retval
 
+    # Issue 105
+    # POP3 manages headers different than IMAP
+    # Need to transform POP3 headers into IMAP style so the rest of the program
+    # Can process them properly
+    def mergePop3Headers(self, hdrBody):
+        globs.log.write(1,'dremail.mergePop3Headers({})'.format(hdrBody))
+        hdrLine = ""
+        for nxtHdr in hdrBody:
+            hdrLine += nxtHdr.decode('utf-8') + "\r\n"
+
+        return hdrLine
+
     # Extract specific fields from an email header
     # Different email servers create email headers diffrently
     # Also, fields like Subject can be split across multiple lines
@@ -292,7 +304,8 @@ class EmailServer:
                 return '<INVALID>'
 
             # Get date, subject, and message ID from headers
-            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(body.decode('utf-8'))
+            hdrLine = self.mergePop3Headers(body)       # Convert to IMAP format
+            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(hdrLine)
 
         elif self.protocol == 'imap':
             # Get message header
@@ -523,7 +536,7 @@ class EmailServer:
 
     # Send final email result
     def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):
-        globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, sender, receiver))
+        globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, globs.maskData(sender), globs.maskData(receiver)))
         self.connect()
 
         # Build email message
@@ -554,7 +567,7 @@ class EmailServer:
 
         # Send the message via SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        globs.log.write(2,'Sending email to [{}]'.format(receiver.split(',')))
+        globs.log.write(2,'Sending email to [{}]'.format(globs.maskData(receiver.split(','))))
         self.server.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
         return None
 
@@ -576,7 +589,7 @@ class EmailServer:
 
         # Send the message via local SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        globs.log.write(2,'Sending error email to [{}]'.format(globs.opts['outreceiver'].split(',')))
+        globs.log.write(2,'Sending error email to [{}]'.format(globs.maskData(globs.opts['outreceiver'].split(','))))
         self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'].split(','), msg.as_string().encode('utf-8'))
 
         return None

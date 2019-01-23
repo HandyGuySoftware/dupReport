@@ -1,3 +1,12 @@
+2.2.5
+-----
+- Fix POP3 headers to convert them to IMAP style for processing (Issue #105)
+- Fix several stupid spelling errors (Issue #106 & others)
+- Fix issue where POP3 server would fail keepalive check due to bad comparison of return from server.noop() call (Issue #107)
+- Updated documents to include advice for setting POP3 "Leave messages on servr" option (Issue #107)
+- Option to mask sensitive data from log files: [main] masksensitive (Issue #109)
+- Fix issue where POP3 email causes log writing to crash system (Issue #108)
+
 2.2.4
 -----
 - Added backup duration to reports (Issue #102)
