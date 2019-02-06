@@ -19,7 +19,7 @@ import drdatetime
 class Database:
     dbConn = None
     def __init__(self, dbPath):
-        globs.log.write(1, 'Database.__init__({})'.format(dbPath))
+        globs.log.write(1, 'Database.__init__({})'.format(globs.maskData(dbPath)))
 
         # First, see if the database is there. If not, need to create it
         isThere = os.path.isfile(dbPath)
@@ -67,7 +67,7 @@ class Database:
 
     # Commit pending database transaction
     def dbCommit(self):
-        globs.log.write(1, 'Database.dbCommit(): Commiting transaction.')
+        globs.log.write(1, 'Database.dbCommit(): Committing transaction.')
         if self.dbConn:     # Don't try to commit to a nonexistant connection
             self.dbConn.commit()
         return None

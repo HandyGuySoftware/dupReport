@@ -8,12 +8,12 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 
 Beginning with release 2.1, the branch structure of the dupReport repository has changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
 
-There are only two generally-available branches in the dupReport repository:
+There are usually only two branches in the dupReport repository:
 
 | Branch Name  | Current Version | Purpose                                                      |
 | ------------ | --------------- | ------------------------------------------------------------ |
-| **master**   | 2.2.4           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | 2.2.5           | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **master**   | 2.2.5           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
+| **pre_prod** | \<None\>        | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
 
 If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
 
@@ -177,6 +177,8 @@ dupReport has the following command line options:
 | -m \<source> \<destination> | --remove \<source> \<destination> | Remove a source-destination pair from the database.          |
 | -p                          | --purgedb                         | Purge emails that are no longer on the server from the database. Overrides [main] purgedb in .rc file. |
 | -w                          | --stopbackupwarn                  | Suppress sending of unseen backup warning emails. Overrides all "nobackupwarn" options in the .rc file. See description of nobackwarn= option in "[report]" and "[source-destination]" sections below. **NOTE**: If you suppress emails using the '-x' option (above) but still want unseen backup warning messages sent (i.e., you *don't* use the '-w' option), you must enter valid email server and account information in the [outgoing] section of the dupReport.rc file. |
+| -k                          | --masksensitive                   | Force masking of sensitive data (such as user names, passwords, and file paths) with asterisks (*) in the log file. Overrides the "masksensitive" option in the .rc file. The -k and -K options can not be used together. See description of "masksensitive" option below for more details. |
+| -K                          | --nomasksensitive                 | Force display of sensitive data (such as user names, passwords, and file paths) in the log file. Overrides the "masksensitive" option in the .rc file. The -k and -K options can not be used together. See description of "masksensitive" option below for more details. |
 
 
 
@@ -308,6 +310,12 @@ showprogress=0
 
 If this option is greater than zero, dupReport will display a dot ('.') on stdout for every 'n' emails that are processed from the incoming server. For example, if showprogress=5, there will be one '.' for every 5 emails that are read.
 
+```
+masksensitive = true
+```
+
+Masks sensitive data in the log file. If set to "true" (the default), fields such as user name, password, server name, and file paths will be masked with asterisks in the log file. This is useful for maintaining privacy if the log file needs to be stored or transmitted somewhere else for debugging or analysis purposes. **NOTE**: this setting **<u>will not</u>** mask any information found in the actual emails pulled from your email server, such as sending and receiving email address, server names, etc. It only affects the data that dupReport generates as part of its operation.
+
 ## [incoming] section
 
 The [incoming] section contains settings for incoming email that dupReport reads to create the report. 
@@ -316,7 +324,7 @@ The [incoming] section contains settings for incoming email that dupReport reads
 transport=imap
 ```
 
- Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'. IMAP is *highly* recommended.
+Specify the transport mechanism used to gather emails from the email server. Can be 'imap' or 'pop3'. **IMAP is highly recommended**. POP3 has some severe limitations when it comes to handling email. If you must use POP3 for whatever reason, make sure the "Leave messages on server" option is enabled in all your POP3 clients and/or your POP3 server. The default behavior for POP3 is to remove messages from the email server as soon as they are read, so using multiple email clients on the same server will interfere with each's ability to read email. Setting this option tells the system it to leave the messages on the server for other clients to use. Different systems configure this option differently, so check the documentation for your email system to see where this is set.
 
 ```
 inserver=localhost
@@ -328,7 +336,7 @@ DNS name or IP address of email server where Duplicati result emails are stored.
 inport=995
 ```
 
-IMAP or POP3 port for incoming email server. 
+IMAP or POP3 port for incoming email server.
 
 ```
 inencryption=tls
@@ -340,7 +348,13 @@ Specify encryption used by incoming email server. Can be 'none', 'tls' (default)
 inaccount=<account_name>
 ```
 
-User ID on incoming email system
+User ID on incoming email system.
+
+***NOTE:*** If you are using Gmail as your email server *and* using POP3 as your transport, put the prefix "recent:" in front of your email address, as in 
+
+> inaccount=recent:user@gmail.com
+
+The Gmail default is to retrieve email starting from the oldest, with a maximum of 250 emails. If you have a large inbox this will cause you to lose the most recent emails. The "recent:" prefix tells Gmail to retrieve the most recent 30 days of email. 
 
 ```
 inpassword=<password>

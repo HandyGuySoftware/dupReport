@@ -53,10 +53,10 @@ def initOptions():
     # Check if .rc file needs upgrading
     needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
     if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
-        globs.log.out('RC file {} is out of date. Needs update from version {} to version {}{}{}.'.format(oMgr.options['rcfilename'], currRcVersion, globs.version[0], globs.version[1], globs.version[2]))
+        globs.log.out('RC file is out of date. Needs update from version {} to version {}{}{}.'.format(currRcVersion, globs.version[0], globs.version[1], globs.version[2]))
         import convert
         convert.convertRc(oMgr, currRcVersion)
-        globs.log.out('RC file {} has been updated to the latest version.'.format(oMgr.rcFileName))
+        globs.log.out('RC file has been updated to the latest version.')
     
     # Check .rc file structure to see if all proper fields are there
     if oMgr.setRcDefaults() is True:
@@ -136,7 +136,6 @@ if __name__ == "__main__":
     globs.log.write(1,'Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
     globs.log.write(1,'Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
     globs.log.write(1,'Python version {}'.format(sys.version))
-    globs.log.write(3,'Program Path={}'.format(globs.progPath))
     # Check if we're running a compatible version of Python. Must be 3.0 or higher
     if sys.version_info.major < 3:
         globs.log.err('dupReport requires Python 3.0 or higher to run. Your installation is on version {}.{}.{}.\nPlease install a newer version of Python.'.format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
@@ -153,6 +152,7 @@ if __name__ == "__main__":
     # Initialize program options
     # This includes command line options and .rc file options
     canContinue = initOptions() 
+
     if not canContinue: # Something changed in the .rc file that needs manual editing
         globs.closeEverythingAndExit(0)
 
@@ -187,8 +187,8 @@ if __name__ == "__main__":
             globs.log.out('Database file {} has been updated to the latest version.'.format(globs.opts['dbpath']))
 
     # Write startup information to log file
-    globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose']))
-    globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.opts['dbpath'], globs.opts['rcfilename']))
+    globs.log.write(1,'Logfile=[{}]  appendlog=[{}]  logLevel=[{}]'.format(globs.maskData(globs.opts['logpath']), globs.opts['logappend'], globs.opts['verbose']))
+    globs.log.write(1,'dbPath=[{}]  rcpath=[{}]'.format(globs.maskData(globs.opts['dbpath']), globs.maskData(globs.opts['rcfilename'])))
 
     # Remove source/destination from database?
     if globs.opts['remove']:
