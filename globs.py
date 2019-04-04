@@ -8,8 +8,8 @@
 import os
 
 # Define version info
-version=[2,2,5]     # Program Version
-status='Release'
+version=[2,2,6]     # Program Version
+status='Beta 1'
 dbVersion=[1,0,2]   # Required DB version
 rcVersion=[2,1,0]   # Required RC version
 copyright='Copyright (c) 2018 Stephen Fried for HandyGuy Software.'

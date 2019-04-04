@@ -316,7 +316,7 @@ class EmailServer:
             globs.log.write(3,'Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
 
             msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
-            
+
         else:   # Invalid protocol spec
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
             return None
@@ -474,6 +474,20 @@ class EmailServer:
 
         return msgParts['messageId']
 
+
+    # Issue #111 feature request
+    # Provide ability to mark messages as read/seen if [main]optread is true in the .rc file.
+    # This function is only works for IMAP. POP3 doesn't have this capability.
+    def markMessagesRead(self):
+        globs.log.write(1, 'dremail.markmessagesRead(protocol={})'.format(self.protocol))
+    
+        if self.protocol == 'imap':
+            globs.log.write(2, 'Marking {} messages as read'.format(self.numEmails))
+            for msg in range(self.numEmails):
+                self.server.store(self.newEmails[msg],'+FLAGS','\Seen')
+
+        globs.log.write(1, 'dremail.markmessagesRead(): complete')
+        return;
 
     # Search for field in message
     # msgField - text to search against
