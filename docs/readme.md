@@ -102,7 +102,7 @@ Several users on the Duplicati Forum have found different ways to modify subject
 
 # System Requirements
 
-dupReport has been formally tested on Linux (Debian 8 and 9) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page on the Duplicati Forum](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)   have stated they’ve installed and run the program on a wide variety of operating systems. The python code uses standard Python libraries, so it *should* run on any platform where Python can be run. *Should*.
+dupReport has been formally tested on Linux (Debian 8 and 9) and Windows 10 and is officially supported on those platforms. However, users posting on the [dupReport announcement page on the Duplicati Forum](https://forum.duplicati.com/t/announcing-dupreport-a-duplicati-email-report-summary-generator/1116)   have stated they’ve installed and run the program on a wide variety of operating systems. The python code uses standard Python libraries, so it *should* run on any platform where Python can be run.
 
 In addition to the dupReport program files, the only other software dupReport needs is Python3. Installation instructions for Python are beyond our scope here, but instructions are widely available on the Internet.
 
@@ -122,7 +122,7 @@ Linux systems: user@system:~$ /path/to/dupReport/dupReport.py
 Windows Systems: C:\users\me> python.exe \path\to\dupreport\dupReport.py
 ```
 
-dupReport is self-initializing, in that running the program for the first time creates the database, initializes the .rc file with a bunch of default values, then exits. By default, the database and .rc files will be created in the same directory where the dupReport.py script is located. If you want them created in another location use the following program options:
+dupReport is self-initializing, and running the program for the first time creates the database, initializes the .rc file with a bunch of default values, then exits. By default, the database and .rc files will be created in the same directory where the dupReport.py script is located. If you want them created in another location use the following program options:
 
 ```
 dupReport.py -r <RC_Directory> -d <Database_Directory>
