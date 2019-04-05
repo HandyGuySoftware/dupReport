@@ -481,10 +481,9 @@ class EmailServer:
     def markMessagesRead(self):
         globs.log.write(1, 'dremail.markmessagesRead(protocol={})'.format(self.protocol))
     
-        if self.protocol == 'imap':
-            globs.log.write(2, 'Marking {} messages as read'.format(self.numEmails))
-            for msg in range(self.numEmails):
-                self.server.store(self.newEmails[msg],'+FLAGS','\Seen')
+        globs.log.write(2, 'Marking {} messages as read'.format(self.numEmails))
+        for msg in range(self.numEmails):
+            self.server.store(self.newEmails[msg],'+FLAGS','\Seen')
 
         globs.log.write(1, 'dremail.markmessagesRead(): complete')
         return;

@@ -242,7 +242,7 @@ if __name__ == "__main__":
                 globs.log.out(' ')   # Add newline at end.
 
             # Do we want to mark messages as 'read/seen'? (Only works for IMAP)
-            if globs.opts['markread'] is True:
+            if globs.opts['markread'] is True and globs.inServer.protocol == 'imap':
                 globs.inServer.markMessagesRead()
 
     # Open report object and initialize report options
@@ -303,5 +303,6 @@ if __name__ == "__main__":
 
     if globs.opts['showprogress'] > 0:
         globs.log.out('Ending program.')
+
     # Bye, bye, bye, BYE, BYE!
     globs.closeEverythingAndExit(0)
