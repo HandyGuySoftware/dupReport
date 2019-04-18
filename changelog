@@ -1,3 +1,7 @@
+2.2.6
+-----
+- Enable setting emails to read/seen after processing - IMAP only (Issue #111)
+
 2.2.5
 -----
 - Fix POP3 headers to convert them to IMAP style for processing (Issue #105)
