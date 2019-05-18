@@ -25,42 +25,42 @@ import drdatetime
 
 #Define message segments (line parts) for Duplicati result email messages
 # lineParts[] are the individual line items in the Duplicati status email report.
-# 1 - internal variable name
-# 2 - Duplicati name from email and regex to find it
-# 3 - regex flags. 0=none.
-# 4 - field Type (0=int or 1=str)
+#
+#   [0]internal name        [1] Duplicati email string      [2]regex flags (0 = none)   [3]field Type (0=int or 1=str)
 lineParts = [
-    ('deletedFiles','DeletedFiles: \d+', 0, 0),
-    ('deletedFolders', 'DeletedFolders: \d+', 0, 0),
-    ('modifiedFiles', 'ModifiedFiles: \d+', 0, 0),
-    ('examinedFiles', 'ExaminedFiles: \d+', 0, 0),
-    ('openedFiles', 'OpenedFiles: \d+', 0, 0),
-    ('addedFiles', 'AddedFiles: \d+', 0, 0),
-    ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: .*', 0, 0),
-    ('sizeOfAddedFiles', 'SizeOfAddedFiles: .*', 0, 0),
-    ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: .*', 0, 0),
-    ('sizeOfOpenedFiles', 'SizeOfOpenedFiles: .*', 0, 0),
-    ('notProcessedFiles', 'NotProcessedFiles: \d+', 0, 0),
-    ('addedFolders', 'AddedFolders: \d+', 0, 0),
-    ('tooLargeFiles', 'TooLargeFiles: \d+', 0, 0),
-    ('filesWithError', 'FilesWithError: \d+', 0, 0),
-    ('modifiedFolders', 'ModifiedFolders: \d+', 0, 0),
-    ('modifiedSymlinks', 'ModifiedSymlinks: \d+', 0, 0),
-    ('addedSymlinks', 'AddedSymlinks: \d+', 0, 0),
-    ('deletedSymlinks', 'DeletedSymlinks: \d+', 0, 0),
-    ('partialBackup', 'PartialBackup: \w+', 0, 1),
-    ('dryRun', 'Dryrun: \w+', 0, 1),
-    ('mainOperation', 'MainOperation: \w+', 0, 1),
-    ('parsedResult', 'ParsedResult: \w+', 0, 1),
-    ('verboseOutput', 'VerboseOutput: \w+', 0, 1),
-    ('verboseErrors', 'VerboseErrors: \w+', 0, 1),
-    ('endTimeStr', 'EndTime: .*', 0, 1),
-    ('beginTimeStr', 'BeginTime: .*', 0, 1),
-    ('messages', 'Messages: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
-    ('warnings', 'Warnings: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
-    ('errors', 'Errors: \[.*^\]', re.MULTILINE|re.DOTALL, 1),
-    ('details','Details: .*', re.MULTILINE|re.DOTALL, 1),
-    ('failed', 'Failed: .*', re.MULTILINE|re.DOTALL, 1),
+    ('deletedFiles',        'DeletedFiles: \d+',            0,                          0),
+    ('deletedFolders',      'DeletedFolders: \d+',          0,                          0),
+    ('modifiedFiles',       'ModifiedFiles: \d+',           0,                          0),
+    ('examinedFiles',       'ExaminedFiles: \d+',           0,                          0),
+    ('openedFiles',         'OpenedFiles: \d+',             0,                          0),
+    ('addedFiles',          'AddedFiles: \d+',              0,                          0),
+    ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: .*',      0,                          0),
+    ('sizeOfAddedFiles',    'SizeOfAddedFiles: .*',         0,                          0),
+    ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: .*',      0,                          0),
+    ('sizeOfOpenedFiles',   'SizeOfOpenedFiles: .*',        0,                          0),
+    ('notProcessedFiles',   'NotProcessedFiles: \d+',       0,                          0),
+    ('addedFolders',        'AddedFolders: \d+',            0,                          0),
+    ('tooLargeFiles',       'TooLargeFiles: \d+',           0,                          0),
+    ('filesWithError',      'FilesWithError: \d+',          0,                          0),
+    ('modifiedFolders',     'ModifiedFolders: \d+',         0,                          0),
+    ('modifiedSymlinks',    'ModifiedSymlinks: \d+',        0,                          0),
+    ('addedSymlinks',       'AddedSymlinks: \d+',           0,                          0),
+    ('deletedSymlinks',     'DeletedSymlinks: \d+',         0,                          0),
+    ('partialBackup',       'PartialBackup: \w+',           0,                          1),
+    ('dryRun',              'Dryrun: \w+',                  0,                          1),
+    ('mainOperation',       'MainOperation: \w+',           0,                          1),
+    ('parsedResult',        'ParsedResult: \w+',            0,                          1),
+    ('verboseOutput',       'VerboseOutput: \w+',           0,                          1),
+    ('verboseErrors',       'VerboseErrors: \w+',           0,                          1),
+    ('endTimeStr',          'EndTime: .*',                  0,                          1),
+    ('beginTimeStr',        'BeginTime: .*',                0,                          1),
+    ('dupversion',          'Version: .*',                  0,                          1),
+    ('messages',            'Messages: \[.*^\]',            re.MULTILINE|re.DOTALL,     1),
+    ('warnings',            'Warnings: \[.*^\]',            re.MULTILINE|re.DOTALL,     1),
+    ('errors',              'Errors: \[.*^\]',              re.MULTILINE|re.DOTALL,     1),
+    ('logdata',             'Log data:(.*?)\n(.*?)(?=\Z)',  re.MULTILINE|re.DOTALL,     1),
+    ('details',             'Details: .*',                  re.MULTILINE|re.DOTALL,     1),
+    ('failed',              'Failed: .*',                   re.MULTILINE|re.DOTALL,     1),
     ]
 
 
@@ -441,8 +441,10 @@ class EmailServer:
             statusParts['errors'] = statusParts['failed']
             statusParts['parsedResult'] = 'Failure'
             statusParts['warnings'] = statusParts['details']
+
             globs.log.write(2, 'Errors=[{}]'.format(statusParts['errors']))
             globs.log.write(2, 'Warnings=[{}]'.format(statusParts['warnings']))
+            globs.log.write(2, 'Log Data=[{}]'.format(statusParts['logdata']))
 
             # Since the backup job report never ran, we'll use the email date/time as the report date/time
             dateParts['endTimestamp'] = msgParts['emailTimestamp']
@@ -450,7 +452,7 @@ class EmailServer:
             globs.log.write(3, 'Email indicates a failed backup. Replacing date/time with: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
 
         # Replace commas (,) with newlines (\n) in message fields. Sqlite really doesn't like commas in SQL statements!
-        for part in ['messages', 'warnings', 'errors']:
+        for part in ['messages', 'warnings', 'errors', 'logdata']:
             if statusParts[part] != '':
                     statusParts[part] = statusParts[part].replace(',','\n')
 
@@ -463,6 +465,8 @@ class EmailServer:
                 errMsg += 'Warnings:' + statusParts['warnings'] + '\n\n'
             if statusParts['errors'] != '':
                 errMsg += 'Errors:' + statusParts['errors'] + '\n\n'
+            if statusParts['logdata'] != '':
+                errMsg += 'Log Data:' + statusParts['logdata'] + '\n\n'
 
             globs.outServer.sendErrorEmail(errMsg)
 
@@ -531,10 +535,10 @@ class EmailServer:
             sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, \
             modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, \
             dryRun, mainOperation, parsedResult, verboseOutput, verboseErrors, endTimestamp, \
-            beginTimestamp, duration, messages, warnings, errors, dbSeen) \
+            beginTimestamp, duration, messages, warnings, errors, dbSeen, dupversion, logdata) \
             VALUES \
             ('{}', '{}', '{}', {}, {}, {}, {}, {}, {}, {}, {},{},{},{},{},{},{},{},{},{},{}, \
-            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\", 1)".format(mParts['messageId'], \
+            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\", 1, \"{}\", \"{}\")".format(mParts['messageId'], \
             mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
             sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
             sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
@@ -542,7 +546,7 @@ class EmailServer:
             sParts['modifiedFolders'], sParts['modifiedSymlinks'], sParts['addedSymlinks'], sParts['deletedSymlinks'], \
             sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
             sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
-            durVal, sParts['messages'], sParts['warnings'], sParts['errors'])
+            durVal, sParts['messages'], sParts['warnings'], sParts['errors'], sParts['dupversion'], sParts['logdata'])
                 
         globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
         return sqlStmt
