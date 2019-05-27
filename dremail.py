@@ -17,6 +17,7 @@ import time
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import json
 
 # Import dupReport modules
 import globs
@@ -26,43 +27,42 @@ import drdatetime
 #Define message segments (line parts) for Duplicati result email messages
 # lineParts[] are the individual line items in the Duplicati status email report.
 #
-#   [0]internal name        [1] Duplicati email string      [2]regex flags (0 = none)   [3]field Type (0=int or 1=str)
+#   [0]internal name        [1] Duplicati email string      [2]regex flags (0 = none)   [3]field Type (0=int or 1=str)  [4] JSON field name
 lineParts = [
-    ('deletedFiles',        'DeletedFiles: \d+',            0,                          0),
-    ('deletedFolders',      'DeletedFolders: \d+',          0,                          0),
-    ('modifiedFiles',       'ModifiedFiles: \d+',           0,                          0),
-    ('examinedFiles',       'ExaminedFiles: \d+',           0,                          0),
-    ('openedFiles',         'OpenedFiles: \d+',             0,                          0),
-    ('addedFiles',          'AddedFiles: \d+',              0,                          0),
-    ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: .*',      0,                          0),
-    ('sizeOfAddedFiles',    'SizeOfAddedFiles: .*',         0,                          0),
-    ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: .*',      0,                          0),
-    ('sizeOfOpenedFiles',   'SizeOfOpenedFiles: .*',        0,                          0),
-    ('notProcessedFiles',   'NotProcessedFiles: \d+',       0,                          0),
-    ('addedFolders',        'AddedFolders: \d+',            0,                          0),
-    ('tooLargeFiles',       'TooLargeFiles: \d+',           0,                          0),
-    ('filesWithError',      'FilesWithError: \d+',          0,                          0),
-    ('modifiedFolders',     'ModifiedFolders: \d+',         0,                          0),
-    ('modifiedSymlinks',    'ModifiedSymlinks: \d+',        0,                          0),
-    ('addedSymlinks',       'AddedSymlinks: \d+',           0,                          0),
-    ('deletedSymlinks',     'DeletedSymlinks: \d+',         0,                          0),
-    ('partialBackup',       'PartialBackup: \w+',           0,                          1),
-    ('dryRun',              'Dryrun: \w+',                  0,                          1),
-    ('mainOperation',       'MainOperation: \w+',           0,                          1),
-    ('parsedResult',        'ParsedResult: \w+',            0,                          1),
-    ('verboseOutput',       'VerboseOutput: \w+',           0,                          1),
-    ('verboseErrors',       'VerboseErrors: \w+',           0,                          1),
-    ('endTimeStr',          'EndTime: .*',                  0,                          1),
-    ('beginTimeStr',        'BeginTime: .*',                0,                          1),
-    ('dupversion',          'Version: .*',                  0,                          1),
-    ('messages',            'Messages: \[.*^\]',            re.MULTILINE|re.DOTALL,     1),
-    ('warnings',            'Warnings: \[.*^\]',            re.MULTILINE|re.DOTALL,     1),
-    ('errors',              'Errors: \[.*^\]',              re.MULTILINE|re.DOTALL,     1),
-    ('logdata',             'Log data:(.*?)\n(.*?)(?=\Z)',  re.MULTILINE|re.DOTALL,     1),
-    ('details',             'Details: .*',                  re.MULTILINE|re.DOTALL,     1),
-    ('failed',              'Failed: .*',                   re.MULTILINE|re.DOTALL,     1),
+    ('deletedFiles',        'DeletedFiles: \d+',            0,                          0,                              'DeletedFiles'),
+    ('deletedFolders',      'DeletedFolders: \d+',          0,                          0,                              'DeletedFolders'),
+    ('modifiedFiles',       'ModifiedFiles: \d+',           0,                          0,                              'ModifiedFiles'),
+    ('examinedFiles',       'ExaminedFiles: \d+',           0,                          0,                              'ExaminedFiles'),
+    ('openedFiles',         'OpenedFiles: \d+',             0,                          0,                              'OpenedFiles'),
+    ('addedFiles',          'AddedFiles: \d+',              0,                          0,                              'AddedFiles'),
+    ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: .*',      0,                          0,                              'SizeOfModifiedFiles'),
+    ('sizeOfAddedFiles',    'SizeOfAddedFiles: .*',         0,                          0,                              'SizeOfAddedFiles'),
+    ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: .*',      0,                          0,                              'SizeOfExaminedFiles'),
+    ('sizeOfOpenedFiles',   'SizeOfOpenedFiles: .*',        0,                          0,                              'SizeOfOpenedFiles'),
+    ('notProcessedFiles',   'NotProcessedFiles: \d+',       0,                          0,                              'NotProcessedFiles'),
+    ('addedFolders',        'AddedFolders: \d+',            0,                          0,                              'AddedFolders'),
+    ('tooLargeFiles',       'TooLargeFiles: \d+',           0,                          0,                              'TooLargeFiles'),
+    ('filesWithError',      'FilesWithError: \d+',          0,                          0,                              'FilesWithError'),
+    ('modifiedFolders',     'ModifiedFolders: \d+',         0,                          0,                              'ModifiedFolders'),
+    ('modifiedSymlinks',    'ModifiedSymlinks: \d+',        0,                          0,                              'ModifiedSymlinks'),
+    ('addedSymlinks',       'AddedSymlinks: \d+',           0,                          0,                              'AddedSymlinks'),
+    ('deletedSymlinks',     'DeletedSymlinks: \d+',         0,                          0,                              'DeletedSymlinks'),
+    ('partialBackup',       'PartialBackup: \w+',           0,                          1,                              'PartialBackup'),
+    ('dryRun',              'Dryrun: \w+',                  0,                          1,                              'Dryrun'),
+    ('mainOperation',       'MainOperation: \w+',           0,                          1,                              'MainOperation'),
+    ('parsedResult',        'ParsedResult: \w+',            0,                          1,                              'ParsedResult'),
+    ('verboseOutput',       'VerboseOutput: \w+',           0,                          1,                              ''),                        # No JSON equivalent
+    ('verboseErrors',       'VerboseErrors: \w+',           0,                          1,                              ''),                        # No JSON equivalent
+    ('endTimeStr',          'EndTime: .*',                  0,                          1,                              'EndTime'),
+    ('beginTimeStr',        'BeginTime: .*',                0,                          1,                              'BeginTime'),
+    ('dupversion',          'Version: .*',                  0,                          1,                              'Version'),
+    ('messages',            'Messages: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('warnings',            'Warnings: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('errors',              'Errors: \[.*^\]',              re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('logdata',             'Log data:(.*?)\n(.*?)(?=\Z)',  re.MULTILINE|re.DOTALL,     1,                              'LogLines'),
+    ('details',             'Details: .*',                  re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('failed',              'Failed: .*',                   re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ]
-
 
 class EmailServer:
     def __init__(self, prot, add, prt, acct, pwd, crypt, kalive, fold = None):
@@ -306,7 +306,6 @@ class EmailServer:
             # Get date, subject, and message ID from headers
             hdrLine = self.mergePop3Headers(body)       # Convert to IMAP format
             msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(hdrLine)
-
         elif self.protocol == 'imap':
             # Get message header
             retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
@@ -316,7 +315,6 @@ class EmailServer:
             globs.log.write(3,'Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
 
             msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
-
         else:   # Invalid protocol spec
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
             return None
@@ -413,34 +411,58 @@ class EmailServer:
         
         globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
 
-        # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in statusParts{}
-        for section,regex,flag,typ in lineParts:
-            statusParts[section] = self.searchMessagePart(msgBody, regex, flag, typ) # Get the field parts
+        # See if email is text or JSON. JSON messages begin with '{"Data":'
+        isJson = True if msgBody[:8] == '{\"Data\":' else False
+
+        if isJson:
+            jsonStatus = json.loads(msgBody.replace("=\r\n",""), strict = False)    # Top-level JSON data
+            jsonData = jsonStatus['Data']                                           # 'Data' branch under main data
+
+            for section,regex,flag,typ,jsonSection in lineParts:
+                statusParts[section] = self.searchMessagePartJson(jsonData, jsonSection, typ)
+            statusParts['logdata'] = jsonStatus['LogLines'][0] if len(jsonStatus['LogLines']) > 0 else ''
+
+            if statusParts['parsedResult'] != 'Success':
+                statusParts['failed'] = 'Failure'   
+                if statusParts['parsedResult'] == '':
+                    statusParts['parsedResult'] = 'Failure'   
+                statusParts['errors'] = jsonData['Message'] if 'Message' in jsonData else ''
+        else: # Not JSON - standard message format
+            # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in statusParts{}
+            for section,regex,flag,typ, jsonSection in lineParts:
+                statusParts[section] = self.searchMessagePart(msgBody, regex, flag, typ) # Get the field parts
 
         # Adjust fields if not a clean run
         globs.log.write(3, "statusParts['failed']=[{}]".format(statusParts['failed']))
         if statusParts['failed'] == '':  # Looks like a good run
-            # These fields can be included in parentheses in later versions of Duplicati
+            
+            # Some fields in "classic" Duplicati report output are displayed in standard format or detailed format (in parentheses)
             # For example:
             #   SizeOfModifiedFiles: 23 KB (23556)
             #   SizeOfAddedFiles: 10.12 KB (10364)
             #   SizeOfExaminedFiles: 44.42 GB (47695243956)
             #   SizeOfOpenedFiles: 33.16 KB (33954)
+            # JSON output format does not use parenthesized format (see https://forum.duplicati.com/t/difference-in-json-vs-text-output/7092 for more explanation)
+
             # Extract the parenthesized value (if present) or the raw value (if not)
-            dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
-            dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
-            dateParts['beginTimestamp'] = self.parenOrRaw(statusParts['beginTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
+            if  isJson:
+                dateParts['endTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['endTimeStr'])
+                dateParts['beginTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['beginTimeStr'])
+            else:
+                dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
+                dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
+                dateParts['beginTimestamp'] = self.parenOrRaw(statusParts['beginTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
+                statusParts['sizeOfModifiedFiles'] = self.parenOrRaw(statusParts['sizeOfModifiedFiles'])
+                statusParts['sizeOfAddedFiles'] = self.parenOrRaw(statusParts['sizeOfAddedFiles'])
+                statusParts['sizeOfExaminedFiles'] = self.parenOrRaw(statusParts['sizeOfExaminedFiles'])
+                statusParts['sizeOfOpenedFiles'] = self.parenOrRaw(statusParts['sizeOfOpenedFiles'])
+
             globs.log.write(3, 'Email indicates a successful backup. Date/time is: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
-
-            statusParts['sizeOfModifiedFiles'] = self.parenOrRaw(statusParts['sizeOfModifiedFiles'])
-            statusParts['sizeOfAddedFiles'] = self.parenOrRaw(statusParts['sizeOfAddedFiles'])
-            statusParts['sizeOfExaminedFiles'] = self.parenOrRaw(statusParts['sizeOfExaminedFiles'])
-            statusParts['sizeOfOpenedFiles'] = self.parenOrRaw(statusParts['sizeOfOpenedFiles'])
-
         else:  # Something went wrong. Let's gather the details.
-            statusParts['errors'] = statusParts['failed']
-            statusParts['parsedResult'] = 'Failure'
-            statusParts['warnings'] = statusParts['details']
+            if not isJson:
+                statusParts['errors'] = statusParts['failed']
+                statusParts['parsedResult'] = 'Failure'
+                statusParts['warnings'] = statusParts['details']
 
             globs.log.write(2, 'Errors=[{}]'.format(statusParts['errors']))
             globs.log.write(2, 'Warnings=[{}]'.format(statusParts['warnings']))
@@ -521,6 +543,18 @@ class EmailServer:
                 retData = ''
 
         return retData
+
+    
+    # Look for key in JSON fields
+    def searchMessagePartJson(self, jsonParts, key, typ):
+        if key in jsonParts:
+            return jsonParts[key];
+        
+        # empty value. return appropriate empty value
+        if typ == 0: #integer
+            return 0
+        else:       # string
+            return ''
 
     # Build SQL statement to put into the emails table
     def buildEmailSql(self, mParts, sParts, dParts):  
