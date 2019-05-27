@@ -1,8 +1,10 @@
 2.2.7
 -----
 - Properly parse "Log data" field, newly introduced in Duplicati circa November 2018 (Issue #112)
+- Parse JSON-formatted emails from Duplicati job runs (Issue #113)
 - Added "Duplicati version" field option to report. Can be helpful in discovering when one of your systems is behind in Duplicati updates (Issue #114)
 - Updated database schema, now on version 1.0.3. Program will (should) automaticaly upgrade older DB versions to the new format.
+- Added -F option. Same as -f, but also sends resulting output file as an attachment to the email. (Issue #115)
 
 2.2.6
 -----

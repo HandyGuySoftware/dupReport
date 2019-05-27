@@ -87,7 +87,7 @@ def validateOutputFiles():
     canContinue = True
 
     # See where the output files are going
-    if globs.ofileList:    # Potential list of output files specified on command line
+    if len (globs.ofileList) > 0:    # Potential list of output files specified on command line
         for fspec in globs.ofileList:
             fsplit = fspec.split(',')   
             if len(fsplit) != 2:
@@ -282,7 +282,7 @@ if __name__ == "__main__":
         globs.appriseObj.sendNotifications()
 
     # Do we need to send output to file(s)?
-    if globs.opts['file'] and not globs.opts['collect']:
+    if (globs.opts['file'] or globs.opts['fileattach']) and not globs.opts['collect']:
         if globs.opts['showprogress'] > 0:
             globs.log.out('Creating report file(s).')
         report.sendReportToFile(msgHtml, msgText, msgCsv)

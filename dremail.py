@@ -17,6 +17,8 @@ import time
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 import json
 
 # Import dupReport modules
@@ -545,7 +547,7 @@ class EmailServer:
         return retData
 
     
-    # Look for key in JSON fields
+    # Search for field in JSON message
     def searchMessagePartJson(self, jsonParts, key, typ):
         if key in jsonParts:
             return jsonParts[key];
@@ -615,6 +617,18 @@ class EmailServer:
         if msgHtml is not None:
             msgPart = MIMEText(msgHtml, 'html')
             msg.attach(msgPart)
+
+        for ofile in globs.opts['fileattach']:
+            fname = ofile.split(',')[0]
+            attachment = open(fname, 'rb')
+            #file_name = os.path.basename(a_file)
+            part = MIMEBase('application','octet-stream')
+            part.set_payload(attachment.read())
+            part.add_header('Content-Disposition',
+                            'attachment',
+                            filename=fname)
+            encoders.encode_base64(part)
+            msg.attach(part)
 
         # Send the message via SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details

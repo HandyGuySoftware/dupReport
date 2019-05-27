@@ -320,8 +320,12 @@ class OptionManager:
         
         # Store output files for later use
         self.options['file'] = self.cmdLineArgs.file
+        self.options['fileattach'] = self.cmdLineArgs.fileattach
+        globs.ofileList = []
         if self.options['file']:
-            globs.ofileList = self.options['file']
+            globs.ofileList = globs.ofileList  + self.options['file']
+        if self.options['fileattach']:
+            globs.ofileList = globs.ofileList  + self.options['fileattach']
 
         for opName in self.options:
             if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'):
@@ -363,6 +367,7 @@ class OptionManager:
         argParser.add_argument("-b","--rollback", help="Roll back datebase to specified date. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-B","--rollbackx", help="Roll back datebase to specified date, then exit program. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
+        argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
         argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
         argParser.add_argument("-p", "--purgedb", help="Purge emails that are no longer on the server from the database. Same as [main]purgedb=true in rc file.", action="store_true")
@@ -392,6 +397,7 @@ class OptionManager:
         globs.log.write(3, '- rollback = [{}]'.format(self.cmdLineArgs.rollback))
         globs.log.write(3, '- rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
         globs.log.write(3, '- file = [{}]'.format(self.cmdLineArgs.file))
+        globs.log.write(3, '- fileattach = [{}]'.format(self.cmdLineArgs.fileattach))
         globs.log.write(3, '- nomail = [{}]'.format(self.cmdLineArgs.nomail))
         globs.log.write(3, '- remove = [{}]'.format(self.cmdLineArgs.remove))
         globs.log.write(3, '- purgedb = [{}]'.format(self.cmdLineArgs.purgedb))
