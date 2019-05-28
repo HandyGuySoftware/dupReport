@@ -448,8 +448,8 @@ class EmailServer:
 
             # Extract the parenthesized value (if present) or the raw value (if not)
             if  isJson:
-                dateParts['endTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['endTimeStr'])
-                dateParts['beginTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['beginTimeStr'])
+                dateParts['endTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['endTimeStr'], utcOffset = msgParts['timezone'])
+                dateParts['beginTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['beginTimeStr'], utcOffset = msgParts['timezone'])
             else:
                 dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
                 dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])

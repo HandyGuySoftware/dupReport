@@ -139,7 +139,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
 # Convert an RFC 3339 format datetime string to an epoch-style timestamp
 # Needed because the JSON output format uses this style for datetime notation
 # Basically, decode the RFC3339 string elements into separate date & time strings, then send to toTimeStamp() as a normal date/time string.
-def toTimestampRfc3339(tsString):
+def toTimestampRfc3339(tsString, utcOffset = None):
     globs.log.write(1,'drDateTime.toTimestampRfc3339({})'.format(tsString))
 
     # Strip trailing 'Z' and last digit from milliseconds, the float number is too big to convert
@@ -149,7 +149,7 @@ def toTimestampRfc3339(tsString):
     dt = datetime.datetime.strptime(tsStringNew, '%Y-%m-%dT%H:%M:%S.%f')
 
     # Now, use existing methods to convert to a timestamp
-    ts = toTimestamp("{}/{}/{} {}:{}:{}".format(dt.month, dt.day, dt.year, dt.hour, dt.minute, dt.second), "MM/DD/YYYY", "HH:MM:SS")
+    ts = toTimestamp("{}/{}/{} {}:{}:{}".format(dt.month, dt.day, dt.year, dt.hour, dt.minute, dt.second), "MM/DD/YYYY", "HH:MM:SS", utcOffset)
 
     return ts
 
