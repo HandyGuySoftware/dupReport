@@ -15,6 +15,7 @@ import re
 import datetime
 import time
 import smtplib
+import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -420,11 +421,19 @@ class EmailServer:
             jsonStatus = json.loads(msgBody.replace("=\r\n",""), strict = False)    # Top-level JSON data
             jsonData = jsonStatus['Data']                                           # 'Data' branch under main data
 
+            # Get message fields from JSON column in lineParts list
             for section,regex,flag,typ,jsonSection in lineParts:
                 statusParts[section] = self.searchMessagePartJson(jsonData, jsonSection, typ)
-            statusParts['logdata'] = jsonStatus['LogLines'][0] if len(jsonStatus['LogLines']) > 0 else ''
+            # See if there are log lines to display
+            if len(jsonStatus['LogLines']) > 0:
+                statusParts['logdata'] = jsonStatus['LogLines'][0]
+            else:
+               statusParts['logdata'] = ''
 
-            if statusParts['parsedResult'] != 'Success':
+            if statusParts['parsedResult'] != 'Success': # Error during backup
+                # Set appropriate fail/message fields to relevant values
+                # The JSON report has somewhat different fields than the "classic" report, so we have to fudge this a little bit
+                #   so we can use common code to process both types later.
                 statusParts['failed'] = 'Failure'   
                 if statusParts['parsedResult'] == '':
                     statusParts['parsedResult'] = 'Failure'   
@@ -437,20 +446,20 @@ class EmailServer:
         # Adjust fields if not a clean run
         globs.log.write(3, "statusParts['failed']=[{}]".format(statusParts['failed']))
         if statusParts['failed'] == '':  # Looks like a good run
-            
-            # Some fields in "classic" Duplicati report output are displayed in standard format or detailed format (in parentheses)
-            # For example:
-            #   SizeOfModifiedFiles: 23 KB (23556)
-            #   SizeOfAddedFiles: 10.12 KB (10364)
-            #   SizeOfExaminedFiles: 44.42 GB (47695243956)
-            #   SizeOfOpenedFiles: 33.16 KB (33954)
-            # JSON output format does not use parenthesized format (see https://forum.duplicati.com/t/difference-in-json-vs-text-output/7092 for more explanation)
-
-            # Extract the parenthesized value (if present) or the raw value (if not)
+            # Get the start and end times of the backup
             if  isJson:
                 dateParts['endTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['endTimeStr'], utcOffset = msgParts['timezone'])
                 dateParts['beginTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['beginTimeStr'], utcOffset = msgParts['timezone'])
             else:
+                # Some fields in "classic" Duplicati report output are displayed in standard format or detailed format (in parentheses)
+                # For example:
+                #   SizeOfModifiedFiles: 23 KB (23556)
+                #   SizeOfAddedFiles: 10.12 KB (10364)
+                #   SizeOfExaminedFiles: 44.42 GB (47695243956)
+                #   SizeOfOpenedFiles: 33.16 KB (33954)
+                # JSON output format does not use parenthesized format (see https://forum.duplicati.com/t/difference-in-json-vs-text-output/7092 for more explanation)
+
+                # Extract the parenthesized value (if present) or the raw value (if not)
                 dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
                 dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
                 dateParts['beginTimestamp'] = self.parenOrRaw(statusParts['beginTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
@@ -552,7 +561,7 @@ class EmailServer:
         if key in jsonParts:
             return jsonParts[key];
         
-        # empty value. return appropriate empty value
+        # Key wasn't found in list value. Return appropriate empty value
         if typ == 0: #integer
             return 0
         else:       # string
@@ -621,12 +630,12 @@ class EmailServer:
         for ofile in globs.opts['fileattach']:
             fname = ofile.split(',')[0]
             attachment = open(fname, 'rb')
-            #file_name = os.path.basename(a_file)
+            file_name = os.path.basename(fname)
             part = MIMEBase('application','octet-stream')
             part.set_payload(attachment.read())
             part.add_header('Content-Disposition',
                             'attachment',
-                            filename=fname)
+                            filename=file_name)
             encoders.encode_base64(part)
             msg.attach(part)
 
