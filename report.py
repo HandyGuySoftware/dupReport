@@ -125,7 +125,7 @@ def sendReportToFile(msgH, msgT, msgC = None):
 
     # See where the output files are going
     for fspec in globs.ofileList:
-        fsplit = fspec.split(',')
+        fsplit = fspec[0].split(',')
         fName = fsplit[0]
         fmt = fsplit[1]
 

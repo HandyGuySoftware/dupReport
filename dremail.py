@@ -627,17 +627,22 @@ class EmailServer:
             msgPart = MIMEText(msgHtml, 'html')
             msg.attach(msgPart)
 
-        for ofile in globs.opts['fileattach']:
-            fname = ofile.split(',')[0]
-            attachment = open(fname, 'rb')
-            file_name = os.path.basename(fname)
-            part = MIMEBase('application','octet-stream')
-            part.set_payload(attachment.read())
-            part.add_header('Content-Disposition',
-                            'attachment',
-                            filename=file_name)
-            encoders.encode_base64(part)
-            msg.attach(part)
+        # See which files need to be emailed
+        # ofileList consists of tuples of (<filespec>,<emailSpec>)
+        # Filespec is "<filename,type>". <emailSpec> is True (attach file as email) or False (dont).
+        if globs.ofileList:
+            for ofile in globs.ofileList:
+                if ofile[1]: # True - need to email
+                    fname = ofile[0].split(',')[0]
+                    attachment = open(fname, 'rb')
+                    file_name = os.path.basename(fname)
+                    part = MIMEBase('application','octet-stream')
+                    part.set_payload(attachment.read())
+                    part.add_header('Content-Disposition',
+                                    'attachment',
+                                    filename=file_name)
+                    encoders.encode_base64(part)
+                    msg.attach(part)
 
         # Send the message via SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details

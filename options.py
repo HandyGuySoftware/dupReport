@@ -319,13 +319,16 @@ class OptionManager:
         self.options['initdb'] = self.cmdLineArgs.initdb
         
         # Store output files for later use
-        self.options['file'] = self.cmdLineArgs.file
-        self.options['fileattach'] = self.cmdLineArgs.fileattach
+        # Create ofileList[] - list of output files
+        # Consists of tuples of (<filespec>,<emailSpec>)
+        # Filespec is "<filename,type>". <emailSpec> is True (attach file as email) or False (dont).
         globs.ofileList = []
-        if self.options['file']:
-            globs.ofileList = globs.ofileList  + self.options['file']
-        if self.options['fileattach']:
-            globs.ofileList = globs.ofileList  + self.options['fileattach']
+        if self.cmdLineArgs.file:
+            for spec in self.cmdLineArgs.file:
+                globs.ofileList.append((spec, False))
+        if self.cmdLineArgs.fileattach:
+            for spec in self.cmdLineArgs.fileattach:
+                globs.ofileList.append((spec, True))
 
         for opName in self.options:
             if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'):
