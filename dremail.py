@@ -418,7 +418,6 @@ class EmailServer:
         isJson = True if msgBody[:8] == '{\"Data\":' else False
 
         if isJson:
-            #jsonStatus = json.loads(msgBody.replace("=\r\n",""), strict = False)    # Top-level JSON data
             jsonStatus = json.loads(msgBody.replace("=\r\n","").replace("=\n",""), strict = False)    # Top-level JSON data
             jsonData = jsonStatus['Data']                                           # 'Data' branch under main data
 
