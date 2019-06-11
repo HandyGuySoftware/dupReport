@@ -888,9 +888,7 @@ Indicates the types of messages that dupReport will send to Apprise. This is bas
 | warning | warning and failure           |
 | failure | Failure only                  |
 
-**Apprise and Email interaction**: If you want to use Apprise instead of email for notifications (or you are using email notifications *through* Apprise) , use the '-x' option on the command line to suppress sending of report emails. A couple of notes about the interaction between dupReport, Apprise, and email:
-
-1. If you suppress emails
+**Apprise and Email interaction**: If you want to use email notifications through Apprise instead of direct email from dupReport for notifications, use the '-x' option on the command line to suppress sending of dupReport emails.
 
 **<u>Important Support Note</u>**: dupReport has included Apprise notifications because we feel it would be a useful feature for our users. While we can support and address issues with dupReport's use of Apprise, we cannot provide support for Apprise issues or feature requests. Please contact the Apprise developer directly on the [Apprise GitHub page](https://github.com/caronc/apprise).
 
