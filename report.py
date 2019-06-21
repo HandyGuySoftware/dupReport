@@ -30,6 +30,7 @@ fldDefs = {
     # field                 [0]Title                [1]dbField             [2]alignment[3]gig/meg? [4]hdrDef   [5]normDef   [6]megaDef  [7]gigaDef
     'source':               ('Source',              'source',              'left',     False,      '20',       '20'),
     'destination':          ('Destination',         'destination',         'left',     False,      '20',       '20'),
+    'dupversion':           ('Version',             'dupversion',          'left',     False,      '20',       '20'),
     'date':                 ('Date',                'dateStr',             'left',     False,      '13',       '13'),
     'time':                 ('Time',                'timeStr',             'left',     False,      '11',       '11'),
     'duration':             ('Duration',            'duration',            'right',    False,      '15',       '15'),
@@ -44,11 +45,12 @@ fldDefs = {
     'result':               ('Result',              'parsedResult',        'left',     False,      '>13',      '>13'),
     'jobmessages':          ('JobMessages',         'messages',            'center',   False,      '^50',      '^50'),
     'jobwarnings':          ('JobWarnings',         'warnings',            'center',   False,      '^50',      '^50'),
-    'joberrors':            ('JobErrors',           'errors',              'center',   False,      '^50',      '^50')
+    'joberrors':            ('JobErrors',           'errors',              'center',   False,      '^50',      '^50'),
+    'joblogdata':           ('Log Data',            'logdata',             'center',   False,      '^50',      '^50')
     }
 
 # List of columns in the report
-rptColumns = ['source', 'destination', 'date', 'time', 'duration', 'files', 'filesplusminus', 'size',  'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result', 'jobmessages', 'jobwarnings', 'joberrors']
+rptColumns = ['source', 'destination', 'dupversion', 'date', 'time', 'duration', 'files', 'filesplusminus', 'size',  'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result', 'jobmessages', 'jobwarnings', 'joberrors', 'joblogdata']
 
 # Provide a field format specification for the titles in the report
 def printTitle(fld, typ):
@@ -123,7 +125,7 @@ def sendReportToFile(msgH, msgT, msgC = None):
 
     # See where the output files are going
     for fspec in globs.ofileList:
-        fsplit = fspec.split(',')
+        fsplit = fspec[0].split(',')
         fName = fsplit[0]
         fmt = fsplit[1]
 
@@ -374,12 +376,13 @@ def lastSeenTable(opts):
     return msgHtml, msgText, msgCsv
 
 # Truncate warning & error messages
-def truncateWarnErrMsgs(msg, msgLen, warn, warnLen, err, errLen):
+def truncateWarnErrMsgs(msg, msgLen, warn, warnLen, err, errLen, logData, logDataLen):
 
     # Set defaults to original messages
     msgRet = msg
     warnRet = warn
     errRet = err
+    logDataRet = logData
 
     # Truncate string if length of string is > desired length
     if msgLen != 0:
@@ -388,8 +391,10 @@ def truncateWarnErrMsgs(msg, msgLen, warn, warnLen, err, errLen):
         warnRet = (warn[:warnLen]) if len(warn) > warnLen else warn  
     if errLen != 0:
         errRet = (err[:errLen]) if len(err) > errLen else err
+    if logDataLen != 0:
+        logDataRet = (logData[:logDataLen]) if len(logData) > logDataLen else logData
 
-    return msgRet, warnRet, errRet
+    return msgRet, warnRet, errRet, logDataRet
 
 # Class for report management
 class Report:
@@ -411,6 +416,7 @@ class Report:
         self.reportOpts['displaymessages'] = self.reportOpts['displaymessages'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displaywarnings'] = self.reportOpts['displaywarnings'].lower() in ('true')     # Convert to boolean
         self.reportOpts['displayerrors'] = self.reportOpts['displayerrors'].lower() in ('true')         # Convert to boolean
+        self.reportOpts['displaylogdata'] = self.reportOpts['displaylogdata'].lower() in ('true')       # Convert to boolean
         self.reportOpts['repeatheaders'] = self.reportOpts['repeatheaders'].lower() in ('true')         # Convert to boolean
         self.reportOpts['nobackupwarn'] = int(self.reportOpts['nobackupwarn'])                          # Convert to integer
         self.reportOpts['lastseenlow'] = int(self.reportOpts['lastseenlow'])                            # Convert to integer
@@ -418,6 +424,7 @@ class Report:
         self.reportOpts['truncatemessage'] = int(self.reportOpts['truncatemessage'])                    # Convert to integer
         self.reportOpts['truncatewarning'] = int(self.reportOpts['truncatewarning'])                    # Convert to integer
         self.reportOpts['truncateerror'] = int(self.reportOpts['truncateerror'])                        # Convert to integer
+        self.reportOpts['truncatelogdata'] = int(self.reportOpts['truncatelogdata'])                    # Convert to integer
         self.reportOpts['durationzeroes'] = self.reportOpts['durationzeroes'].lower() in ('true')       # Convert to boolean
 
         # Basic field value checking
@@ -453,6 +460,7 @@ class Report:
         rptColumns.remove('jobmessages')
         rptColumns.remove('jobwarnings')
         rptColumns.remove('joberrors')
+        rptColumns.remove('joblogdata')
 
         globs.log.write(3, 'Report: reportOps=[{}]'.format(self.reportOpts))
         globs.log.write(3, 'Report: reportTits=[{}]'.format(self.reportTits))
@@ -480,8 +488,8 @@ class Report:
                 destination, lastTimestamp, lastFileCount, lastFileSize))
 
             # Select all activity for src/dest pair since last report run
-            sqlStmt = 'SELECT endTimestamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                filesWithError, parsedResult, warnings, errors, messages FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
+            sqlStmt = 'SELECT dupVersion, endTimestamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
+                filesWithError, parsedResult, warnings, errors, messages, logdata FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
                 AND  endTimestamp > {} order by endTimestamp'.format(source, destination, lastTimestamp)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
 
@@ -489,8 +497,8 @@ class Report:
             globs.log.write(3, 'emailRows=[{}]'.format(emailRows))
             if emailRows: 
                 # Loop through each new activity and report
-                for endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                    filesWithError, parsedResult, warnings, errors, messages in emailRows:
+                for dupversion, endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
+                    filesWithError, parsedResult, warnings, errors, messages, logdata in emailRows:
             
                     # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount
@@ -502,9 +510,9 @@ class Report:
                     dateStr, timeStr = drdatetime.fromTimestamp(endTimeStamp)
 
                     sqlStmt = "INSERT INTO report (source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-                        addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors) \
-                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \"{}\", \"{}\", \"{}\", \"{}\")".format(source, destination, endTimeStamp, duration, examinedFiles, \
-                        examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors)
+                        addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata) \
+                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\")".format(source, destination, endTimeStamp, duration, examinedFiles, \
+                        examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
                     globs.db.execSqlStmt(sqlStmt)
 
                     # Update latest activity into into backupsets

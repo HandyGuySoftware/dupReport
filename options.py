@@ -25,95 +25,101 @@ import globs
 # 3 - default value
 # 4 - is the default value acceptable if not already present in .rc file (true/false)?
 rcParts= [
+    # [0] Section   [1] Option          [2] Default                                                                 [3]is the default value acceptable if not already present in .rc file (true/false)?
     # [main] section defaults
-    ('main','version','{}.{}.{}'.format(globs.version[0],globs.version[1],globs.version[2]), True),
-    ('main','dbpath',os.path.dirname(os.path.realpath(sys.argv[0])), True),
-    ('main','logpath',os.path.dirname(os.path.realpath(sys.argv[0])), True),
-    ('main','verbose','1', True),
-    ('main','logappend','false', True),
-    ('main','subjectregex','^Duplicati Backup report for', True),
-    ('main','srcregex','\w*', True),
-    ('main','destregex','\w*', True),
-    ('main','srcdestdelimiter','-', True),
-    ('main','dateformat', 'MM/DD/YYYY', False),
-    ('main','timeformat','HH:MM:SS', False),
-    ('main','warnoncollect','false', True),
-    ('main','applyutcoffset','true', True),
-    ('main','show24hourtime', 'true', True),
-    ('main','purgedb', 'false', True),
-    ('main','showprogress', '0', True),
-    ('main','masksensitive', 'true', True),
-    ('main','markread', 'false', True),
+    ('main',        'version',          '{}.{}.{}'.format(globs.version[0],globs.version[1],globs.version[2]),      True),
+    ('main',        'dbpath',           os.path.dirname(os.path.realpath(sys.argv[0])),                             True),
+    ('main',        'logpath',          os.path.dirname(os.path.realpath(sys.argv[0])),                             True),
+    ('main',        'verbose',          '1',                                                                        True),
+    ('main',        'logappend',        'false',                                                                    True),
+    ('main',        'subjectregex',     '^Duplicati Backup report for',                                             True),
+    ('main',        'srcregex',         '\w*',                                                                      True),
+    ('main',        'destregex',        '\w*',                                                                      True),
+    ('main',        'srcdestdelimiter', '-',                                                                        True),
+    ('main',        'dateformat',       'MM/DD/YYYY',                                                               False),
+    ('main',        'timeformat',       'HH:MM:SS',                                                                 False),
+    ('main',        'warnoncollect',    'false',                                                                    True),
+    ('main',        'applyutcoffset',   'true',                                                                     True),
+    ('main',        'show24hourtime',   'true',                                                                     True),
+    ('main',        'purgedb',          'false',                                                                    True),
+    ('main',        'showprogress',     '0',                                                                        True),
+    ('main',        'masksensitive',    'true',                                                                     True),
+    ('main',        'markread',         'false',                                                                    True),
     
     # [incoming] section defaults
-    ('incoming','intransport','imap', False),
-    ('incoming','inserver','localhost', False),
-    ('incoming','inport','993', False),
-    ('incoming','inencryption','tls', False),
-    ('incoming','inaccount','someacct@hostmail.com', False),
-    ('incoming','inpassword','********', False),
-    ('incoming','infolder','INBOX', False),
-    ('incoming','inkeepalive','false', True),
+    ('incoming',    'intransport',      'imap',                                                                     False),
+    ('incoming',    'inserver',         'localhost',                                                                False),
+    ('incoming',    'inport',           '993',                                                                      False),
+    ('incoming',    'inencryption',     'tls',                                                                      False),
+    ('incoming',    'inaccount',        'someacct@hostmail.com',                                                    False),
+    ('incoming',    'inpassword',       '********',                                                                 False),
+    ('incoming',    'infolder',         'INBOX',                                                                    False),
+    ('incoming',    'inkeepalive',      'false',                                                                    True),
 
     # [outgoing] section defaults
-    ('outgoing','outserver','localhost', False),
-    ('outgoing','outport','587', False),
-    ('outgoing','outencryption','tls', False),
-    ('outgoing','outaccount','someacct@hostmail.com', False),
-    ('outgoing','outpassword','********', False),
-    ('outgoing','outsender','sender@hostmail.com', False),
-    ('outgoing','outreceiver','receiver@hostmail.com', False),
+    ('outgoing',    'outserver',        'localhost',                                                                False),
+    ('outgoing',    'outport',          '587',                                                                      False),
+    ('outgoing',    'outencryption',    'tls',                                                                      False),
+    ('outgoing',    'outaccount',       'someacct@hostmail.com',                                                    False),
+    ('outgoing',    'outpassword',      '********',                                                                 False),
+    ('outgoing',    'outsender',        'sender@hostmail.com',                                                      False),
+    ('outgoing',    'outreceiver',      'receiver@hostmail.com',                                                    False),
     ('outgoing','outkeepalive','false', True),
 
     # [report] section defaults
-    ('report','style','srcdest', True),
-    ('report','sortby','source', True),
-    ('report','border','1', True),
-    ('report','padding','5', True),
-    ('report','reporttitle','Duplicati Backup Summary Report', True),
-    ('report','sizedisplay','byte', True),
-    ('report','showsizedisplay','true', True),
-    ('report','displaymessages','false', True),
-    ('report','displaywarnings','true', True),
-    ('report','displayerrors','true', True),
-    ('report','titlebg','#FFFFFF', True),
-    ('report','subheadbg','#D3D3D3', True),
-    ('report','jobmessagebg','#FFFFFF', True),
-    ('report','jobwarningbg','#FFFF00', True),
-    ('report','joberrorbg','#FF0000', True),
-    ('report','repeatheaders','false', True),
-    ('report','nobackupwarn', '0', True),
-    ('report','nbwsubject', 'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
-    ('report','lastseensummary', 'none', True),
-    ('report','lastseensummarytitle', 'Backup Sets Last Seen', True),
-    ('report','lastseenlow', '5', True),
-    ('report','lastseenmed', '10', True),
-    ('report','lastseenlowcolor', '#FFFF00', True),
-    ('report','lastseenmedcolor', '#FF4500', True),
-    ('report','lastseenhighcolor', '#FF0000', True),
-    ('report','truncatemessage', '0', True),
-    ('report','truncatewarning', '0', True),
-    ('report','truncateerror', '0', True),
-    ('report','durationzeroes', 'true', True),
+    ('report',      'style',            'srcdest',                                                                  True),
+    ('report',      'sortby',           'source',                                                                   True),
+    ('report',      'border',           '1',                                                                        True),
+    ('report',      'padding',          '5',                                                                        True),
+    ('report',      'reporttitle',      'Duplicati Backup Summary Report',                                          True),
+    ('report',      'sizedisplay',      'byte',                                                                     True),
+    ('report',      'showsizedisplay',  'true',                                                                     True),
+    ('report',      'displaymessages',  'false',                                                                    True),
+    ('report',      'displaywarnings',  'true',                                                                     True),
+    ('report',      'displayerrors',    'true',                                                                     True),
+    ('report',      'displaylogdata',   'true',                                                                     True),
+    ('report',      'titlebg',          '#FFFFFF',                                                                  True),
+    ('report',      'subheadbg',        '#D3D3D3',                                                                  True),
+    ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
+    ('report',      'jobwarningbg',     '#FFFF00',                                                                  True),
+    ('report',      'joberrorbg',       '#FF0000',                                                                  True),
+    ('report',      'joblogdatabg',     '#FF0000',                                                                  True),
+    ('report',      'repeatheaders',    'false',                                                                    True),
+    ('report',      'nobackupwarn',     '0',                                                                        True),
+    ('report',      'nbwsubject',       'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
+    ('report',      'lastseensummary',  'none',                                                                     True),
+    ('report',      'lastseensummarytitle', 'Backup Sets Last Seen',                                                True),
+    ('report',      'lastseenlow',      '5',                                                                        True),
+    ('report',      'lastseenmed',      '10',                                                                       True),
+    ('report',      'lastseenlowcolor', '#FFFF00',                                                                  True),
+    ('report',      'lastseenmedcolor', '#FF4500',                                                                  True),
+    ('report',      'lastseenhighcolor','#FF0000',                                                                  True),
+    ('report',      'truncatemessage',  '0',                                                                        True),
+    ('report',      'truncatewarning',  '0',                                                                        True),
+    ('report',      'truncateerror',    '0',                                                                        True),
+    ('report',      'truncatelogdata',  '0',                                                                        True),
+    ('report',      'durationzeroes',   'true',                                                                     True),
 
     # [headings] section defaults
-    ('headings','Source','Source', True),
-    ('headings','Destination','Destination', True),
-    ('headings','Date','Date', True),
-    ('headings','Time','Time', True),
-    ('headings','Duration','Duration', True),
-    ('headings','Files','Files', True),
-    ('headings','FilesPlusMinus','+/-', True),
-    ('headings','Size','Size', True),
-    ('headings','SizePlusMinus','+/-', True),
-    ('headings','Added','Added', True),
-    ('headings','Deleted','Deleted', True),
-    ('headings','Modified','Modified', True),
-    ('headings','Errors','Errors', True),
-    ('headings','Result','Result', True),
-    ('headings','JobMessages','Messages', True),
-    ('headings','JobWarnings','Warnings', True),
-    ('headings','JobErrors','Errors', True),
+    ('headings',    'Source',           'Source',                                                                   True),
+    ('headings',    'Destination',      'Destination',                                                              True),
+    ('headings',    'Date',             'Date',                                                                     True),
+    ('headings',    'Time',             'Time',                                                                     True),
+    ('headings',    'dupVersion',       'Version',                                                                  True),
+    ('headings',    'Duration',         'Duration',                                                                 True),
+    ('headings',    'Files',            'Files',                                                                    True),
+    ('headings',    'FilesPlusMinus',   '+/-',                                                                      True),
+    ('headings',    'Size',             'Size',                                                                     True),
+    ('headings',    'SizePlusMinus',    '+/-',                                                                      True),
+    ('headings',    'Added',            'Added',                                                                    True),
+    ('headings',    'Deleted',          'Deleted',                                                                  True),
+    ('headings',    'Modified',         'Modified',                                                                 True),
+    ('headings',    'Errors',           'Errors',                                                                   True),
+    ('headings',    'Result',           'Result',                                                                   True),
+    ('headings',    'JobMessages',      'Messages',                                                                 True),
+    ('headings',    'JobWarnings',      'Warnings',                                                                 True),
+    ('headings',    'JobErrors',        'Errors',                                                                   True),
+    ('headings',    'JobLogdata',       'Log Data',                                                                 True),
    ]
 
 
@@ -313,9 +319,16 @@ class OptionManager:
         self.options['initdb'] = self.cmdLineArgs.initdb
         
         # Store output files for later use
-        self.options['file'] = self.cmdLineArgs.file
-        if self.options['file']:
-            globs.ofileList = self.options['file']
+        # Create ofileList[] - list of output files
+        # Consists of tuples of (<filespec>,<emailSpec>)
+        # Filespec is "<filename,type>". <emailSpec> is True (attach file as email) or False (dont).
+        globs.ofileList = []
+        if self.cmdLineArgs.file:
+            for spec in self.cmdLineArgs.file:
+                globs.ofileList.append((spec, False))
+        if self.cmdLineArgs.fileattach:
+            for spec in self.cmdLineArgs.fileattach:
+                globs.ofileList.append((spec, True))
 
         for opName in self.options:
             if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'):
@@ -357,6 +370,7 @@ class OptionManager:
         argParser.add_argument("-b","--rollback", help="Roll back datebase to specified date. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-B","--rollbackx", help="Roll back datebase to specified date, then exit program. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
+        argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
         argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
         argParser.add_argument("-p", "--purgedb", help="Purge emails that are no longer on the server from the database. Same as [main]purgedb=true in rc file.", action="store_true")
@@ -386,6 +400,7 @@ class OptionManager:
         globs.log.write(3, '- rollback = [{}]'.format(self.cmdLineArgs.rollback))
         globs.log.write(3, '- rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
         globs.log.write(3, '- file = [{}]'.format(self.cmdLineArgs.file))
+        globs.log.write(3, '- fileattach = [{}]'.format(self.cmdLineArgs.fileattach))
         globs.log.write(3, '- nomail = [{}]'.format(self.cmdLineArgs.nomail))
         globs.log.write(3, '- remove = [{}]'.format(self.cmdLineArgs.remove))
         globs.log.write(3, '- purgedb = [{}]'.format(self.cmdLineArgs.purgedb))

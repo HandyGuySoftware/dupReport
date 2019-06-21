@@ -81,8 +81,8 @@ def runReport(startTime):
             msgHtml, msgText, msgCsv = report.rptPrintTitles(msgHtml, msgText, msgCsv, rptCols)
 
         # Select all activity for src/dest pair since last report run
-        sqlStmt = "SELECT timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-            addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors \
+        sqlStmt = "SELECT dupversion, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+            addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, logdata \
             FROM report WHERE source=\'{}\' AND destination=\'{}\' order by timestamp".format(source, destination)
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         reportRows = dbCursor.fetchall()
@@ -113,15 +113,15 @@ def runReport(startTime):
                 msgCsv += '\"No new activity. Last activity on {} at {} ({} days ago)\"\n'.format(lastDateStr, lastTimeStr, diff)
         else:
             # Loop through each new job email and report
-            for timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+            for dupversion, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                     addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, \
-                    warnings, errors in reportRows:
+                    warnings, errors, logdata in reportRows:
 
                 # Convert duration to string
                 rptDuration = drdatetime.timeDiff(duration)    
   
                 # Truncate message, warning, & error if indicated in .rc file
-                messages, warnings, errors = report.truncateWarnErrMsgs(messages, reportOpts['truncatemessage'], warnings, reportOpts['truncatewarning'], errors, reportOpts['truncateerror'])
+                messages, warnings, errors, logdata = report.truncateWarnErrMsgs(messages, reportOpts['truncatemessage'], warnings, reportOpts['truncatewarning'], errors, reportOpts['truncateerror'], logdata, reportOpts['truncatelogdata'])
             
                 # Get date and time from timestamp
                 dateStr, timeStr = drdatetime.fromTimestamp(timestamp)
@@ -130,9 +130,9 @@ def runReport(startTime):
                 # Each field takes up one column/cell in the table
                 msgHtml += '<tr>'
 
-                # The full list of possible fields in the report. printField() below will skip a field if it is emoved in the .rc file.
-                titles = ['date','time', 'duration', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added','deleted',  'modified', 'errors', 'result']
-                fields = [dateStr, timeStr, rptDuration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
+                # The full list of possible fields in the report. printField() below will skip a field if it is removed in the .rc file.
+                titles = ['source', 'dupversion', 'date','time', 'duration', 'files', 'filesplusminus', 'size', 'sizeplusminus', 'added','deleted',  'modified', 'errors', 'result']
+                fields = [source, dupversion, dateStr, timeStr, rptDuration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles,  modifiedFiles, filesWithError, parsedResult]
 
                 for ttl, fld in zip(titles, fields):
                     msgHtml += report.printField(ttl, fld, 'html')
@@ -143,11 +143,11 @@ def runReport(startTime):
                 msgText += '\n'
                 msgCsv += '\n'
 
-                fields = [messages, warnings, errors ]
-                options = ['displaymessages', 'displaywarnings', 'displayerrors']
-                backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg']
-                titles = ['jobmessages', 'jobwarnings', 'joberrors']
-                # Print message/warning/error fields
+                fields = [messages, warnings, errors, logdata ]
+                options = ['displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata']
+                backgrounds = ['jobmessagebg', 'jobwarningbg', 'joberrorbg', 'joblogdatabg']
+                titles = ['jobmessages', 'jobwarnings', 'joberrors', 'joblogdata']
+                # Print message/warning/error/logdata fields
                 # Each of these spans all the table columns
                 for fld, opt, bg, tit in zip(fields, options, backgrounds, titles):
                     if ((fld != '') and (reportOpts[opt] == True)):
