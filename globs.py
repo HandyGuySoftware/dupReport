@@ -9,9 +9,9 @@ import os
 
 # Define version info
 version=[2,2,7]     # Program Version
-status='Beta 1'
+status='Beta 2'
 dbVersion=[1,0,3]   # Required DB version
-rcVersion=[2,1,0]   # Required RC version
+rcVersion=[3,0,0]   # Required RC version
 copyright='Copyright (c) 2018, 2019 Stephen Fried for HandyGuy Software.'
 
 # Define global variables
