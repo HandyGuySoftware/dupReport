@@ -5,6 +5,7 @@
 - Added "Duplicati version" field option to report. Can be helpful in discovering when one of your systems is behind in Duplicati updates (Issue #114)
 - Added -F option. Same as -f, but also sends resulting output file as an attachment to the email. (Issue #115)
 - Updated database schema, now on version 1.0.3. Program will automaticaly upgrade older DB versions to the new format.
+- Fixed weird .rc file version numbering system. (Issue #120)
 
 2.2.6
 -----
@@ -35,7 +36,7 @@
 - Added support for Apprise notifications (https://github.com/caronc/apprise)
 - If you specify -x on the command line you no longer need to specify valid outgong email server and account information in the .rc file. 
      However, if you still want to send backup warning emails (i.e. you don't use -w) you still need to enter valid server and account information for the outgoing server. (Issue #99)
-- Fixed improper program terminatiopn method (Issue #98)
+- Fixed improper program termination method (Issue #98)
 
 2.2.2
 -----

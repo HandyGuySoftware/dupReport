@@ -27,7 +27,7 @@ import globs
 rcParts= [
     # [0] Section   [1] Option          [2] Default                                                                 [3]is the default value acceptable if not already present in .rc file (true/false)?
     # [main] section defaults
-    ('main',        'version',          '{}.{}.{}'.format(globs.version[0],globs.version[1],globs.version[2]),      True),
+    ('main',        'rcversion',        '{}.{}.{}'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]),True),
     ('main',        'dbpath',           os.path.dirname(os.path.realpath(sys.argv[0])),                             True),
     ('main',        'logpath',          os.path.dirname(os.path.realpath(sys.argv[0])),                             True),
     ('main',        'verbose',          '1',                                                                        True),
@@ -155,30 +155,33 @@ class OptionManager:
             globs.log.write(1, 'RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))
             return False
 
-        self.rcFileName = rcFileSpec
+        self.rcFileName = rcFileSpec    # Store RC file path
         return True
 
     # Check if need to upgrade RC file version
     # Returns True if need to upgrade RC file, False if at current version
     def checkRcFileVersion(self):
         globs.log.write(1,'options.checkRcFileVersion()')
-        needToUpgrade = False
+        needToUpgrade = False   # Assume .rc file is up to date
         currVerNum = 0
+
         # Get current RC version, if available. 
-        if self.parser.has_option('main','version'):
+        if self.parser.has_option('main','version'):        # Old rc version name (pre-v2.2.7)
             rcVersion = self.parser.get('main','version')
+        elif self.parser.has_option('main','rcversion'):    # New rc version name (post-v2.2.7)
+            rcVersion = self.parser.get('main','rcversion')
+        else:
+            # Current RC version not available. Using a really old version of the program, so need to upgrade
+            needToUpgrade = True
+
+        if needToUpgrade == False:
             verParts = rcVersion.split('.')
             currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
             # Split RC version into component parts
             newVerNum = (globs.rcVersion[0] * 100) + (globs.rcVersion[1] * 10) + globs.rcVersion[2]
             globs.log.write(3,'RC file versions: current={} new={}.'.format(currVerNum, newVerNum))
-            if currVerNum < newVerNum: # Need an upgrade
+            if currVerNum < newVerNum: # .rc file need an upgrade
                 needToUpgrade = True
-            else:   # current version is OK
-                needToUpgrade = False
-        else:
-            # Current RC version not available. Using a really old version of the program, so need to upgrade
-            needToUpgrade = True
 
         globs.log.write(1,'Current version number={}. Need to upgrade rc file? {}'.format(currVerNum, needToUpgrade))
         return needToUpgrade, currVerNum
@@ -213,11 +216,6 @@ class OptionManager:
                 if canCont == False:
                     newRc=True
 
-        # Remove deprecated options
-        if self.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in versoin 2.2.0
-            self.clearRcOption('report', 'noactivitybg')
-            needUpdate = True
-
         globs.log.write(3,'newRc={}'.format(newRc))
         if needUpdate:
             self.updateRc()
@@ -242,19 +240,11 @@ class OptionManager:
                 self.options[name] = value
 
         # Fix some of the datatypes
-        self.options['verbose'] = int(self.options['verbose'])  # integer
-        self.options['inport'] = int(self.options['inport'])    # integer
-        self.options['outport'] = int(self.options['outport'])  # integer
-        self.options['logappend'] = self.options['logappend'].lower() in ('true')   # boolean
-        self.options['warnoncollect'] = self.options['warnoncollect'].lower() in ('true')   # boolean
-        self.options['applyutcoffset'] = self.options['applyutcoffset'].lower() in ('true')   # boolean
-        self.options['show24hourtime'] = self.options['show24hourtime'].lower() in ('true')   # boolean
-        self.options['purgedb'] = self.options['purgedb'].lower() in ('true')   # boolean
-        self.options['inkeepalive'] = self.options['inkeepalive'].lower() in ('true')   # boolean
-        self.options['outkeepalive'] = self.options['outkeepalive'].lower() in ('true')   # boolean
-        self.options['showprogress'] = int(self.options['showprogress'])  # integer
-        self.options['masksensitive'] = self.options['masksensitive'].lower() in ('true')   # boolean
-        self.options['markread'] = self.options['markread'].lower() in ('true')   # boolean
+        for item in ('verbose', 'inport', 'outport', 'showprogress'):  # integers
+            self.options[item] = int(self.options[item])
+
+        for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'inkeepalive', 'outkeepalive', 'masksensitive', 'markread'):  # boolean
+            self.options[item] = self.options[item].lower() in ('true')
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
@@ -331,7 +321,7 @@ class OptionManager:
                 globs.ofileList.append((spec, True))
 
         for opName in self.options:
-            if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'):
+            if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'): # Mask sensitive data fields
                 globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, globs.maskData(self.options[opName], self.options['masksensitive'])))
             else:
                 globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, self.options[opName]))

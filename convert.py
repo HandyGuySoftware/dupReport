@@ -56,42 +56,56 @@ def convertRc(oMgr, fromVersion):
         ('outgoing',    'receiver',         'outgoing',     'outreceiver')
         ]
 
-    # Now, start adding back in secitons
-    if oMgr.parser.has_section('main') is False:
-        globs.log.write(1, 'Adding [main] section.')
-        oMgr.addRcSection('main')
+    if fromVersion < 210:
+        # Start adding back in secitons
+        if oMgr.parser.has_section('main') is False:
+            globs.log.write(1, 'Adding [main] section.')
+            oMgr.addRcSection('main')
+
+        if oMgr.parser.has_section('incoming') is False:
+            globs.log.write(1, 'Adding [incoming] section.')
+            oMgr.addRcSection('incoming')
+
+        if oMgr.parser.has_section('outgoing') is False:
+            globs.log.write(1, 'Adding [outgoing] section.')
+            oMgr.addRcSection('outgoing')
+
+        if oMgr.parser.has_section('report') is False:
+            globs.log.write(1, 'Adding [report] section.')
+            oMgr.addRcSection('report')
+
+        if oMgr.parser.has_section('headings') is False:
+            globs.log.write(1, 'Adding [headings] section.')
+            oMgr.addRcSection('headings')
+
+        for fromsection, fromoption, tosection, tooption in optList:
+            globs.log.write(1, 'Updating [{}] {} to: [{}] {}'.format(fromsection, fromoption, tosection, tooption))
+            value = oMgr.getRcOption(fromsection, fromoption)
+            oMgr.clearRcOption(fromsection, fromoption)
+            oMgr.setRcOption(tosection, tooption, value)
+
+        # Adjusted format of sizeDisplay in version 2.1
+        szDisp = oMgr.getRcOption('report', 'sizedisplay')
+        if szDisp == 'none':
+            oMgr.setRcOption('report', 'sizedisplay', 'byte')
+        oMgr.setRcOption('report', 'showsizedisplay', 'true')
+
+        # Remove deprecated options
+        if oMgr.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in version 2.2.0
+            oMgr.clearRcOption('report', 'noactivitybg')
+
+        if oMgr.parser.has_option('main', 'version') == True:    # Deprecated in version 2.2.7 (renamed to 'rcversion')
+            oMgr.clearRcOption('main', 'version')
+    elif fromVersion < 300:
+        # Remove deprecated options
+        if oMgr.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in version 2.2.0
+            oMgr.clearRcOption('report', 'noactivitybg')
+
+        if oMgr.parser.has_option('main', 'version') == True:    # Deprecated in version 2.2.7 (renamed to 'rcversion')
+            oMgr.clearRcOption('main', 'version')
+
     globs.log.write(1, 'Updating version number.')
-    oMgr.setRcOption('main', 'version', '{}.{}.{}'.format(globs.version[0],globs.version[1],globs.version[2]))
-
-    if oMgr.parser.has_section('incoming') is False:
-        globs.log.write(1, 'Adding [incoming] section.')
-        oMgr.addRcSection('incoming')
-
-    if oMgr.parser.has_section('outgoing') is False:
-        globs.log.write(1, 'Adding [outgoing] section.')
-        oMgr.addRcSection('outgoing')
-
-    if oMgr.parser.has_section('report') is False:
-        globs.log.write(1, 'Adding [report] section.')
-        oMgr.addRcSection('report')
-
-    if oMgr.parser.has_section('headings') is False:
-        globs.log.write(1, 'Adding [headings] section.')
-        oMgr.addRcSection('headings')
-
-    for fromsection, fromoption, tosection, tooption in optList:
-        globs.log.write(1, 'Updating [{}] {} to: [{}] {}'.format(fromsection, fromoption, tosection, tooption))
-        value = oMgr.getRcOption(fromsection, fromoption)
-        oMgr.clearRcOption(fromsection, fromoption)
-        oMgr.setRcOption(tosection, tooption, value)
-
-    # Adjusted format of sizeDisplay in version 2.1
-    szDisp = oMgr.getRcOption('report', 'sizedisplay')
-    if szDisp == 'none':
-        oMgr.setRcOption('report', 'sizedisplay', 'byte')
-    oMgr.setRcOption('report', 'showsizedisplay', 'true')
-        
-
+    oMgr.setRcOption('main', 'rcversion', '{}.{}.{}'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]))
     globs.log.write(1, 'Writing new .rc file.')
     oMgr.updateRc()
 
