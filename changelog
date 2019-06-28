@@ -6,6 +6,7 @@
 - Added -F option. Same as -f, but also sends resulting output file as an attachment to the email. (Issue #115)
 - Updated database schema, now on version 1.0.3. Program will automaticaly upgrade older DB versions to the new format.
 - Fixed weird .rc file version numbering system. (Issue #120)
+- Added Duplicati version column to "Last Seen" report table (Issue #121)
 
 2.2.6
 -----
