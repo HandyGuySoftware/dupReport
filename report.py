@@ -339,10 +339,10 @@ def pastBackupInterval(srcDest, days):
 def lastSeenTable(opts):
     globs.log.write(1, 'report.lastSeenTable()')
 
-    msgHtml = '<table border={} cellpadding="{}"><td align=\"center\" colspan = \"3\"><b>{}</b></td>\n'.format(opts['border'],opts['padding'], opts['lastseensummarytitle'])
-    msgHtml += '<tr><td><b>Source</b></td><td><b>Destination</b></td><td><b>Last Seen</b></td></tr>\n'
-    msgText = '***** {} *****\n(Source-Destination-Last Seen)\n'.format(opts['lastseensummarytitle'])
-    msgCsv = '\"{}\",\n\"Source\",\"Destination\",\"Last Seen\"\n'.format(opts['lastseensummarytitle'])
+    msgHtml = '<table border={} cellpadding="{}"><td align=\"center\" colspan = \"4\"><b>{}</b></td>\n'.format(opts['border'],opts['padding'], opts['lastseensummarytitle'])
+    msgHtml += '<tr><td><b>Source</b></td><td><b>Destination</b></td><td><b>Duplicati Version</b></td><td><b>Last Seen</b></td></tr>\n'
+    msgText = '***** {} *****\n(Source-Destination-Duplicati Version-Last Seen)\n'.format(opts['lastseensummarytitle'])
+    msgCsv = '\"{}\",\n\"Source\",\"Destination\",\"Duplicati Version\",\"Last Seen\"\n'.format(opts['lastseensummarytitle'])
 
     dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination")
     sdSets = dbCursor.fetchall()
@@ -359,17 +359,20 @@ def lastSeenTable(opts):
         lastDate = drdatetime.fromTimestamp(lastTimestamp)
         days = drdatetime.daysSince(lastTimestamp)
 
+        dbCursor = globs.db.execSqlStmt("SELECT dupversion FROM emails WHERE sourcecomp='{}' AND destcomp='{}' and dupversion != '' ORDER BY emailtimestamp DESC".format(source, destination))
+        dVersion = dbCursor.fetchone()[0]
+
         result, interval = pastBackupInterval(srcDest, days)
         if result is False:
-            globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
-            msgHtml += '<tr><td>{}</td><td>{}</td><td>{} {} ({} days ago. Backup interval is {} days)</td></tr>\n'.format(source, destination, lastDate[0], lastDate[1], days, interval)
-            msgText += '{}{}{}: Last seen on {} {} ({} days ago. Backup interval is {} days.)\n'.format(source, globs.opts['srcdestdelimiter'], destination, lastDate[0], lastDate[1], days, interval)
-            msgCsv += '\"{}\",\"{}\",\"{} {} ({} days ago. Backup interval is {} days.)\"\n'.format(source, destination, lastDate[0], lastDate[1], days, interval)
+            globs.log.write(3,'source=[{}] destination=[{}] dupversion=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, dVersion, lastTimestamp, lastDate, days))
+            msgHtml += '<tr><td>{}</td><td>{}</td><td>{}</td><td>{} {} ({} days ago. Backup interval is {} days)</td></tr>\n'.format(source, destination, dVersion, lastDate[0], lastDate[1], days, interval)
+            msgText += '{}{}{} Version {}: Last seen on {} {} ({} days ago. Backup interval is {} days.)\n'.format(source, globs.opts['srcdestdelimiter'], destination, dVersion, lastDate[0], lastDate[1], days, interval)
+            msgCsv += '\"{}\",\"{}\",\"{}\",\"{} {} ({} days ago. Backup interval is {} days.)\"\n'.format(source, destination, dVersion, lastDate[0], lastDate[1], days, interval)
         else:            
-            globs.log.write(3,'source=[{}] destination=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, lastTimestamp, lastDate, days))
-            msgHtml += '<tr><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, getLastSeenColor(opts, days), lastDate[0], lastDate[1], days)
-            msgText += '{}{}{}: Last seen on {} {} ({} days ago)\n'.format(source, globs.opts['srcdestdelimiter'], destination, lastDate[0], lastDate[1], days)
-            msgCsv += '\"{}\",\"{}\",\"{} {} ({} days ago)\"\n'.format(source, destination, lastDate[0], lastDate[1], days)
+            globs.log.write(3,'source=[{}] destination=[{}] dupversion=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, dVersion, lastTimestamp, lastDate, days))
+            msgHtml += '<tr><td>{}</td><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, dVersion, getLastSeenColor(opts, days), lastDate[0], lastDate[1], days)
+            msgText += '{}{}{} Version {}: Last seen on {} {} ({} days ago)\n'.format(source, globs.opts['srcdestdelimiter'], destination, dVersion, lastDate[0], lastDate[1], days)
+            msgCsv += '\"{}\",\"{}\",\"{}\",\"{} {} ({} days ago)\"\n'.format(source, destination, dVersion, lastDate[0], lastDate[1], days)
 
     msgHtml += '</table>'
 
@@ -409,23 +412,13 @@ class Report:
         # Read name/value pairs from [report] section
         self.reportOpts = globs.optionManager.getRcSection('report')
 
-        # Fix some of the data field types
-        self.reportOpts['border'] = int(self.reportOpts['border'])                                      # Convert to integer
-        self.reportOpts['padding'] = int(self.reportOpts['padding'])                                    # Convert to integer
-        self.reportOpts['showsizedisplay'] = self.reportOpts['showsizedisplay'].lower() in ('true')     # Convert to boolean
-        self.reportOpts['displaymessages'] = self.reportOpts['displaymessages'].lower() in ('true')     # Convert to boolean
-        self.reportOpts['displaywarnings'] = self.reportOpts['displaywarnings'].lower() in ('true')     # Convert to boolean
-        self.reportOpts['displayerrors'] = self.reportOpts['displayerrors'].lower() in ('true')         # Convert to boolean
-        self.reportOpts['displaylogdata'] = self.reportOpts['displaylogdata'].lower() in ('true')       # Convert to boolean
-        self.reportOpts['repeatheaders'] = self.reportOpts['repeatheaders'].lower() in ('true')         # Convert to boolean
-        self.reportOpts['nobackupwarn'] = int(self.reportOpts['nobackupwarn'])                          # Convert to integer
-        self.reportOpts['lastseenlow'] = int(self.reportOpts['lastseenlow'])                            # Convert to integer
-        self.reportOpts['lastseenmed'] = int(self.reportOpts['lastseenmed'])                            # Convert to integer
-        self.reportOpts['truncatemessage'] = int(self.reportOpts['truncatemessage'])                    # Convert to integer
-        self.reportOpts['truncatewarning'] = int(self.reportOpts['truncatewarning'])                    # Convert to integer
-        self.reportOpts['truncateerror'] = int(self.reportOpts['truncateerror'])                        # Convert to integer
-        self.reportOpts['truncatelogdata'] = int(self.reportOpts['truncatelogdata'])                    # Convert to integer
-        self.reportOpts['durationzeroes'] = self.reportOpts['durationzeroes'].lower() in ('true')       # Convert to boolean
+        # Fix some of the data field types - integers
+        for item in ('border', 'padding', 'nobackupwarn', 'lastseenlow', 'lastseenmed', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
+            self.reportOpts[item] = int(self.reportOpts[item])
+
+        # Fix some of the data field types - boolean
+        for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes'):
+            self.reportOpts[item] = self.reportOpts[item].lower() in ('true')   
 
         # Basic field value checking
         # See if valid report name
