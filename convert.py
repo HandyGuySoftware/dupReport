@@ -56,42 +56,56 @@ def convertRc(oMgr, fromVersion):
         ('outgoing',    'receiver',         'outgoing',     'outreceiver')
         ]
 
-    # Now, start adding back in secitons
-    if oMgr.parser.has_section('main') is False:
-        globs.log.write(1, 'Adding [main] section.')
-        oMgr.addRcSection('main')
+    if fromVersion < 210:
+        # Start adding back in secitons
+        if oMgr.parser.has_section('main') is False:
+            globs.log.write(1, 'Adding [main] section.')
+            oMgr.addRcSection('main')
+
+        if oMgr.parser.has_section('incoming') is False:
+            globs.log.write(1, 'Adding [incoming] section.')
+            oMgr.addRcSection('incoming')
+
+        if oMgr.parser.has_section('outgoing') is False:
+            globs.log.write(1, 'Adding [outgoing] section.')
+            oMgr.addRcSection('outgoing')
+
+        if oMgr.parser.has_section('report') is False:
+            globs.log.write(1, 'Adding [report] section.')
+            oMgr.addRcSection('report')
+
+        if oMgr.parser.has_section('headings') is False:
+            globs.log.write(1, 'Adding [headings] section.')
+            oMgr.addRcSection('headings')
+
+        for fromsection, fromoption, tosection, tooption in optList:
+            globs.log.write(1, 'Updating [{}] {} to: [{}] {}'.format(fromsection, fromoption, tosection, tooption))
+            value = oMgr.getRcOption(fromsection, fromoption)
+            oMgr.clearRcOption(fromsection, fromoption)
+            oMgr.setRcOption(tosection, tooption, value)
+
+        # Adjusted format of sizeDisplay in version 2.1
+        szDisp = oMgr.getRcOption('report', 'sizedisplay')
+        if szDisp == 'none':
+            oMgr.setRcOption('report', 'sizedisplay', 'byte')
+        oMgr.setRcOption('report', 'showsizedisplay', 'true')
+
+        # Remove deprecated options
+        if oMgr.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in version 2.2.0
+            oMgr.clearRcOption('report', 'noactivitybg')
+
+        if oMgr.parser.has_option('main', 'version') == True:    # Deprecated in version 2.2.7 (renamed to 'rcversion')
+            oMgr.clearRcOption('main', 'version')
+    elif fromVersion < 300:
+        # Remove deprecated options
+        if oMgr.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in version 2.2.0
+            oMgr.clearRcOption('report', 'noactivitybg')
+
+        if oMgr.parser.has_option('main', 'version') == True:    # Deprecated in version 2.2.7 (renamed to 'rcversion')
+            oMgr.clearRcOption('main', 'version')
+
     globs.log.write(1, 'Updating version number.')
-    oMgr.setRcOption('main', 'version', '{}.{}.{}'.format(globs.version[0],globs.version[1],globs.version[2]))
-
-    if oMgr.parser.has_section('incoming') is False:
-        globs.log.write(1, 'Adding [incoming] section.')
-        oMgr.addRcSection('incoming')
-
-    if oMgr.parser.has_section('outgoing') is False:
-        globs.log.write(1, 'Adding [outgoing] section.')
-        oMgr.addRcSection('outgoing')
-
-    if oMgr.parser.has_section('report') is False:
-        globs.log.write(1, 'Adding [report] section.')
-        oMgr.addRcSection('report')
-
-    if oMgr.parser.has_section('headings') is False:
-        globs.log.write(1, 'Adding [headings] section.')
-        oMgr.addRcSection('headings')
-
-    for fromsection, fromoption, tosection, tooption in optList:
-        globs.log.write(1, 'Updating [{}] {} to: [{}] {}'.format(fromsection, fromoption, tosection, tooption))
-        value = oMgr.getRcOption(fromsection, fromoption)
-        oMgr.clearRcOption(fromsection, fromoption)
-        oMgr.setRcOption(tosection, tooption, value)
-
-    # Adjusted format of sizeDisplay in version 2.1
-    szDisp = oMgr.getRcOption('report', 'sizedisplay')
-    if szDisp == 'none':
-        oMgr.setRcOption('report', 'sizedisplay', 'byte')
-    oMgr.setRcOption('report', 'showsizedisplay', 'true')
-        
-
+    oMgr.setRcOption('main', 'rcversion', '{}.{}.{}'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]))
     globs.log.write(1, 'Writing new .rc file.')
     oMgr.updateRc()
 
@@ -101,13 +115,18 @@ def convertRc(oMgr, fromVersion):
 def convertDb(fromVersion):
     globs.log.write(1, 'convertDb(): Converting database from version {} to version {}.{}.{}'.format(fromVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
 
+    # Database version history
+    # 1.0.1 - Convert from character-based date/time to uynix timestamp format. 
+    # 1.0.2 - Calculate & store duraction of backup
+    # 1.0.3 - Store new logdata field and Duplicati version numbers (per backup)
+
     # Update DB version number
     globs.db.execSqlStmt("UPDATE version SET major = {}, minor = {}, subminor = {} WHERE desc = 'database'".format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
 
-    if fromVersion == 100: # Upgrade from DB version 100 (original format)
+    if fromVersion == 100: # Upgrade from DB version 100 (original format). 
         sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, duration real, examinedFiles int, examinedFilesDelta int, \
         sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
-        warnings varchar(255), errors varchar(255), failedMsg varchar(100))"
+        warnings varchar(255), errors varchar(255), failedMsg varchar(100), dupversion varchar(100), logdata varchar(255))"
         globs.db.execSqlStmt(sqlStmt)
     
         # Clean up bad data in emails table left from older versions. Not sure how this happened, but it really screws things up
@@ -120,7 +139,7 @@ def convertDb(fromVersion):
             examinedFiles int, openedFiles int, addedFiles int, sizeOfModifiedFiles int, sizeOfAddedFiles int, sizeOfExaminedFiles int, sizeOfOpenedFiles int, notProcessedFiles int, addedFolders int, \
             tooLargeFiles int, filesWithError int, modifiedFolders int, modifiedSymlinks int, addedSymlinks int, deletedSymlinks int, partialBackup varchar(30), dryRun varchar(30), mainOperation varchar(30), \
             parsedResult varchar(30), verboseOutput varchar(30), verboseErrors varchar(30), endTimestamp real, beginTimestamp real, duration real, messages varchar(255), warnings varchar(255), errors varchar(255), \
-            failedMsg varchar(100), dbSeen int)")
+            failedMsg varchar(100), dbSeen int, dupversion varchar(100), logdata varchar(255))")
         globs.db.execSqlStmt("INSERT INTO emails (messageId, sourceComp, destComp, deletedFiles, deletedFolders, modifiedFiles, examinedFiles, openedFiles, addedFiles, sizeOfModifiedFiles, sizeOfAddedFiles, \
             sizeOfExaminedFiles, sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, dryRun, mainOperation, \
             parsedResult, verboseOutput, verboseErrors, messages, warnings, errors, failedMsg) SELECT messageId, sourceComp, destComp, deletedFiles, deletedFolders, \
@@ -153,7 +172,7 @@ def convertDb(fromVersion):
                 endDate, endTime, endTimestamp, beginDate, beginTime, beginTimestamp, duration))
         globs.db.execSqlStmt("DROP TABLE _emails_old_")
  
-        # COnvert date/time to timestamps in backupsets table
+        # Convert date/time to timestamps in backupsets table
         globs.db.execSqlStmt("ALTER TABLE backupsets ADD COLUMN lastTimestamp real")
         dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastDate, lastTime from backupsets")
         setRows = dbCursor.fetchall()
@@ -166,7 +185,11 @@ def convertDb(fromVersion):
             globs.log.write(1, 'Source={}  destination={} lastDate={} lastTime={} lastTimestamp={}'.format(source, destination, lastDate, lastTime, lastTimestamp))
     elif fromVersion == 101: # Upgrade from version 101
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN duration real")
+        globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN dupversion varchar(100)")
+        globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN logdata varchar(255)")
         globs.db.execSqlStmt("UPDATE report SET duration = 0")
+        globs.db.execSqlStmt("UPDATE report SET dupversion = ''")
+        globs.db.execSqlStmt("UPDATE report SET logdata = ''")
 
         # Need to change duration column from varchar to real
         # In SQLite you can't just drop and add a column (of course :-(
@@ -176,7 +199,7 @@ def convertDb(fromVersion):
             examinedFiles int, openedFiles int, addedFiles int, sizeOfModifiedFiles int, sizeOfAddedFiles int, sizeOfExaminedFiles int, sizeOfOpenedFiles int, notProcessedFiles int, addedFolders int, \
             tooLargeFiles int, filesWithError int, modifiedFolders int, modifiedSymlinks int, addedSymlinks int, deletedSymlinks int, partialBackup varchar(30), dryRun varchar(30), mainOperation varchar(30), \
             parsedResult varchar(30), verboseOutput varchar(30), verboseErrors varchar(30), endTimestamp real, beginTimestamp real, duration real, messages varchar(255), warnings varchar(255), errors varchar(255), \
-            failedMsg varchar(100), dbSeen int)")
+            failedMsg varchar(100), dbSeen int, dupversion varchar(100), logdata varchar(255))")
         globs.db.execSqlStmt("INSERT INTO emails (messageId, sourceComp, destComp, emailTimestamp, deletedFiles, deletedFolders, modifiedFiles, examinedFiles, openedFiles, addedFiles, sizeOfModifiedFiles, sizeOfAddedFiles, \
             sizeOfExaminedFiles, sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, dryRun, mainOperation, \
             parsedResult, verboseOutput, verboseErrors, endTimestamp, beginTimestamp, messages, warnings, errors, failedMsg, dbSeen) SELECT messageId, sourceComp, destComp, emailTimestamp, deletedFiles, deletedFolders, \
@@ -193,6 +216,18 @@ def convertDb(fromVersion):
                 globs.log.write(1, sqlStmt)
                 globs.db.execSqlStmt(sqlStmt)
         globs.db.execSqlStmt("DROP TABLE _emails_old_")
+    elif fromVersion == 102: # Upgrade from version 102
+        # Add dupversion & logdata fields to emails table
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN dupversion varchar(100)")
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN logdata varchar(255)")
+        globs.db.execSqlStmt("UPDATE emails SET dupversion = ''")
+        globs.db.execSqlStmt("UPDATE emails SET logdata = ''")
+
+        # Add dupversion & logdata fields to report table
+        globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN dupversion varchar(100)")
+        globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN logdata varchar(255)")
+        globs.db.execSqlStmt("UPDATE report SET dupversion = ''")
+        globs.db.execSqlStmt("UPDATE report SET logdata = ''")
 
     globs.db.dbCommit()
     return None
