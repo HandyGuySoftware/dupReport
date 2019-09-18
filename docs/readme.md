@@ -7,7 +7,6 @@ dupReport is an email-based reporting system for Duplicati. It will gather all y
 Here is a list of some of dupReport's most important features:
 
 - Collects all your Duplicati result emails and produces easy-to-understand status reports
-
 - Runs on multiple operating systems. dupReport has been tested on Linux (Debian 8 & 9) and Windows 10, but users have reported it working on a wide variety of operating systems
 - Support for IMAP and POP3 email services (we recommend IMAP for better results)
 - SSL/TLS support for incoming/outgoing email transmissions.
