@@ -360,7 +360,10 @@ def lastSeenTable(opts):
         days = drdatetime.daysSince(lastTimestamp)
 
         dbCursor = globs.db.execSqlStmt("SELECT dupversion FROM emails WHERE sourcecomp='{}' AND destcomp='{}' and dupversion != '' ORDER BY emailtimestamp DESC".format(source, destination))
-        dVersion = dbCursor.fetchone()[0]
+        dvPtr = dbCursor.fetchone()
+        # Issue #123
+        # Earlier versions of Duplicati did not return the version number in the email. Need to account for that.
+        dVersion = dvPtr[0] if dvPtr != None else ''
 
         result, interval = pastBackupInterval(srcDest, days)
         if result is False:
