@@ -1,3 +1,7 @@
+2.2.8
+-----
+- Properly handle reports where Duplicati version is not parsed from emails (Issue #123)
+
 2.2.7
 -----
 - Properly parse "Log data" field, newly introduced in Duplicati circa November 2018 (Issue #112)
