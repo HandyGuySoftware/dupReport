@@ -15,6 +15,7 @@ Here is a list of some of dupReport's most important features:
 - Multiple reporting formats with configurable column options
 - No limit to  the number of different backup jobs it can track
 - Support for Apprise push notification service (<https://github.com/caronc/apprise>)
+- 
 
 # How can I get started quickly?
 
