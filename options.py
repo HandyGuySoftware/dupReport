@@ -55,6 +55,7 @@ rcParts= [
     ('incoming',    'inpassword',       '********',                                                                 False),
     ('incoming',    'infolder',         'INBOX',                                                                    False),
     ('incoming',    'inkeepalive',      'false',                                                                    True),
+    ('incoming',    'unreadonly',       'false',                                                                    True),
 
     # [outgoing] section defaults
     ('outgoing',    'outserver',        'localhost',                                                                False),
@@ -64,7 +65,7 @@ rcParts= [
     ('outgoing',    'outpassword',      '********',                                                                 False),
     ('outgoing',    'outsender',        'sender@hostmail.com',                                                      False),
     ('outgoing',    'outreceiver',      'receiver@hostmail.com',                                                    False),
-    ('outgoing','outkeepalive','false', True),
+    ('outgoing',    'outkeepalive',     'false',                                                                    True),
 
     # [report] section defaults
     ('report',      'style',            'srcdest',                                                                  True),
@@ -243,7 +244,7 @@ class OptionManager:
         for item in ('verbose', 'inport', 'outport', 'showprogress'):  # integers
             self.options[item] = int(self.options[item])
 
-        for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'inkeepalive', 'outkeepalive', 'masksensitive', 'markread'):  # boolean
+        for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'inkeepalive', 'outkeepalive', 'masksensitive', 'markread', 'unreadonly'):  # boolean
             self.options[item] = self.options[item].lower() in ('true')
 
         # Check for valid date format

@@ -77,7 +77,7 @@ There are usually only two branches in the dupReport repository:
 | Branch Name  | Current Version | Purpose                                                      |
 | ------------ | --------------- | ------------------------------------------------------------ |
 | **master**   | 2.2.7           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | \<None>         | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **pre_prod** | 2.2.8           | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
 
 If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children. (You get the idea.)
 
@@ -444,6 +444,17 @@ inkeepalive=false
 ```
 
 Large inboxes may take a long time to scan and parse, and on some systems this can lead to a server connection timeout before processing has completed. This is more likely to happen on the outgoing connection (where there may be long periods of inactivity) than on the incoming connection. However, if you are experiencing timeout errors on your incoming server connection set this value to 'true'.
+
+```
+unreadonly = false
+```
+
+This option instructs the program to only read and parse messages marked as "unread" or "unseen" on the email server. This has the effect of dramatically reducing the time it takes to read your emails, as it only reads messages it hasn't seen yet. There are several things to consider when using this option:
+
+- This option is only effective on IMAP email servers. It has no effect on POP3 servers.
+- If any other process or user marks any of the messages on the server as read/seen this will impact dupReport's ability to properly parse all the emails. You should only use this option if dupReport is the only process accessing the IMAP email folder where the Duplicati emails are stored.
+- This option should be used in conjunction with the **[main] markread** option set to "true" so messages will be marked as read once they are processed by dupReport.
+- The seen/unseen flag can be flaky and exhibit different behaviors on different IMAP servers. You should test its usage thoroughly before using it in dupReport.
 
 ## [outgoing] section
 

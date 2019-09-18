@@ -206,7 +206,12 @@ class EmailServer:
             return self.numEmails
         elif self.protocol == 'imap':
             globs.log.write(1,'checkForMessages(IMAP)')
-            retVal, data = self.server.search(None, "ALL")
+
+            # Issue #124 - only read unseen/unread messages. Speed up input processing.
+            if globs.opts['unreadonly'] == True:
+                retVal, data = self.server.search(None, "(UNSEEN)")
+            else:
+                retVal, data = self.server.search(None, "ALL")
             globs.log.write(3,'Searching folder. retVal={} data={}'.format(retVal, data))
             if retVal != 'OK':          # No new emails
                 self.newEmails = None
