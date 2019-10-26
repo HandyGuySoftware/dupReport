@@ -507,7 +507,7 @@ class Report:
 
                     sqlStmt = "INSERT INTO report (source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                         addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata) \
-                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\")".format(source, destination, endTimeStamp, duration, examinedFiles, \
+                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \'{}\', \'{}\', \'{}\', \'{}\', \'{}\', \'{}\')".format(source, destination, endTimeStamp, duration, examinedFiles, \
                         examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
                     globs.db.execSqlStmt(sqlStmt)
 
