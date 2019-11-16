@@ -588,7 +588,7 @@ class EmailServer:
             beginTimestamp, duration, messages, warnings, errors, dbSeen, dupversion, logdata) \
             VALUES \
             ('{}', '{}', '{}', {}, {}, {}, {}, {}, {}, {}, {},{},{},{},{},{},{},{},{},{},{}, \
-            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \"{}\", \"{}\", \"{}\", 1, \"{}\", \"{}\")".format(mParts['messageId'], \
+            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \'{}\', \'{}\', \'{}\', 1, \'{}\', \'{}\')".format(mParts['messageId'], \
             mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
             sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
             sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
