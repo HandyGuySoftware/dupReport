@@ -72,6 +72,67 @@ class Database:
             self.dbConn.commit()
         return None
 
+    def execEmailInsertSql(self, mParts, sParts, dParts):  
+        globs.log.write(1, 'db.execEmailInsertSql(()')
+        globs.log.write(2, 'messageId={}  sourceComp={}  destComp={}'.format(mParts['messageId'], mParts['sourceComp'], mParts['destComp']))
+
+        durVal = float(dParts['endTimestamp']) - float(dParts['beginTimestamp'])
+        sqlStmt = "INSERT INTO emails(messageId, sourceComp, destComp, emailTimestamp, \
+            deletedFiles, deletedFolders, modifiedFiles, examinedFiles, \
+            openedFiles, addedFiles, sizeOfModifiedFiles, sizeOfAddedFiles, sizeOfExaminedFiles, \
+            sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, \
+            modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, \
+            dryRun, mainOperation, parsedResult, verboseOutput, verboseErrors, endTimestamp, \
+            beginTimestamp, duration, messages, warnings, errors, dbSeen, dupversion, logdata) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+
+        data  = (mParts['messageId'], mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
+                sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
+                sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
+                sParts['notProcessedFiles'], sParts['addedFolders'], sParts['tooLargeFiles'], sParts['filesWithError'], \
+                sParts['modifiedFolders'], sParts['modifiedSymlinks'], sParts['addedSymlinks'], sParts['deletedSymlinks'], \
+                sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
+                sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
+                durVal, sParts['messages'], sParts['warnings'], sParts['errors'], sParts['dupversion'], sParts['logdata'])
+
+        globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
+        globs.log.write(3, 'data=[{}]'.format(data))
+
+        if not self.dbConn:
+            return None
+
+        # Set db cursor
+        curs = self.dbConn.cursor()
+        try:
+            curs.execute(sqlStmt, data)
+        except sqlite3.Error as err:
+            globs.log.err('SQLite error: {}\n'.format(err.args[0]))
+            globs.log.write(1, 'SQLite error: {}\n'.format(err.args[0]))
+            globs.closeEverythingAndExit(1)  # Abort program. Can't continue with DB error
+        
+        self.dbCommit()
+        return None
+
+    def execReportInsertSql(self, sqlStmt, sqlData):  
+        globs.log.write(1, 'db.execReportInsertSql(()')
+        globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
+        globs.log.write(3, 'sqlData=[{}]'.format(sqlData))
+
+        if not self.dbConn:
+            return None
+
+        # Set db cursor
+        curs = self.dbConn.cursor()
+        try:
+            curs.execute(sqlStmt, sqlData)
+        except sqlite3.Error as err:
+            globs.log.err('SQLite error: {}\n'.format(err.args[0]))
+            globs.log.write(1, 'SQLite error: {}\n'.format(err.args[0]))
+            globs.closeEverythingAndExit(1)  # Abort program. Can't continue with DB error
+        
+        self.dbCommit()
+        return None
+
     # Execute a Sqlite command and manage exceptions
     # Return the cursor object to the command result
     def execSqlStmt(self, stmt):
