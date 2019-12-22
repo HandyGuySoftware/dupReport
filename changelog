@@ -1,3 +1,11 @@
+2.2.10
+------
+- Try again to fix obscure parsing bug when job messages contain quotes (Issue #126)
+
+2.2.9
+-----
+- Fix obscure parsing bug when job messages contain quotes (Issue #126)
+
 2.2.8
 -----
 - Properly handle reports where Duplicati version is not parsed from emails (Issue #123)
