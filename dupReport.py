@@ -154,7 +154,7 @@ if __name__ == "__main__":
     canContinue = initOptions() 
 
     if not canContinue: # Something changed in the .rc file that needs manual editing
-        globs.closeEverythingAndExit(0)
+        globs.closeEverythingAndExit(1)
 
     # If we're not suppressing, we don't need to unsupress
     #globs.log.unSuppress()
