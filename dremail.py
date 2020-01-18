@@ -492,7 +492,7 @@ class EmailServer:
         # Replace commas (,) with newlines (\n) in message fields. Sqlite really doesn't like commas in SQL statements!
         for part in ['messages', 'warnings', 'errors', 'logdata']:
             if statusParts[part] != '':
-                    statusParts[part] = statusParts[part].replace(',','\n')
+                statusParts[part] = statusParts[part].replace(',','\n')
 
         # If we're just collecting and get a warning/error, we may need to send an email to the admin
         if (globs.opts['collect'] is True) and (globs.opts['warnoncollect'] is True) and ((statusParts['warnings'] != '') or (statusParts['errors'] != '')):
@@ -509,11 +509,8 @@ class EmailServer:
             globs.outServer.sendErrorEmail(errMsg)
 
         globs.log.write(3, 'Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
-            
-        sqlStmt = self.buildEmailSql(msgParts, statusParts, dateParts)
-        globs.db.execSqlStmt(sqlStmt)
-        globs.db.dbCommit()
 
+        globs.db.execEmailInsertSql(msgParts, statusParts, dateParts)
         return msgParts['messageId']
 
 
@@ -571,35 +568,6 @@ class EmailServer:
             return 0
         else:       # string
             return ''
-
-    # Build SQL statement to put into the emails table
-    def buildEmailSql(self, mParts, sParts, dParts):  
-
-        globs.log.write(1, 'build_email_sql_statement(()')
-        globs.log.write(2, 'messageId={}  sourceComp={}  destComp={}'.format(mParts['messageId'],mParts['sourceComp'],mParts['destComp']))
-
-        durVal = float(dParts['endTimestamp']) - float(dParts['beginTimestamp'])
-        sqlStmt = "INSERT INTO emails(messageId, sourceComp, destComp, emailTimestamp, \
-            deletedFiles, deletedFolders, modifiedFiles, examinedFiles, \
-            openedFiles, addedFiles, sizeOfModifiedFiles, sizeOfAddedFiles, sizeOfExaminedFiles, \
-            sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, \
-            modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, \
-            dryRun, mainOperation, parsedResult, verboseOutput, verboseErrors, endTimestamp, \
-            beginTimestamp, duration, messages, warnings, errors, dbSeen, dupversion, logdata) \
-            VALUES \
-            ('{}', '{}', '{}', {}, {}, {}, {}, {}, {}, {}, {},{},{},{},{},{},{},{},{},{},{}, \
-            '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', \'{}\', \'{}\', \'{}\', 1, \'{}\', \'{}\')".format(mParts['messageId'], \
-            mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
-            sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
-            sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
-            sParts['notProcessedFiles'], sParts['addedFolders'], sParts['tooLargeFiles'], sParts['filesWithError'], \
-            sParts['modifiedFolders'], sParts['modifiedSymlinks'], sParts['addedSymlinks'], sParts['deletedSymlinks'], \
-            sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
-            sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
-            durVal, sParts['messages'], sParts['warnings'], sParts['errors'], sParts['dupversion'], sParts['logdata'])
-                
-        globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
-        return sqlStmt
 
     # Send final email result
     def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):

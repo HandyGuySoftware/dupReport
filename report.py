@@ -503,13 +503,11 @@ class Report:
                     globs.log.write(3, 'fileSizeDelta = {} - {} = {}'.format(sizeOfExaminedFiles, lastFileSize, fileSizeDelta))
 
                     # Convert from timestamp to date & time strings
-                    dateStr, timeStr = drdatetime.fromTimestamp(endTimeStamp)
-
                     sqlStmt = "INSERT INTO report (source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                         addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata) \
-                        VALUES ('{}', '{}', {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, \'{}\', \'{}\', \'{}\', \'{}\', \'{}\', \'{}\')".format(source, destination, endTimeStamp, duration, examinedFiles, \
-                        examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
-                    globs.db.execSqlStmt(sqlStmt)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    rptData = (source, destination, endTimeStamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
+                    globs.db.execReportInsertSql(sqlStmt, rptData)
 
                     # Update latest activity into into backupsets
                     sqlStmt = 'UPDATE backupsets SET lastFileCount={}, lastFileSize={}, \
