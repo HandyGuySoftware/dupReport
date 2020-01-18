@@ -8,11 +8,11 @@
 import os
 
 # Define version info
-version=[2,2,8]     # Program Version
+version=[2,2,10]     # Program Version
 status='Release'
 dbVersion=[1,0,3]   # Required DB version
 rcVersion=[3,0,0]   # Required RC version
-copyright='Copyright (c) 2018, 2019 Stephen Fried for HandyGuy Software.'
+copyright='Copyright (c) 2020 Stephen Fried for HandyGuy Software.'
 
 # Define global variables
 dbName='dupReport.db'               # Default database name
