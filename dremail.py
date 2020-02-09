@@ -165,7 +165,17 @@ class EmailServer:
                     globs.log.write(3,'self.server=[{}]'.format(self.server))
                     if self.encryption is not None:   # Do we need to use SSL/TLS?
                         globs.log.write(3,'Starting TLS')
-                        self.server.starttls()
+                        try:
+                            self.server.starttls()
+                        except Exception_tls:
+                            if Exception_tls == SMTPHeloError:
+                                globs.log.write(3,'SMTPHeloError: The server didn’t reply properly to the HELO greeting')
+                            elif Exception_tls == SMTPNotSupportedError:
+                                globs.log.write(3,'SMTPNotSupportedError: The server does not support the STARTTLS extension')
+                            elif Exception_tls == RuntimeError:
+                                 globs.log.write(3,'RuntimeError: SSL/TLS support is not available to your Python interpreter.')
+                            else:
+                                 globs.log.write(3,'Unknown TLS error')
                     globs.log.write(3,'Logging into server. Account=[{}] pwd=[{}]'.format(self.accountname, self.passwd))
                     retVal, retMsg = self.server.login(self.accountname, self.passwd)
                     globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
