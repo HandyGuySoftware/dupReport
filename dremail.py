@@ -172,9 +172,12 @@ class EmailServer:
                         except Exception as e:
                             globs.log.write(3,'TLS Exception: [{}]'.format(e))
                     globs.log.write(3,'Logging into server. Account=[{}] pwd=[{}]'.format(self.accountname, self.passwd))
-                    retVal, retMsg = self.server.login(self.accountname, self.passwd)
-                    globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
-                    return retMsg.decode()
+                    try:
+                        retVal, retMsg = self.server.login(self.accountname, self.passwd)
+                        globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
+                        return retMsg.decode()
+                    except Exception as e:
+                        globs.log.write(3,'SMTP Login Exception: [{}]'.format(e))
                 except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
                     return None
             else:   # Bad protocol specification
