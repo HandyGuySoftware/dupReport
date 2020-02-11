@@ -163,7 +163,7 @@ class EmailServer:
                     globs.log.write(3,'Initializing SMPT Object. Address=[{}]  port=[{}]'.format(self.address,self.port))
                     self.server = smtplib.SMTP('{}:{}'.format(self.address,self.port))
                     globs.log.write(3,'self.server=[{}]'.format(self.server))
-                    connResult = self.server.connect('{}:{}'.format(self.address,self.port))
+                    connResult = self.server.connect(self.address,self.port)
                     globs.log.write(3,'connResult=[{}]'.format(connResult))
                     if self.encryption is not None:   # Do we need to use SSL/TLS?
                         globs.log.write(3,'Starting TLS')
