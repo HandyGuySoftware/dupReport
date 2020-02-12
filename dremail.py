@@ -161,7 +161,8 @@ class EmailServer:
                 globs.log.write(1,'Initial connect using  SMTP')
                 try:
                     globs.log.write(3,'Initializing SMPT Object. Address=[{}]  port=[{}]'.format(self.address,self.port))
-                    self.server = smtplib.SMTP('{}:{}'.format(self.address,self.port))
+#                    self.server = smtplib.SMTP('{}:{}'.format(self.address,self.port))
+                    self.server = smtplib.SMTP_SSL(self.address,self.port)
                     globs.log.write(3,'self.server=[{}]'.format(self.server))
                     connResult = self.server.connect(self.address,self.port)
                     globs.log.write(3,'connResult=[{}]'.format(connResult))
