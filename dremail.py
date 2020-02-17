@@ -21,6 +21,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import json
+import ssl
 
 # Import dupReport modules
 import globs
@@ -160,12 +161,23 @@ class EmailServer:
             elif self.protocol == 'smtp':
                 globs.log.write(1,'Initial connect using  SMTP')
                 try:
-                    self.server = smtplib.SMTP('{}:{}'.format(self.address,self.port))
+                    globs.log.write(3,'Initializing SMPT Object. Address=[{}]  port=[{}]'.format(self.address,self.port))
+                    self.server = smtplib.SMTP(self.address,self.port)
+                    globs.log.write(3,'self.server=[{}]'.format(self.server))
                     if self.encryption is not None:   # Do we need to use SSL/TLS?
-                        self.server.starttls()
-                    retVal, retMsg = self.server.login(self.accountname, self.passwd)
-                    globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
-                    return retMsg.decode()
+                        globs.log.write(3,'Starting TLS')
+                        try:
+                            tlsContext = ssl.create_default_context()
+                            self.server.starttls(context=tlsContext)
+                        except Exception as e:
+                            globs.log.write(3,'TLS Exception: [{}]'.format(e))
+                    globs.log.write(3,'Logging into server. Account=[{}] pwd=[{}]'.format(self.accountname, self.passwd))
+                    try:
+                        retVal, retMsg = self.server.login(self.accountname, self.passwd)
+                        globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
+                        return retMsg.decode()
+                    except Exception as e:
+                        globs.log.write(3,'SMTP Login Exception: [{}]'.format(e))
                 except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
                     return None
             else:   # Bad protocol specification
