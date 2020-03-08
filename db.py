@@ -188,7 +188,7 @@ class Database:
         self.execSqlStmt("create index emailindx on emails (messageId)")
         self.execSqlStmt("create index srcdestindx on emails (sourceComp, destComp)")
 
-        sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, duration real, examinedFiles int, examinedFilesDelta int, \
+        sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, date real, time real, duration real, examinedFiles int, examinedFilesDelta int, \
             sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
             warnings varchar(255), errors varchar(255), failedMsg varchar(100), dupversion varchar(100), logdata varchar(255))"
         self.execSqlStmt(sqlStmt)

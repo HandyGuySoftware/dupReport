@@ -1,0 +1,74 @@
+{
+	"sections": [
+		{
+			"name": "rpt-bydest",
+			"type": "table"
+			"columnCount": 7,
+			"columNames": [ x, x, x, x, x, x, x, x, x, x, x ],
+			"Title": "title",
+			"groups": [
+				{
+					"groupHeading": "Group 1",
+					"dataRows": [
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[msg],
+						[warn],
+						[error],
+						[data],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+					],
+				},
+				{
+					"groupHeading": "Group 2",
+					"dataRows": [
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[msg],
+						[warn],
+						[error],
+						[data],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[msg],
+						[warn],
+						[error],
+						[data],
+					],
+				},
+			],
+		},
+		{
+			"name": "rpt-srcdest",
+			"type": "table"
+			"columnCount": 7,
+			"columNames": [ x, x, x, x, x, x, x, x, x, x, x ],
+			"Title": "title",
+			"groups": [
+				{
+					"groupHeading": "Group 1",
+					"dataRows": [
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+					],
+				},
+				{
+					"groupHeading": "Group 2",
+					"dataRows": [
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[msg],
+						[warn],
+						[error],
+						[data],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ x, x, x, x, x, x, x, x, x, x, x ],
+					],
+				},
+			],
+		},
+	],
+}

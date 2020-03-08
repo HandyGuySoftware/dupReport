@@ -26,6 +26,7 @@ import drdatetime
 import options
 
 # fldDefs = Dictionary of field definitions
+"""
 fldDefs = {
     # field                 [0]Title                [1]dbField             [2]alignment[3]gig/meg? [4]hdrDef   [5]normDef   [6]megaDef  [7]gigaDef
     'source':               ('Source',              'source',              'left',     False,      '20',       '20'),
@@ -48,9 +49,280 @@ fldDefs = {
     'joberrors':            ('JobErrors',           'errors',              'center',   False,      '^50',      '^50'),
     'joblogdata':           ('Log Data',            'logdata',             'center',   False,      '^50',      '^50')
     }
+"""
+fldDefs = {
+    # field                 [2]alignment    [3]gig/meg? [4]hdrDef   [5]normDef   [6]megaDef  [7]gigaDef
+    'source':               ('left',        False,      '20',       '20'),
+    'destination':          ('left',        False,      '20',       '20'),
+    'dupversion':           ('left',        False,      '20',       '20'),
+    'date':                 ('left',        False,      '13',       '13'),
+    'time':                 ('left',        False,      '11',       '11'),
+    'duration':             ('right',       False,      '15',       '15'),
+    'files':                ('right',       False,      '>12',      '>12,'),
+    'filesplusminus':       ('right',       False,      '>12',      '>+12,'),
+    'size':                 ('right',       True,       '>20',      '>20,',      '>20,.2f', '>20,.2f'),
+    'sizeplusminus':        ('right',       True,       '>20',      '>+20,',     '>+20,.2f', '>+20,.2f'),
+    'added':                ('right',       False,      '>12',      '>12,'),
+    'deleted':              ('right',       False,      '>12',      '>12,'),
+    'modified':             ('right',       False,      '>12',      '>12,'),
+    'errors':               ('right',       False,      '>12',      '>12,'),
+    'result':               ('left',        False,      '>13',      '>13'),
+    'jobmessages':          ('center',      False,      '^50',      '^50'),
+    'jobwarnings':          ('center',      False,      '^50',      '^50'),
+    'joberrors':            ('center',      False,      '^50',      '^50'),
+    'joblogdata':           ('center',      False,      '^50',      '^50')
+    }
+
+
 
 # List of columns in the report
 rptColumns = ['source', 'destination', 'dupversion', 'date', 'time', 'duration', 'files', 'filesplusminus', 'size',  'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result', 'jobmessages', 'jobwarnings', 'joberrors', 'joblogdata']
+
+# List of allowable keyword substitutions
+keyWordList = { 
+    #  database field: keyword mask
+    'source': '#SOURCE#',
+    'destination': '#DESTINATION#', 
+    'date': '#DATE#', 
+    'time': '#TIME#'
+    }
+
+# Build an SQL query statement based on a given report's options ('groupby', 'columns', and 'columsort')
+# If (whereOpts != None) whereOpts will be a list of columns and values those columns have to match
+# If (groupBy is True), you're trying to group query results, so need to add a 'DISTINCT' clause to the SQL statement
+def buildQuery(options, whereOpts = None, groupby=False):
+    if groupby:
+        sqlStmt = 'SELECT DISTINCT ' + buildSelectList(options['groupby']) + ' FROM report '
+    else:
+        sqlStmt = 'SELECT ' + buildSelectList(options['columns']) + ' FROM report '
+
+    if whereOpts:
+        sqlStmt += ' WHERE ' + buildWhereClause(options['groupby'], whereOpts) 
+
+    if groupby:
+        sqlStmt += ' ORDER BY ' + buildOrderList(options['groupby']) 
+    elif 'columnsort' in options:
+        sqlStmt += ' ORDER BY ' + buildOrderList(options['columnsort']) 
+    
+    return sqlStmt
+
+# Build a list of fields to select based on 'list' 
+def buildSelectList(list):
+    selectString=''
+    for i in range(len(list)):
+        selectString += list[i][0] + ' '
+
+        # More fields to add?
+        if  i != (len(list)-1):
+            selectString += ', '
+
+    return selectString
+
+# Build the WHERE clause of the SQL query.
+# Do this by parsing through the "groupby" option of the report definition
+# 'vals' are the values the 'groupby' fields must match
+def buildWhereClause(grpList, vals):
+    whereString = ''
+    for i in range(len(grpList)):
+        whereString += grpList[i][0] + ' = \'' + str(vals[i]) + '\''
+
+        # Are there more where clauses to add?
+        if i != (len(grpList) - 1):
+            whereString += ' AND '
+    return whereString
+
+# Build the ORDER BY clause of the SQL query.
+# Do this by parsing through the "columsort" option of the report definition
+# 'list' is a list of (column, sortorder) tuples
+def buildOrderList(list):
+    sortString=''
+    for i in range(len(list)):
+        sortString += list[i][0] + ' '
+        # ascending or descending?
+        sortString += 'ASC ' if 'asc' in list[i][1] else 'DESC '
+        
+        # Are there more sort order fields to add?
+        if  i != (len(list)-1):
+            sortString += ', '
+
+    return sortString
+
+# Take .rc file option and split into a list structure
+# Input format is:
+#   option = <item>[:modifier] [, <item>[: modifier]]...
+def splitRcIntoList(inputString):
+    iniList = []
+
+    # Multiline inputs have newlines (\n) built into them
+    # Strip newlines & split along comma delimeters
+    # Remove them and convert to list, split by commas
+    strTmp = inputString.replace('\n','').split(',')
+    
+    # Loop through each value in the list
+    for i in range(len(strTmp)):
+        splitVal = strTmp[i].split(':')             # Split based on ':'
+        if len(splitVal) == 1:                      # Len == 1 if there was no ':' (i.e. just a value)
+            iniList.append([splitVal[0].strip()])   # Strip while space off end and append to list
+        else:                                       # Len == 2 if there was a ':' (i.e. item:modifier)
+            iniList.append([splitVal[0].strip(), splitVal[1].strip()])  # Strip while space off end and append to list
+
+    return iniList
+
+# Take data from report tablle and build the resulting report structure.
+# Output structure will be used to generate the final report
+# 'reportStructure' is the report options as extracted from the .rc file
+# See docs/DataStructures/ConfigFormat for schema of reportStructure
+# See docs/DataStructures/ReportFormat for schema of reportOutput
+def buildReportOutput(reportStructure):
+
+    reportOutput = {}
+    reportOutput['sections'] = []
+
+    # Loop through report configurations
+    for report in reportStructure['sections']:
+        
+        # singleReport is the output for just this specific report. 
+        # It will be appended to reportOutput once it is filled in.
+        # This is how we produce multiple reports from the same run.
+        singleReport = {}
+
+        # Copy basic report information from the report definition
+        singleReport['name'] = report['name']
+        singleReport['columnCount'] = len(report['options']['columns'])
+        singleReport['columnNames'] = []
+        for i in range(len(report['options']['columns'])):
+            singleReport['columnNames'].append([report['options']['columns'][i][0], report['options']['columns'][i][1]])
+        singleReport['title'] = report['options']['title']
+
+        # Determine how the report is grouped
+        singleReport['groups'] = []
+        sqlStmt = buildQuery(report['options'], groupby=True)
+        dbCursor = globs.db.execSqlStmt(sqlStmt)
+        groupList = dbCursor.fetchall()
+
+        # Loop through the defined sections and create a new section for each group
+        for groupName in groupList:
+            groupIndex = len(singleReport['groups'])  # This will be the index number of the next element we add
+            singleReport['groups'].append({})
+
+            # Build the subheading (title) for the group
+            if 'groupheading' in report['options']:                 # Group heading already defined
+                grpHeading = report['options']['groupheading']
+            else:                                                   # Group heading not defined. Build it from 'groupby' columns
+                grpHeading = ''
+                for i in range(len(groupName)):
+                    grpHeading += str(groupName[i]) + ' '
+                singleReport['groups'][groupIndex]['groupHeading'] = grpHeading
+
+            # Substitute keywords for actual values
+            for keyWdTmp in keyWordList:
+                for i in range(len(report['options']['groupby'])):
+                    if report['options']['groupby'][i][0] == keyWdTmp: # field is one of the groupbys. See if you need to substitute that value
+                        # Check for timestmp expansion
+                        if keyWdTmp == 'date':
+                            dateStr, timeStr = drdatetime.fromTimestamp(groupName[i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                            grpHeading = grpHeading.replace(keyWordList[keyWdTmp], dateStr)
+                        elif keyWdTmp == 'time':
+                            dateStr, timeStr = drdatetime.fromTimestamp(groupName[i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                            grpHeading = grpHeading.replace(keyWordList[keyWdTmp], timeStr)
+                        else:
+                            grpHeading = grpHeading.replace(keyWordList[keyWdTmp], str(groupName[i]))
+
+            # Perform keyword substutution on the group heading
+            singleReport['groups'][groupIndex]['groupHeading'] = grpHeading
+
+            #singleReport['groups'][groupIndex]['columNames'] = singleReport['columnNames']
+            singleReport['groups'][groupIndex]['dataRows'] = []
+
+            sqlQuery = {}
+            sqlStmt = buildQuery(report['options'], whereOpts = groupName)
+            dbCursor = globs.db.execSqlStmt(sqlStmt)
+            rowList = dbCursor.fetchall()
+
+            # Loop through all rows for that section
+            dataRowIndex = -1
+            for rl in range(len(rowList)):
+                msgList = {}
+                singleReport['groups'][groupIndex]['dataRows'].append([])
+                dataRowIndex += 1
+
+                # Print column values to dataRows
+                for i in range(len(report['options']['columns'])):
+                    # See if we need to substitute date, time, or duration fields
+                    if report['options']['columns'][i][0] == 'date':
+                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(dateStr)
+                    elif report['options']['columns'][i][0] == 'time':
+                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(timeStr)
+                    elif report['options']['columns'][i][0] == 'duration':
+                        tDiff = drdatetime.timeDiff(rowList[rl][i], report['options']['durationzeroes'])
+                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(tDiff)
+                    elif ((report['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (report['options']['weminline'] is False)):
+                        if rowList[rl][i] != '':
+                            msgList[report['options']['columns'][i][0]] = rowList[rl][i]
+                    else:
+                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(rowList[rl][i])
+
+                # If there are warnings, errors, messages to output and we don't want them inline, print separate lines
+                if len(msgList) != 0 and report['options']['weminline'] is False:       
+                    for msg in msgList:
+                        singleReport['groups'][groupIndex]['dataRows'].append([msgList[msg]])
+                        dataRowIndex += 1
+
+        reportOutput['sections'].append(singleReport)
+
+    return reportOutput
+
+def createHtmlOutput(reportStructure, reportOutput):
+
+    msgHtml = '<html><head></head><body>\n'
+
+    rptIndex = -1
+    for report in reportOutput['sections']:
+        rptIndex += 1
+        rptName = report['name']
+        rptOptions = reportStructure['sections'][rptIndex]['options']
+
+        # Start table
+        msgHtml += '<table border={} cellpadding="{}">\n'.format(rptOptions['border'], rptOptions['padding'])
+        columnCount = report['columnCount']
+        
+        # If errors, messages, etc are put on separate lines (weminline = False), need to adjust column layout in output report
+        if rptOptions['weminline'] is False:
+            for i in reversed(range(len(report['columnNames']))):
+                if report['columnNames'][i][0] in ['messages', 'warnings', 'errors', 'logdata']:
+                    report['columnNames'].pop(i)
+                    columnCount -= 1
+   
+        # Add title               
+        msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(columnCount, rptOptions['titlebg'], rptOptions['title'])
+
+        # Loop through each group in the report
+        grpIndex = -1
+        for group in reportOutput['sections'][rptIndex]['groups']:
+            grpIndex += 1
+            
+            # Print group heading
+            msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(columnCount, rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'])
+
+            # Print column headings
+            msgHtml += '<tr>'
+            for i in range(len(report['columnNames'])):
+                msgHtml += '<td><b>' + report['columnNames'][i][1] + '</b></td>'
+            msgHtml += '</tr>\n'
+
+            # Print data rows & columns for that group
+            for row in report['groups'][grpIndex]['dataRows']:
+                msgHtml += '<tr>'
+                for column in range(len(row)):
+                    msgHtml += '<td colspan={}>'.format(1 if len(row) != 1 else columnCount) + str(row[column]) if type(row[column]) != 'str' else row[column] + '</td>'
+                msgHtml += '</tr>\n'
+        msgHtml += '</table><br>'
+
+    msgHtml += '</body></html>\n'
+
+    return msgHtml
 
 # Provide a field format specification for the titles in the report
 def printTitle(fld, typ):
@@ -402,67 +674,99 @@ def truncateWarnErrMsgs(msg, msgLen, warn, warnLen, err, errLen, logData, logDat
 
     return msgRet, warnRet, errRet, logDataRet
 
+def splitRcIntoList(inputString):
+    iniList = []
+
+    # Strip newlines & split along comma delimeters
+    strTmp = inputString.replace('\n','').split(',')
+    
+    # Loop through each value. 
+    for i in range(len(strTmp)):
+        tmp2 = strTmp[i].split(':')
+        if len(tmp2) == 0: # Empty set. prpbably because there was a comma at the end of the line. just Skip it
+            continue
+        elif len(tmp2) == 1:
+            iniList.append([tmp2[0].strip()])
+        else:
+            iniList.append([tmp2[0].strip(), tmp2[1].strip()])
+
+    return iniList
+
+def readDefaultOptions(section):
+    #tmpDict = {}
+    sectionList = globs.optionManager.getRcSection(section)
+    #for option in sectionList:
+    #    tmpDict[option] = option[1]
+    return sectionList
+
 # Class for report management
 class Report:
-
     def __init__(self):
         globs.log.write(1,'Report:__init__()')
+
+        self.rStruct = {}
         
-        self.reportOpts = {}    # Dictionary of report options
-        self.reportTits = {}    # Dictionary of report titles
-        titTmp = {}
-        
-        # Read name/value pairs from [report] section
-        self.reportOpts = globs.optionManager.getRcSection('report')
+        # Read in the default options
+        self.rStruct['defaults'] = globs.optionManager.getRcSection('report')
 
         # Fix some of the data field types - integers
         for item in ('border', 'padding', 'nobackupwarn', 'lastseenlow', 'lastseenmed', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
-            self.reportOpts[item] = int(self.reportOpts[item])
+            self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
-        for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes'):
-            self.reportOpts[item] = self.reportOpts[item].lower() in ('true')   
+        for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+            self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
+            
+        # Get reports that need to run
+        layoutSections = splitRcIntoList(self.rStruct['defaults']['layout'])
+        self.rStruct['sections'] = []
 
-        # Basic field value checking
-        # See if valid report name
-        rptName = globs.progPath + '/rpt_' + self.reportOpts['style'] + '.py'
-        validReport = os.path.isfile(rptName)
-        if not validReport:
-            globs.log.err('Invalid RC report style option in [report] section: style cannot be \'{}\''.format(self.reportOpts['style']))
-            globs.closeEverythingAndExit(1)
+        # Basic field value checking - TO DO
+        isValid = self.validateReportFields(self.rStruct)
+        if not isValid:
+            pass# Do something here
 
-        if self.reportOpts['sortby'] not in ('source', 'destination', 'date', 'time'):
-            globs.log.err('Invalid RC file sorting option in [report] section: sortby cannot be \'{}\''.format(self.reportOpts['sortby']))
-            globs.closeEverythingAndExit(1)
+        # Now, loop through each report and get the specific configurations
+        for section in layoutSections:
+            rIndex = len(self.rStruct['sections'])   # This will be the index number of the next element we add
+            self.rStruct['sections'].append({})
+ 
+            # Create structure to hold configs for that report
+            self.rStruct['sections'][rIndex]['name'] = section[0]
+            # Copy default options to report-specific options
+            self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
 
-        if self.reportOpts['sizedisplay'].lower()[:4] not in ('byte', 'mega', 'giga'):
-            globs.log.err('Invalid RC file size display option in [report] section: sizedisplay cannot be \'{}\''.format(self.reportOpts['sizedisplay']))
-            globs.closeEverythingAndExit(1)
+            # Get report-specific options
+            optionTmp = readDefaultOptions(section[0])
+            #optionTmp = readDefaultOptions(self.parser, section[0])
+            for optTmp in optionTmp:
+                self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
-        if self.reportOpts['lastseensummary'].lower()[:3] not in ('non', 'top', 'bot'):
-            globs.log.err('Invalid RC file size display option in [report] section: lastseensummary cannot be \'{}\''.format(self.reportOpts['lastseensummary']))
-            globs.closeEverythingAndExit(1)
+            # Fix some of the data field types - integers
+            for item in ('border', 'padding', 'nobackupwarn', 'lastseenlow', 'lastseenmed', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
+                if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
+                    self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
-        # Get list of existing headers in [headings] section
-        titTmp = globs.optionManager.getRcSection('headings')
-        if titTmp is not None:
-            for name in titTmp:
-                if titTmp[name] == '':  # Empty string means column is not to be displayed
-                    rptColumns.remove(name)
-                else:
-                    self.reportTits[name] = titTmp[name]
+            # Fix some of the data field types - boolean
+            for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+                if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
+                   self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
 
-        # Remove these columns from the column list. We deal with these separately in the reports
-        rptColumns.remove('jobmessages')
-        rptColumns.remove('jobwarnings')
-        rptColumns.remove('joberrors')
-        rptColumns.remove('joblogdata')
-
-        globs.log.write(3, 'Report: reportOps=[{}]'.format(self.reportOpts))
-        globs.log.write(3, 'Report: reportTits=[{}]'.format(self.reportTits))
-        globs.log.write(3, 'Report: rptColumns=[{}]'.format(rptColumns))
-
+        
+            # Some options are lists masquerading as strings. Need to split them out into their own list structures
+            if 'columns' in self.rStruct['sections'][rIndex]['options']:
+                self.rStruct['sections'][rIndex]['options']['columns'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['columns']) 
+            if 'groupby' in self.rStruct['sections'][rIndex]['options']:
+                self.rStruct['sections'][rIndex]['options']['groupby'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['groupby']) 
+            if 'columnsort' in self.rStruct['sections'][rIndex]['options']:
+                self.rStruct['sections'][rIndex]['options']['columnsort'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['columnsort']) 
+            if 'layout' in self.rStruct['sections'][rIndex]['options']:
+                self.rStruct['sections'][rIndex]['options']['layout'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['layout']) 
         return None
+
+
+    def validateReportFields(self, rStruct):
+        return True
 
     # Extract the data needed for the report and move it to the report table in the database
     # This data will be picked up later by the specific report module
@@ -502,11 +806,19 @@ class Report:
                     fileSizeDelta = sizeOfExaminedFiles - lastFileSize
                     globs.log.write(3, 'fileSizeDelta = {} - {} = {}'.format(sizeOfExaminedFiles, lastFileSize, fileSizeDelta))
 
+                    # Create date & time fields from timestamp field.
+                    # This makes it much easier to extract & sort later on rather than trying to manipulate the timestamp at runtime
+                    soloDate, soloTime = drdatetime.fromTimestamp(endTimeStamp, dfmt='YYYY-MM-DD')
+                    soloDate += ' 00:00:00'
+                    soloTime = '2000-01-01 ' + soloTime
+                    reportDateStamp = drdatetime.toTimestamp(soloDate, 'YYYY-MM-DD', 'HH:MM:SS')
+                    reportTimeStamp = drdatetime.toTimestamp(soloTime, 'YYYY-MM-DD', 'HH:MM:SS')
+                    
                     # Convert from timestamp to date & time strings
-                    sqlStmt = "INSERT INTO report (source, destination, timestamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
+                    sqlStmt = "INSERT INTO report (source, destination, timestamp, date, time, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
                         addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata) \
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                    rptData = (source, destination, endTimeStamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    rptData = (source, destination, endTimeStamp, reportDateStamp, reportTimeStamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
                     globs.db.execReportInsertSql(sqlStmt, rptData)
 
                     # Update latest activity into into backupsets
@@ -519,6 +831,8 @@ class Report:
                     # Set last file count & size the latest information
                     lastFileCount = examinedFiles
                     lastFileSize = sizeOfExaminedFiles
+
+        return None
 
 
 

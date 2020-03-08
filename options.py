@@ -68,11 +68,13 @@ rcParts= [
     ('outgoing',    'outkeepalive',     'false',                                                                    True),
 
     # [report] section defaults
-    ('report',      'style',            'srcdest',                                                                  True),
-    ('report',      'sortby',           'source',                                                                   True),
+    #('report',      'style',            'srcdest',                                                                  True),
+    #('report',      'sortby',           'source',                                                                   True),
+    ('report',      'columns',           'source:Source, destination:Destination',                                  True),
+    ('report',      'layout',           'title, lastseen, table',                                  True),
     ('report',      'border',           '1',                                                                        True),
     ('report',      'padding',          '5',                                                                        True),
-    ('report',      'reporttitle',      'Duplicati Backup Summary Report',                                          True),
+    ('report',      'title',            'Duplicati Backup Summary Report',                                          True),
     ('report',      'sizedisplay',      'byte',                                                                     True),
     ('report',      'showsizedisplay',  'true',                                                                     True),
     ('report',      'displaymessages',  'false',                                                                    True),
@@ -80,7 +82,7 @@ rcParts= [
     ('report',      'displayerrors',    'true',                                                                     True),
     ('report',      'displaylogdata',   'true',                                                                     True),
     ('report',      'titlebg',          '#FFFFFF',                                                                  True),
-    ('report',      'subheadbg',        '#D3D3D3',                                                                  True),
+    ('report',      'groupheadingbg',   '#D3D3D3',                                                                  True),
     ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
     ('report',      'jobwarningbg',     '#FFFF00',                                                                  True),
     ('report',      'joberrorbg',       '#FF0000',                                                                  True),
@@ -355,8 +357,8 @@ class OptionManager:
             type=int, action="store", choices=[0,1,2,3])
         argParser.add_argument("-V","--Version", help="dupReport version and program info.", action="store_true")
         argParser.add_argument("-a","--append", help="Append new logs to log file. Same as [main]logappend= in rc file.", action="store_true")
-        argParser.add_argument("-s","--size", help="Convert file sizes to megabytes or gigabytes. Options are 'byte', 'mega' 'giga'. \
-            Same as [main]sizedisplay= in rc file.", action="store", choices=['mega','giga','byte'])
+        argParser.add_argument("-s","--size", help="Convert file sizes to megabytes or gigabytes. Options are 'byte', 'mb' 'gb'. \
+            Same as [report]sizedisplay= in rc file.", action="store", choices=['mb','gb','byte'])
         argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
         argParser.add_argument("-b","--rollback", help="Roll back datebase to specified date. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-B","--rollbackx", help="Roll back datebase to specified date, then exit program. Format is -b <datetimespec>", action="store")

@@ -220,7 +220,7 @@ def daysSince(tsIn):
     return diff
 
 # Calculate time difference between two dates
-def timeDiff(td):
+def timeDiff(td, durationZeroes = False):
 
     # Cast td as a timedelta object
     tDelt = datetime.timedelta(seconds = td)
@@ -232,7 +232,7 @@ def timeDiff(td):
     #seconds += tDelt.microseconds / 1e6
 
     # Set return string value based on opts['durationzeroes'] setting
-    if globs.report.reportOpts['durationzeroes'] is True:
+    if durationZeroes is True:
         return "{}d {}h {}m {}s".format(days, hours, minutes, seconds)
     else: # Leave out parts that == 0
         retVal = ""

@@ -51,12 +51,12 @@ def initOptions():
     oMgr.openRcFile(oMgr.options['rcfilename'])   
     
     # Check if .rc file needs upgrading
-    needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
-    if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
-        globs.log.out('RC file is out of date. Needs update from version {} to version {}{}{}.'.format(currRcVersion, globs.rcVersion[0], globs.rcVersion[1], globs.rcVersion[2]))
-        import convert
-        convert.convertRc(oMgr, currRcVersion)
-        globs.log.out('RC file has been updated to the latest version.')
+    #needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
+    #if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
+    #    globs.log.out('RC file is out of date. Needs update from version {} to version {}{}{}.'.format(currRcVersion, globs.rcVersion[0], globs.rcVersion[1], globs.rcVersion[2]))
+    #    import convert
+    #    convert.convertRc(oMgr, currRcVersion)
+    #    globs.log.out('RC file has been updated to the latest version.')
     
     # Check .rc file structure to see if all proper fields are there
     if oMgr.setRcDefaults() is True:
@@ -258,21 +258,28 @@ if __name__ == "__main__":
         globs.report.extractReportData()
 
         # Select report module based on config parameters
-        if globs.report.reportOpts['style'] == 'srcdest':
-            import rpt_srcdest as rpt
-        elif globs.report.reportOpts['style'] == 'bydest':
-            import rpt_bydest as rpt
-        elif globs.report.reportOpts['style'] == 'bysource':
-            import rpt_bysource as rpt
-        elif globs.report.reportOpts['style'] == 'bydate':
-            import rpt_bydate as rpt
-        else:
-            globs.log.err('Invalid report specification: Style:{}  Please check .rc file for correct configuration.'.format(globs.report.reportOpts['style']))
-            globs.closeEverythingAndExit(1)
+        #if globs.report.reportOpts['style'] == 'srcdest':
+        #    import rpt_srcdest as rpt
+        #elif globs.report.reportOpts['style'] == 'bydest':
+        #    import rpt_bydest as rpt
+        #elif globs.report.reportOpts['style'] == 'bysource':
+        #    import rpt_bysource as rpt
+        #elif globs.report.reportOpts['style'] == 'bydate':
+        #    import rpt_bydate as rpt
+        #else:
+        #    globs.log.err('Invalid report specification: Style:{}  Please check .rc file for correct configuration.'.format(globs.report.reportOpts['style']))
+        #    globs.closeEverythingAndExit(1)
 
         # Run selected report
-        msgHtml, msgText, msgCsv = rpt.runReport(startTime)
-        globs.log.write(1,msgText)
+        #msgHtml, msgText, msgCsv = rpt.runReport(startTime)
+        #globs.log.write(1,msgText)
+        reportOutput = report.buildReportOutput(globs.report.rStruct)
+        htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput)
+        outfile = open('output.html','w')
+        outfile.write(htmlOutput)
+        outfile.close()
+
+
 
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
