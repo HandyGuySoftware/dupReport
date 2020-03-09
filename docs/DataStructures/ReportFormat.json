@@ -5,6 +5,8 @@
 			"type": "table"
 			"columnCount": 7,
 			"columNames": [ x, x, x, x, x, x, x, x, x, x, x ],
+			"inlineColumnCount": 5,
+			"inlineColumNames": [ x, x, x, x, x, x, x, x, x ],
 			"Title": "title",
 			"groups": [
 				{

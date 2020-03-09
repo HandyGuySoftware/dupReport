@@ -51,26 +51,26 @@ fldDefs = {
     }
 """
 fldDefs = {
-    # field                 [2]alignment    [3]gig/meg? [4]hdrDef   [5]normDef   [6]megaDef  [7]gigaDef
-    'source':               ('left',        False,      '20',       '20'),
-    'destination':          ('left',        False,      '20',       '20'),
-    'dupversion':           ('left',        False,      '20',       '20'),
-    'date':                 ('left',        False,      '13',       '13'),
-    'time':                 ('left',        False,      '11',       '11'),
-    'duration':             ('right',       False,      '15',       '15'),
-    'files':                ('right',       False,      '>12',      '>12,'),
-    'filesplusminus':       ('right',       False,      '>12',      '>+12,'),
-    'size':                 ('right',       True,       '>20',      '>20,',      '>20,.2f', '>20,.2f'),
-    'sizeplusminus':        ('right',       True,       '>20',      '>+20,',     '>+20,.2f', '>+20,.2f'),
-    'added':                ('right',       False,      '>12',      '>12,'),
-    'deleted':              ('right',       False,      '>12',      '>12,'),
-    'modified':             ('right',       False,      '>12',      '>12,'),
-    'errors':               ('right',       False,      '>12',      '>12,'),
-    'result':               ('left',        False,      '>13',      '>13'),
-    'jobmessages':          ('center',      False,      '^50',      '^50'),
-    'jobwarnings':          ('center',      False,      '^50',      '^50'),
-    'joberrors':            ('center',      False,      '^50',      '^50'),
-    'joblogdata':           ('center',      False,      '^50',      '^50')
+    # field                 [0]alignment    [1]hdrDef   [2]colDef
+    'source':               ('left',        '20',       '20'),
+    'destination':          ('left',        '20',       '20'),
+    'dupversion':           ('left',        '20',       '20'),
+    'date':                 ('left',        '13',       '13'),
+    'time':                 ('left',        '11',       '11'),
+    'duration':             ('right',       '15',       '15'),
+    'examinedFiles':        ('right',       '>12',      '>12,'),
+    'examinedFilesDelta':   ('right',       '>12',      '>+12,'),
+    'sizeOfExaminedFiles':  ('right',       '>20',      '>20,.2f'),
+    'fileSizeDelta':        ('right',       '>20',      '>20,.2f'),
+    'addedFiles':           ('right',       '>12',      '>12,'),
+    'deletedFiles':         ('right',       '>12',      '>12,'),
+    'modifiedFiles':        ('right',       '>12',      '>12,'),
+    'filesWithError':       ('right',       '>12',      '>12,'),
+    'parsedResult':         ('left',        '>13',      '>13'),
+    'messages':             ('center',      '^50',      '^50'),
+    'warnings':             ('center',      '^50',      '^50'),
+    'errors':               ('center',      '^50',      '^50'),
+    'logdata':              ('center',      '^50',      '^50')
     }
 
 
@@ -194,6 +194,9 @@ def buildReportOutput(reportStructure):
             singleReport['columnNames'].append([report['options']['columns'][i][0], report['options']['columns'][i][1]])
         singleReport['title'] = report['options']['title']
 
+        # If we're not showing errors, messages, etc inline, get an adjusted list of the inline column names and count
+        singleReport['inlineColumnCount'], singleReport['inlineColumnNames'] = adjustColumnInfo(singleReport['columnCount'], singleReport['columnNames'], report['options']['weminline'])
+
         # Determine how the report is grouped
         singleReport['groups'] = []
         sqlStmt = buildQuery(report['options'], groupby=True)
@@ -260,19 +263,34 @@ def buildReportOutput(reportStructure):
                         singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(tDiff)
                     elif ((report['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (report['options']['weminline'] is False)):
                         if rowList[rl][i] != '':
-                            msgList[report['options']['columns'][i][0]] = rowList[rl][i]
+                            msgList[report['options']['columns'][i][0]] = [report['options']['columns'][i][0], report['options']['columns'][i][1], rowList[rl][i]]
                     else:
                         singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(rowList[rl][i])
 
                 # If there are warnings, errors, messages to output and we don't want them inline, print separate lines
                 if len(msgList) != 0 and report['options']['weminline'] is False:       
                     for msg in msgList:
+                        msgList[msg] = truncateWarnErrMsgs(msgList[msg], report['options'])
                         singleReport['groups'][groupIndex]['dataRows'].append([msgList[msg]])
                         dataRowIndex += 1
 
         reportOutput['sections'].append(singleReport)
 
     return reportOutput
+
+# Adjust the column layout if error, messages, etc are being tracked on a separate line
+def adjustColumnInfo(count, colNames, wemInLine):
+    newColCount = count
+    newColNames = colNames.copy()
+    
+    # If errors, messages, etc are put on separate lines (weminline = False), need to adjust column layout in output report
+    if wemInLine is False:
+        for i in reversed(range(len(colNames))):
+            if newColNames[i][0] in ['messages', 'warnings', 'errors', 'logdata']:
+                newColNames.pop(i)
+                newColCount -= 1
+    
+    return newColCount, newColNames
 
 def createHtmlOutput(reportStructure, reportOutput):
 
@@ -286,17 +304,9 @@ def createHtmlOutput(reportStructure, reportOutput):
 
         # Start table
         msgHtml += '<table border={} cellpadding="{}">\n'.format(rptOptions['border'], rptOptions['padding'])
-        columnCount = report['columnCount']
-        
-        # If errors, messages, etc are put on separate lines (weminline = False), need to adjust column layout in output report
-        if rptOptions['weminline'] is False:
-            for i in reversed(range(len(report['columnNames']))):
-                if report['columnNames'][i][0] in ['messages', 'warnings', 'errors', 'logdata']:
-                    report['columnNames'].pop(i)
-                    columnCount -= 1
-   
+
         # Add title               
-        msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(columnCount, rptOptions['titlebg'], rptOptions['title'])
+        msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['titlebg'], rptOptions['title'])
 
         # Loop through each group in the report
         grpIndex = -1
@@ -304,19 +314,24 @@ def createHtmlOutput(reportStructure, reportOutput):
             grpIndex += 1
             
             # Print group heading
-            msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(columnCount, rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'])
+            msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'])
 
             # Print column headings
             msgHtml += '<tr>'
-            for i in range(len(report['columnNames'])):
-                msgHtml += '<td><b>' + report['columnNames'][i][1] + '</b></td>'
+            for i in range(len(report['inlineColumnNames'])):
+                msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
             msgHtml += '</tr>\n'
 
             # Print data rows & columns for that group
             for row in report['groups'][grpIndex]['dataRows']:
                 msgHtml += '<tr>'
                 for column in range(len(row)):
-                    msgHtml += '<td colspan={}>'.format(1 if len(row) != 1 else columnCount) + str(row[column]) if type(row[column]) != 'str' else row[column] + '</td>'
+                    if len(row) != 1:  # Standard, multicolumn report 
+                        outStr = printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
+                        msgHtml += '<td align=\"{}\">'.format(fldDefs[report['inlineColumnNames'][column][0]][0]) + outStr + '</td>'
+                    else:   # Single column - error, warning, message
+                        outStr = printField(row[column][2], row[column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
+                        msgHtml += '<td colspan={} align=\"{}\"><details><summary>{}</summary><p><i>'.format(report['inlineColumnCount'], report['inlineColumnNames'][column][0], row[column][1]) + outStr + '</i></p></details></td>'
                 msgHtml += '</tr>\n'
         msgHtml += '</table><br>'
 
@@ -325,69 +340,56 @@ def createHtmlOutput(reportStructure, reportOutput):
     return msgHtml
 
 # Provide a field format specification for the titles in the report
-def printTitle(fld, typ):
+def printTitle(fld, options, typ):
     outStr = None
     globs.log.write(3, 'report.printTitle({}, {})'.format(fld, typ))
 
     # Need to see if we should add the size display after the heading  (e.g. '(MB)' or '(GB)')
     # This is kind of a cheat, but there is no other more elegant way of doing it
     displayAddOn = '' # Start with nothing
-    if ((fld == 'size') or (fld == 'sizeplusminus')):  # These are the only fields that can use the add-on
-        if globs.report.reportOpts['showsizedisplay'] is True:  # Do we want to show it, based on .rec config?
-            if globs.report.reportOpts['sizedisplay'][:4].lower() == 'mega':    # Need to add (MB)
-                displayAddOn = ' (MB)'
-            elif globs.report.reportOpts['sizedisplay'][:4].lower() == 'giga': # giga - need to add (GB)
-                displayAddOn = ' (GB)'
+    if ((fld[0] == 'sizeOfExaminedFiles') or (fld[0] == 'fileSizeDelta')):  # These are the only fields that can use the add-on
+        if options['showsizedisplay'] is True:  # Do we want to show it, based on .rec config?
+            if options['sizedisplay'][:2].lower() == 'mb':    # Need to add (MB)
+                displayAddOn = ' (Mb)'
+            elif options['sizedisplay'][:2].lower() == 'gb': # giga - need to add (GB)
+                displayAddOn = ' (Gb)'
             else: # Unknown, revert to default
-                displayAddOn = ''
+                pass
 
     if typ == 'html':
-        outStr = '<td align=\"{}\"><b>{}{}</b></td>'.format(fldDefs[fld][2], globs.report.reportTits[fld], displayAddOn)
+        outStr = '<td align=\"{}\"><b>{}{}</b></td>'.format(fldDefs[fld[0]][0], fld[1], displayAddOn)
     elif typ == 'text':
-        outStr = '{:{fmt}}'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][4])
+        outStr = '{:{fmt}}'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][1])
     elif typ == 'csv':
-        outStr = '\"{:{fmt}}\",'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][4])
+        outStr = '\"{:{fmt}}\",'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][1])
 
     globs.log.write(3, 'outStr = {}'.format(outStr))
     return outStr
 
 # Provide a field format specification for the data fields (cells) in the report
-def printField(fld, val, fmt):
-
-    # If the column has been removed from the report, return an empty string
-    if fld not in rptColumns:
-        return ''
+def printField(val, fldName, format, type):
+    v = val
+    outFmt = fldDefs[fldName][2]
 
     # Process fields based on their type.
-    if type(val) is not str: # ints & floats
-        v = val
-        outFmt = fldDefs[fld][5]
-        
+    if not isinstance(val,str): # i.e., ints & floats
         # Need to adjust value based on MB/GB specification
-        # reportOpts['sizedisplay'] indicates if we want to convert sizes to MB/GB
-        if ((globs.report.reportOpts['sizedisplay'][:4].lower() == 'mega') and (fldDefs[fld][3] == True)):
-            v = val / 1000000.00
-            outFmt = fldDefs[fld][6]
-        elif ((globs.report.reportOpts['sizedisplay'][:4].lower() == 'giga') and (fldDefs[fld][3] == True)):
-            v = val / 1000000000.00
-            outFmt = fldDefs[fld][7]
+        # 'display' option (from reportOutput['sections'][rptIndex]['options']['sizedisplay']) indicates if we want to convert sizes to MB/GB
+        if fldName in ['sizeOfExaminedFiles', 'fileSizeDelta']:
+            if format[:2].lower() == 'mb':
+                v = val / 1000000.00
+            elif format[:2].lower() == 'gb':
+                v = val / 1000000000.00
         
-        # Create HTML, text, and csv versions of the format string
-        outHtml = '<td align=\"{}\">{:{fmt}}</td>'.format(fldDefs[fld][2], v, fmt=outFmt)
-        outTxt = '{:{fmt}}'.format(v, fmt=outFmt)
-        outCsv = '\"{:{fmt}}\",'.format(v, fmt=outFmt)
-    else:
-        # Create HTML, text, and csv versions of the format string
-        outHtml = '<td align=\"{}\">{}</td>'.format(fldDefs[fld][2], val)
-        outTxt = '{:{fmt}}'.format(val, fmt=fldDefs[fld][5])
-        outCsv = '\"{:{fmt}}\",'.format(val, fmt=fldDefs[fld][5])
+    # Create HTML, text, and csv versions of the format string
+    if type == 'html':
+        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
+    elif type == 'text':
+        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
+    elif type == 'csv':
+        outStr = '\"{:{fmt}}\",'.format(v, fmt=outFmt)
 
-    if fmt == 'html':
-        return outHtml
-    elif fmt == 'text':
-        return outTxt
-    elif fmt == 'csv':
-        return outCsv
+    return outStr
 
 # Send report to an output file
 # msgH = HTML message
@@ -654,25 +656,24 @@ def lastSeenTable(opts):
     return msgHtml, msgText, msgCsv
 
 # Truncate warning & error messages
-def truncateWarnErrMsgs(msg, msgLen, warn, warnLen, err, errLen, logData, logDataLen):
+def truncateWarnErrMsgs(msg, options):
 
-    # Set defaults to original messages
     msgRet = msg
-    warnRet = warn
-    errRet = err
-    logDataRet = logData
 
     # Truncate string if length of string is > desired length
-    if msgLen != 0:
-        msgRet = (msg[:msgLen]) if len(msg) > msgLen else msg  
-    if warnLen != 0:
-        warnRet = (warn[:warnLen]) if len(warn) > warnLen else warn  
-    if errLen != 0:
-        errRet = (err[:errLen]) if len(err) > errLen else err
-    if logDataLen != 0:
-        logDataRet = (logData[:logDataLen]) if len(logData) > logDataLen else logData
+    if msg[0] == 'errors':
+        msgLen = options['truncateerror']
+    elif msg[0] == 'messages':
+        msgLen = options['truncatemessage']
+    elif msg[0] == 'warnings':
+        msgLen = options['truncatewarning']
+    elif msg[0] == 'logdata':
+        msgLen = options['truncatelogdata']
 
-    return msgRet, warnRet, errRet, logDataRet
+    if msgLen != 0:
+        msgRet[2] = (msg[2][:msgLen]) if len(msg[2]) > msgLen else msg[2]  
+    
+    return msgRet
 
 def splitRcIntoList(inputString):
     iniList = []
