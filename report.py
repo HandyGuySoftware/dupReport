@@ -168,115 +168,241 @@ def splitRcIntoList(inputString):
 
     return iniList
 
-# Take data from report tablle and build the resulting report structure.
-# Output structure will be used to generate the final report
-# 'reportStructure' is the report options as extracted from the .rc file
-# See docs/DataStructures/ConfigFormat for schema of reportStructure
-# See docs/DataStructures/ReportFormat for schema of reportOutput
-def buildReportOutput(reportStructure):
+def buildOutput(reportStructure):
 
     reportOutput = {}
     reportOutput['sections'] = []
 
     # Loop through report configurations
     for report in reportStructure['sections']:
-        
-        # singleReport is the output for just this specific report. 
-        # It will be appended to reportOutput once it is filled in.
-        # This is how we produce multiple reports from the same run.
-        singleReport = {}
+        if report['type'] == 'report':
+            reportOutput['sections'].append(buildReportOutput(report))
+        elif report['type'] == 'noactivity':
+            reportOutput['sections'].append(buildNoActivityOutput(report))
+            pass
+    
+    return reportOutput
 
-        # Copy basic report information from the report definition
-        singleReport['name'] = report['name']
-        singleReport['columnCount'] = len(report['options']['columns'])
-        singleReport['columnNames'] = []
-        for i in range(len(report['options']['columns'])):
-            singleReport['columnNames'].append([report['options']['columns'][i][0], report['options']['columns'][i][1]])
-        singleReport['title'] = report['options']['title']
+def buildNoActivityOutput(report):
 
-        # If we're not showing errors, messages, etc inline, get an adjusted list of the inline column names and count
-        singleReport['inlineColumnCount'], singleReport['inlineColumnNames'] = adjustColumnInfo(singleReport['columnCount'], singleReport['columnNames'], report['options']['weminline'])
+    singleReport = {}
 
-        # Determine how the report is grouped
-        singleReport['groups'] = []
-        sqlStmt = buildQuery(report['options'], groupby=True)
+    # Copy basic report information from the report definition
+    singleReport['name'] = report['name']
+    singleReport['title'] = report['options']['title']
+    singleReport['columnCount'] = 3
+    singleReport['columnNames'] = []
+    singleReport['columnNames'].append('Source', 'Source')
+    singleReport['columnNames'].append('Destination', 'Destination')
+    singleReport['columnNames'].append('Last Seen', 'Last Seen')
+    singleReport['groups'] = []
+    singleReport['groups'].append({})
+    singleReport['groups'][0]['dataRows'] = []
+
+    # Select all source/destination pairs (& last seen timestamp) from the backupset list 
+    sqlStmt = "SELECT DISTINCT source, destination, lasttimestamp FROM backupsets"
+    dbCursor = globs.db.execSqlStmt(sqlStmt)
+    sourceDestList = dbCursor.fetchall()
+
+    dataRowIndex = -1
+    for source, destination, lasttimestamp in sourceDestList:
+        selStmt = "SELECT count(*) FROM report WHERE source='{}' and destination='{}'"
         dbCursor = globs.db.execSqlStmt(sqlStmt)
-        groupList = dbCursor.fetchall()
+        sourceDestList = dbCursor.fetchall()
+        countRows = dbCursor.fetchone()
 
-        # Loop through the defined sections and create a new section for each group
-        for groupName in groupList:
-            groupIndex = len(singleReport['groups'])  # This will be the index number of the next element we add
-            singleReport['groups'].append({})
+        if countRows[0] == 0:
+            # If src/dest is known offline, skip
+            srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+            offline = globs.optionManager.getRcOption(srcDest, 'offline')
+            if offline != None:
+                if offline.lower() in ('true'):
+                    continue
 
-            # Build the subheading (title) for the group
-            if 'groupheading' in report['options']:                 # Group heading already defined
-                grpHeading = report['options']['groupheading']
-            else:                                                   # Group heading not defined. Build it from 'groupby' columns
-                grpHeading = ''
-                for i in range(len(groupName)):
-                    grpHeading += str(groupName[i]) + ' '
-                singleReport['groups'][groupIndex]['groupHeading'] = grpHeading
+            # Calculate days since last activity
+            diff = drdatetime.daysSince(lastTimestamp)
 
-            # Substitute keywords for actual values
-            for keyWdTmp in keyWordList:
-                for i in range(len(report['options']['groupby'])):
-                    if report['options']['groupby'][i][0] == keyWdTmp: # field is one of the groupbys. See if you need to substitute that value
-                        # Check for timestmp expansion
-                        if keyWdTmp == 'date':
-                            dateStr, timeStr = drdatetime.fromTimestamp(groupName[i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                            grpHeading = grpHeading.replace(keyWordList[keyWdTmp], dateStr)
-                        elif keyWdTmp == 'time':
-                            dateStr, timeStr = drdatetime.fromTimestamp(groupName[i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                            grpHeading = grpHeading.replace(keyWordList[keyWdTmp], timeStr)
-                        else:
-                            grpHeading = grpHeading.replace(keyWordList[keyWdTmp], str(groupName[i]))
+            singleReport['groups'][0]['dataRows'].append([])
+            dataRowIndex += 1
+            # See if we're past the backup interval before reporting
+            result, interval = pastBackupInterval(srcDest, diff)
+            singleReport['groups'][0]['dataRows'][dataRowIndex].append(source)
+            singleReport['groups'][0]['dataRows'][dataRowIndex].append(destination)
+            if result is False:
+                globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
+                singleReport['groups'][0]['dataRows'][dataRowIndex].append('{} days ago. Backup interval is {} days.'.format(diff, interval))
+            else:
+                lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
+                singleReport['groups'][0]['dataRows'][dataRowIndex].append('Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff))
 
-            # Perform keyword substutution on the group heading
+    return singleReport
+
+
+markupDefs = {
+    'bold':     0x01,
+    'italic':   0x02,
+    'underline': 0x04,
+    'left':     0x08,
+    'center': 0x10,
+    'right': 0x20
+    }
+
+def toMarkup(bold, italic, underline, align='left'):
+    markup = 0
+
+    if bold:
+        markup += markupDefs['bold'] 
+    if italic:
+        markup += markupDefs['italic'] 
+    if underline:
+        markup += markupDefs['underline'] 
+    
+    markup += markupDefs[align]
+    
+    return markup
+
+def fromMarkup(markup):
+    
+    fmtStart = ''
+    fmtEnd = ''
+
+    if bool(markup & markupDefs['bold']):
+        fmtStart += ' <b> '
+        fmtEnd += ' </b> '
+    if bool(markup & markupDefs['italic']):
+        fmtStart += ' <i> '
+        fmtEnd += ' </i> '
+    if bool(markup & markupDefs['underline']):
+        fmtStart += ' <u> '
+        fmtEnd += ' </u> '
+
+    if markup & markupDefs['center']:
+        align = 'center'
+    elif markup & markupDefs['right']:
+        align = 'right'
+    else:
+        align = 'left'
+
+    return fmtStart, fmtEnd, align
+
+
+# Take data from report table and build the resulting report structure.
+# Output structure will be used to generate the final report
+# 'reportStructure' is the report options as extracted from the .rc file
+# See docs/DataStructures/ConfigFormat for schema of reportStructure
+# See docs/DataStructures/ReportFormat for schema of reportOutput
+def buildReportOutput(report):
+
+    # singleReport is the output for just this specific report. 
+    # It will be appended to reportOutput once it is filled in.
+    # This is how we produce multiple reports from the same run.
+    singleReport = {}
+
+    # Copy basic report information from the report definition
+    singleReport['name'] = report['name']
+    singleReport['columnCount'] = len(report['options']['columns'])
+    singleReport['columnNames'] = []
+    for i in range(len(report['options']['columns'])):
+        markup = toMarkup(bold=True, italic=False, underline=False, align=fldDefs[report['options']['columns'][i][0]][0])
+        singleReport['columnNames'].append([report['options']['columns'][i][0], report['options']['columns'][i][1], '#FFFFFF', markup]) # Column names are white and bold
+    singleReport['title'] = report['options']['title']
+
+    # If we're not showing errors, messages, etc inline, get an adjusted list of the inline column names and count
+    singleReport['inlineColumnCount'], singleReport['inlineColumnNames'] = adjustColumnInfo(singleReport['columnCount'], singleReport['columnNames'], report['options']['weminline'])
+
+    # Determine how the report is grouped
+    singleReport['groups'] = []
+    sqlStmt = buildQuery(report['options'], groupby=True)
+    dbCursor = globs.db.execSqlStmt(sqlStmt)
+    groupList = dbCursor.fetchall()
+
+    # Loop through the defined sections and create a new section for each group
+    for groupName in groupList:
+        groupIndex = len(singleReport['groups'])  # This will be the index number of the next element we add
+        singleReport['groups'].append({})
+
+        # Build the subheading (title) for the group
+        if 'groupheading' in report['options']:                 # Group heading already defined
+            grpHeading = report['options']['groupheading']
+        else:                                                   # Group heading not defined. Build it from 'groupby' columns
+            grpHeading = ''
+            for i in range(len(groupName)):
+                grpHeading += str(groupName[i]) + ' '
             singleReport['groups'][groupIndex]['groupHeading'] = grpHeading
 
-            #singleReport['groups'][groupIndex]['columNames'] = singleReport['columnNames']
-            singleReport['groups'][groupIndex]['dataRows'] = []
-
-            sqlQuery = {}
-            sqlStmt = buildQuery(report['options'], whereOpts = groupName)
-            dbCursor = globs.db.execSqlStmt(sqlStmt)
-            rowList = dbCursor.fetchall()
-
-            # Loop through all rows for that section
-            dataRowIndex = -1
-            for rl in range(len(rowList)):
-                msgList = {}
-                singleReport['groups'][groupIndex]['dataRows'].append([])
-                dataRowIndex += 1
-
-                # Print column values to dataRows
-                for i in range(len(report['options']['columns'])):
-                    # See if we need to substitute date, time, or duration fields
-                    if report['options']['columns'][i][0] == 'date':
-                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(dateStr)
-                    elif report['options']['columns'][i][0] == 'time':
-                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(timeStr)
-                    elif report['options']['columns'][i][0] == 'duration':
-                        tDiff = drdatetime.timeDiff(rowList[rl][i], report['options']['durationzeroes'])
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(tDiff)
-                    elif ((report['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (report['options']['weminline'] is False)):
-                        if rowList[rl][i] != '':
-                            msgList[report['options']['columns'][i][0]] = [report['options']['columns'][i][0], report['options']['columns'][i][1], rowList[rl][i]]
+        # Perform keyword substutution on the group heading
+        for keyWdTmp in keyWordList:
+            for i in range(len(report['options']['groupby'])):
+                if report['options']['groupby'][i][0] == keyWdTmp: # field is one of the groupbys. See if you need to substitute that value
+                    # Check for timestmp expansion
+                    if keyWdTmp == 'date':
+                        dateStr, timeStr = drdatetime.fromTimestamp(groupName[i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                        grpHeading = grpHeading.replace(keyWordList[keyWdTmp], dateStr)
+                    elif keyWdTmp == 'time':
+                        dateStr, timeStr = drdatetime.fromTimestamp(groupName[i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                        grpHeading = grpHeading.replace(keyWordList[keyWdTmp], timeStr)
                     else:
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(rowList[rl][i])
+                        grpHeading = grpHeading.replace(keyWordList[keyWdTmp], str(groupName[i]))
 
-                # If there are warnings, errors, messages to output and we don't want them inline, print separate lines
-                if len(msgList) != 0 and report['options']['weminline'] is False:       
-                    for msg in msgList:
-                        msgList[msg] = truncateWarnErrMsgs(msgList[msg], report['options'])
-                        singleReport['groups'][groupIndex]['dataRows'].append([msgList[msg]])
-                        dataRowIndex += 1
+        singleReport['groups'][groupIndex]['groupHeading'] = [grpHeading,  report['options']['groupheadingbg'], 0x01]
+        singleReport['groups'][groupIndex]['dataRows'] = []
 
-        reportOutput['sections'].append(singleReport)
+        sqlQuery = {}
+        sqlStmt = buildQuery(report['options'], whereOpts = groupName)
+        dbCursor = globs.db.execSqlStmt(sqlStmt)
+        rowList = dbCursor.fetchall()
 
-    return reportOutput
+        # Loop through all rows for that section
+        dataRowIndex = -1
+        for rl in range(len(rowList)):
+            msgList = {}
+            singleReport['groups'][groupIndex]['dataRows'].append([])
+            dataRowIndex += 1
+
+            # Print column values to dataRows
+            for i in range(len(report['options']['columns'])):
+                # See if we need to substitute date, time, or duration fields
+                if report['options']['columns'][i][0] == 'date':
+                    markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs['date'][0])
+                    dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                    #singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(['date', dateStr, '#FFFFFF', markup])
+                    singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([dateStr, '#FFFFFF', markup])
+                elif report['options']['columns'][i][0] == 'time':
+                    markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs['time'][0])
+                    dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                    #singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(['time', timeStr, '#FFFFFF', markup])
+                    singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([timeStr, '#FFFFFF', markup])
+                elif report['options']['columns'][i][0] == 'duration':
+                    markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs['duration'][0])
+                    tDiff = drdatetime.timeDiff(rowList[rl][i], report['options']['durationzeroes'])
+                    #singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(['duration', tDiff, '#FFFFFF', markup])
+                    singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([tDiff, '#FFFFFF', markup])
+                elif ((report['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (report['options']['weminline'] is False)):
+                    if rowList[rl][i] != '':
+                        type = report['options']['columns'][i][0]
+                        if type == 'messages':
+                            bground = report['options']['jobmessagebg']
+                        elif type == 'warnings':
+                            bground = report['options']['jobwarningbg']
+                        elif type == 'errors':
+                            bground = report['options']['joberrorbg']
+                        elif type == 'logdata':
+                            bground = report['options']['joblogdatabg']
+                        truncatedMsg = truncateWarnErrMsgs(type, rowList[rl][i], report['options'])
+                        markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs[type][0])
+                        msgList[report['options']['columns'][i][0]] = [truncatedMsg, bground, markup, report['options']['columns'][i][1]]
+                else:
+                    markup = toMarkup(bold=False, italic=False, underline=False, align='left')
+                    singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([rowList[rl][i], '#FFFFFF', markup])
+
+            # If there are warnings, errors, messages to output and we don't want them inline, print separate lines after the main columns
+            if len(msgList) != 0 and report['options']['weminline'] is False:       
+                for msg in msgList:
+                    singleReport['groups'][groupIndex]['dataRows'].append([msgList[msg]])
+                    dataRowIndex += 1
+
+
+    return singleReport
 
 # Adjust the column layout if error, messages, etc are being tracked on a separate line
 def adjustColumnInfo(count, colNames, wemInLine):
@@ -294,6 +420,7 @@ def adjustColumnInfo(count, colNames, wemInLine):
 
 def createHtmlOutput(reportStructure, reportOutput):
 
+
     msgHtml = '<html><head></head><body>\n'
 
     rptIndex = -1
@@ -308,30 +435,38 @@ def createHtmlOutput(reportStructure, reportOutput):
         # Add title               
         msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['titlebg'], rptOptions['title'])
 
-        # Loop through each group in the report
-        grpIndex = -1
-        for group in reportOutput['sections'][rptIndex]['groups']:
-            grpIndex += 1
-            
-            # Print group heading
-            msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'])
-
+        if rptOptions['repeatheaders'] is False:    # Only print headers at the top of the report
             # Print column headings
             msgHtml += '<tr>'
             for i in range(len(report['inlineColumnNames'])):
                 msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
             msgHtml += '</tr>\n'
 
+        # Loop through each group in the report
+        grpIndex = -1
+        for group in reportOutput['sections'][rptIndex]['groups']:
+            grpIndex += 1
+            
+            # Print group heading
+            msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'][0])
+
+            if rptOptions['repeatheaders'] is True:    # Only print headers at the top of the report
+                # Print column headings
+                msgHtml += '<tr>'
+                for i in range(len(report['inlineColumnNames'])):
+                    msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
+                msgHtml += '</tr>\n'
+
             # Print data rows & columns for that group
             for row in report['groups'][grpIndex]['dataRows']:
                 msgHtml += '<tr>'
-                for column in range(len(row)):
-                    if len(row) != 1:  # Standard, multicolumn report 
-                        outStr = printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
-                        msgHtml += '<td align=\"{}\">'.format(fldDefs[report['inlineColumnNames'][column][0]][0]) + outStr + '</td>'
-                    else:   # Single column - error, warning, message
-                        outStr = printField(row[column][2], row[column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
-                        msgHtml += '<td colspan={} align=\"{}\"><details><summary>{}</summary><p><i>'.format(report['inlineColumnCount'], report['inlineColumnNames'][column][0], row[column][1]) + outStr + '</i></p></details></td>'
+                if len(row) != 1:  # Standard, multicolumn report 
+                    for column in range(len(row)):
+                        msgHtml += printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
+                        #msgHtml += '<td align=\"{}\">'.format(fldDefs[report['inlineColumnNames'][column][0]][0]) + outStr + '</td>'
+                else:   # Single column - error, warning, message
+                    msgHtml += printField(row[0], '', '', 'html', row[0][3], report['inlineColumnCount'])
+                    #msgHtml += '<td colspan={} align=\"{}\"><details><summary>{}</summary><p><i>'.format(report['inlineColumnCount'], report['inlineColumnNames'][column][0], row[column][1]) + outStr + '</i></p></details></td>'
                 msgHtml += '</tr>\n'
         msgHtml += '</table><br>'
 
@@ -340,14 +475,14 @@ def createHtmlOutput(reportStructure, reportOutput):
     return msgHtml
 
 # Provide a field format specification for the titles in the report
-def printTitle(fld, options, typ):
+def printTitle(fldTuple, options, typ):
     outStr = None
-    globs.log.write(3, 'report.printTitle({}, {})'.format(fld, typ))
+    globs.log.write(3, 'report.printTitle({}, {})'.format(fldTuple[1], typ))
 
     # Need to see if we should add the size display after the heading  (e.g. '(MB)' or '(GB)')
     # This is kind of a cheat, but there is no other more elegant way of doing it
     displayAddOn = '' # Start with nothing
-    if ((fld[0] == 'sizeOfExaminedFiles') or (fld[0] == 'fileSizeDelta')):  # These are the only fields that can use the add-on
+    if ((fldTuple[0] == 'sizeOfExaminedFiles') or (fldTuple[0] == 'fileSizeDelta')):  # These are the only fields that can use the add-on
         if options['showsizedisplay'] is True:  # Do we want to show it, based on .rec config?
             if options['sizedisplay'][:2].lower() == 'mb':    # Need to add (MB)
                 displayAddOn = ' (Mb)'
@@ -356,8 +491,10 @@ def printTitle(fld, options, typ):
             else: # Unknown, revert to default
                 pass
 
+    fmtStart, fmtEnd, align = fromMarkup(fldTuple[3])
+
     if typ == 'html':
-        outStr = '<td align=\"{}\"><b>{}{}</b></td>'.format(fldDefs[fld[0]][0], fld[1], displayAddOn)
+        outStr = '<td align=\"{}\" bgcolor=\"{}\">{}{}{}{}</td>'.format(align, fldTuple[2], fmtStart, fldTuple[1], displayAddOn, fmtEnd)
     elif typ == 'text':
         outStr = '{:{fmt}}'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][1])
     elif typ == 'csv':
@@ -367,27 +504,42 @@ def printTitle(fld, options, typ):
     return outStr
 
 # Provide a field format specification for the data fields (cells) in the report
-def printField(val, fldName, format, type):
-    v = val
-    outFmt = fldDefs[fldName][2]
+def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0):
+    outStr = None
+
+    fmtStart, fmtEnd, align = fromMarkup(fldTuple[2])
+
+    val = fldTuple[0]
+    #outFmt = fldDefs[fldName][2]
 
     # Process fields based on their type.
     if not isinstance(val,str): # i.e., ints & floats
         # Need to adjust value based on MB/GB specification
         # 'display' option (from reportOutput['sections'][rptIndex]['options']['sizedisplay']) indicates if we want to convert sizes to MB/GB
         if fldName in ['sizeOfExaminedFiles', 'fileSizeDelta']:
-            if format[:2].lower() == 'mb':
-                v = val / 1000000.00
-            elif format[:2].lower() == 'gb':
-                v = val / 1000000000.00
+            if sizeDisplay[:2].lower() == 'mb':
+                val = val / 1000000.00
+            elif sizeDisplay[:2].lower() == 'gb':
+                vval = val / 1000000000.00
         
     # Create HTML, text, and csv versions of the format string
-    if type == 'html':
-        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
-    elif type == 'text':
-        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
-    elif type == 'csv':
-        outStr = '\"{:{fmt}}\",'.format(v, fmt=outFmt)
+    if typ == 'html':
+        if title is None:  # Standard data field
+            outStr = '<td align=\"{}\" bgcolor=\"{}\">{}{}{}</td>'.format(align, fldTuple[1], fmtStart, fldTuple[0], fmtEnd)
+        else: # Err/warn/message field
+            outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\"><details><summary>{}</summary><p>{}{}{}</details></td>'.format(columnCount, align, fldTuple[1], title, fmtStart, fldTuple[0], fmtEnd)
+            #msgHtml += '<td colspan={} align=\"{}\"><details><summary>{}</summary><p><i>'.format(report['inlineColumnCount'], report['inlineColumnNames'][column][0], row[column][1]) + outStr + '</i></p></details></td>'
+    elif typ == 'text':
+        outStr = '{:{fmt}}'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][1])
+    elif typ == 'csv':
+        outStr = '\"{:{fmt}}\",'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][1])
+
+#    if type == 'html':
+#        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
+#    elif type == 'text':
+#        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
+#    elif type == 'csv':
+#        outStr = '\"{:{fmt}}\",'.format(v, fmt=outFmt)
 
     return outStr
 
@@ -656,22 +808,22 @@ def lastSeenTable(opts):
     return msgHtml, msgText, msgCsv
 
 # Truncate warning & error messages
-def truncateWarnErrMsgs(msg, options):
+def truncateWarnErrMsgs(field, msg, options):
 
     msgRet = msg
 
     # Truncate string if length of string is > desired length
-    if msg[0] == 'errors':
+    if field == 'errors':
         msgLen = options['truncateerror']
-    elif msg[0] == 'messages':
+    elif field == 'messages':
         msgLen = options['truncatemessage']
-    elif msg[0] == 'warnings':
+    elif field == 'warnings':
         msgLen = options['truncatewarning']
-    elif msg[0] == 'logdata':
+    elif field == 'logdata':
         msgLen = options['truncatelogdata']
 
     if msgLen != 0:
-        msgRet[2] = (msg[2][:msgLen]) if len(msg[2]) > msgLen else msg[2]  
+        msgRet = msg[:msgLen] if len(msg) > msgLen else msg  
     
     return msgRet
 
@@ -711,14 +863,14 @@ class Report:
         self.rStruct['defaults'] = globs.optionManager.getRcSection('report')
 
         # Fix some of the data field types - integers
-        for item in ('border', 'padding', 'nobackupwarn', 'lastseenlow', 'lastseenmed', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
+        for item in ('border', 'padding', 'nobackupwarn', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
             self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
         for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
             self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
             
-        # Get reports that need to run
+        # Get reports that need to run as defined in [report]layout option
         layoutSections = splitRcIntoList(self.rStruct['defaults']['layout'])
         self.rStruct['sections'] = []
 
@@ -732,37 +884,42 @@ class Report:
             rIndex = len(self.rStruct['sections'])   # This will be the index number of the next element we add
             self.rStruct['sections'].append({})
  
-            # Create structure to hold configs for that report
+            # Get section name & type
             self.rStruct['sections'][rIndex]['name'] = section[0]
-            # Copy default options to report-specific options
-            self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
+            self.rStruct['sections'][rIndex]['type'] = globs.optionManager.getRcOption(section[0], 'type')
 
-            # Get report-specific options
-            optionTmp = readDefaultOptions(section[0])
-            #optionTmp = readDefaultOptions(self.parser, section[0])
-            for optTmp in optionTmp:
-                self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
+            if self.rStruct['sections'][rIndex]['type'] == 'report':
+                # Copy default options to report-specific options
+                self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
 
-            # Fix some of the data field types - integers
-            for item in ('border', 'padding', 'nobackupwarn', 'lastseenlow', 'lastseenmed', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
-                if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
-                    self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
+                # Get report-specific options
+                optionTmp = readDefaultOptions(section[0])
+                for optTmp in optionTmp:
+                    self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
-            # Fix some of the data field types - boolean
-            for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
-                if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
-                   self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
+                # Fix some of the data field types - integers
+                for item in ('border', 'padding', 'nobackupwarn', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
+                    if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
+                        self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
+
+                # Fix some of the data field types - boolean
+                for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+                    if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
+                       self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
 
         
-            # Some options are lists masquerading as strings. Need to split them out into their own list structures
-            if 'columns' in self.rStruct['sections'][rIndex]['options']:
-                self.rStruct['sections'][rIndex]['options']['columns'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['columns']) 
-            if 'groupby' in self.rStruct['sections'][rIndex]['options']:
-                self.rStruct['sections'][rIndex]['options']['groupby'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['groupby']) 
-            if 'columnsort' in self.rStruct['sections'][rIndex]['options']:
-                self.rStruct['sections'][rIndex]['options']['columnsort'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['columnsort']) 
-            if 'layout' in self.rStruct['sections'][rIndex]['options']:
-                self.rStruct['sections'][rIndex]['options']['layout'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['layout']) 
+                # Some options are lists masquerading as strings. Need to split them out into their own list structures
+                if 'columns' in self.rStruct['sections'][rIndex]['options']:
+                    self.rStruct['sections'][rIndex]['options']['columns'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['columns']) 
+                if 'groupby' in self.rStruct['sections'][rIndex]['options']:
+                    self.rStruct['sections'][rIndex]['options']['groupby'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['groupby']) 
+                if 'columnsort' in self.rStruct['sections'][rIndex]['options']:
+                    self.rStruct['sections'][rIndex]['options']['columnsort'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['columnsort']) 
+                if 'layout' in self.rStruct['sections'][rIndex]['options']:
+                    self.rStruct['sections'][rIndex]['options']['layout'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['layout'])
+            elif self.rStruct['sections'][rIndex]['type'] == 'noactivity':
+                self.rStruct['sections'][rIndex]['options'] = readDefaultOptions(section[0])
+        
         return None
 
 
@@ -776,6 +933,8 @@ class Report:
 
         # Initialize report table. Delete all existing rows
         dbCursor = globs.db.execSqlStmt("DELETE FROM report")
+        globs.db.dbCommit()
+
 
         # Select source/destination pairs from database
         sqlStmt = "SELECT source, destination, lastTimestamp, lastFileCount, lastFileSize FROM backupsets ORDER BY source, destination"

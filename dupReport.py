@@ -273,13 +273,11 @@ if __name__ == "__main__":
         # Run selected report
         #msgHtml, msgText, msgCsv = rpt.runReport(startTime)
         #globs.log.write(1,msgText)
-        reportOutput = report.buildReportOutput(globs.report.rStruct)
+        reportOutput = report.buildOutput(globs.report.rStruct)
         htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput)
         outfile = open('output.html','w')
         outfile.write(htmlOutput)
         outfile.close()
-
-
 
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:

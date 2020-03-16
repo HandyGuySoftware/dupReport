@@ -1,76 +1,57 @@
 {
 	"sections": [
 		{
-			"name": "rpt-bydest",
+			"name": "bydest",
+			"Title": "Table Title",
 			"type": "table"
-			"columnCount": 7,
-			"columNames": [ x, x, x, x, x, x, x, x, x, x, x ],
-			"inlineColumnCount": 5,
-			"inlineColumNames": [ x, x, x, x, x, x, x, x, x ],
-			"Title": "title",
+			"columnCount": 4,
+			"columns": [ [colName, ColTitle, bgColor, markup], [colA,ColumnA, bgColor, markup], [colB,ColumnB, bgColor, markup], [colC, ColumnC, bgColor, markup], ... ],
+							# Markup = 	0x01 - Bold
+							#			0x02 - Italic
+							# 			0x04 - Underline
+							#			0x08 - Left justified
+							#			0x10 - Center justified
+							#			0x20 - Right justified
+			"inlineColumnCount": 2,
+			"inlineColumns": [ [colName, ColTitle, bgColor, markup], [colA,ColumnA, bgColor, markup], ... ],
 			"groups": [
 				{
-					"groupHeading": "Group 1",
+					"groupHeading": ["Group 1", bgColor, markup ]
 					"dataRows": [
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[msg],
-						[warn],
-						[error],
-						[data],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
+						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
+						[msgTitle, msg, colVal, bgColor, markup],
+						[warnTitle, warn, , colVal, bgColor, markup],
+						[errorTitle, error, , colVal, bgColor, markup],
+						[dataTitle, data, , colVal, bgColor, markup],
+						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
+						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
 					],
 				},
 				{
 					"groupHeading": "Group 2",
 					"dataRows": [
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[msg],
-						[warn],
-						[error],
-						[data],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[msg],
-						[warn],
-						[error],
-						[data],
+						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
+						[msgTitle, msg, colVal, bgColor, markup],
+						[warnTitle, warn, , colVal, bgColor, markup],
+						[errorTitle, error, , colVal, bgColor, markup],
+						[dataTitle, data, , colVal, bgColor, markup],
+						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
+						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
+						[dataTitle, data],
 					],
 				},
 			],
 		},
 		{
-			"name": "rpt-srcdest",
-			"type": "table"
-			"columnCount": 7,
-			"columNames": [ x, x, x, x, x, x, x, x, x, x, x ],
+			"name": "noactivity",
 			"Title": "title",
-			"groups": [
-				{
-					"groupHeading": "Group 1",
-					"dataRows": [
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-					],
-				},
-				{
-					"groupHeading": "Group 2",
-					"dataRows": [
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[msg],
-						[warn],
-						[error],
-						[data],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-						[ x, x, x, x, x, x, x, x, x, x, x ],
-					],
-				},
+			"type": "noactivity"
+			"columns": [ ['source', 'Source', bgColor, markup], ['destination', 'Destination', bgColor, markup], [lastActivity, 'Last Activity', bgColor, markup]],
+			"dataRows": [
+				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
 			],
-		},
 	],
 }
