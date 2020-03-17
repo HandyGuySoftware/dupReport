@@ -103,13 +103,13 @@ rcParts= [
     ('report',      'truncatelogdata',  '0',                                                                        True),
     ('report',      'durationzeroes',   'true',                                                                     True),
 
-    ('lastseen',      'lastseensummary',  'none',                                                                     True),
-    ('lastseen',      'lastseensummarytitle', 'Backup Sets Last Seen',                                                True),
-    ('lastseen',      'lastseenlow',      '5',                                                                        True),
-    ('lastseen',      'lastseenmed',      '10',                                                                       True),
-    ('lastseen',      'lastseenlowcolor', '#FFFF00',                                                                  True),
-    ('lastseen',      'lastseenmedcolor', '#FF4500',                                                                  True),
-    ('lastseen',      'lastseenhighcolor','#FF0000',                                                                  True),
+    #('lastseen',      'lastseensummary',  'none',                                                                     True),
+    #('lastseen',      'lastseensummarytitle', 'Backup Sets Last Seen',                                                True),
+    #('lastseen',      'lastseenlow',      '5',                                                                        True),
+    #('lastseen',      'lastseenmed',      '10',                                                                       True),
+    #('lastseen',      'lastseenlowcolor', '#FFFF00',                                                                  True),
+    #('lastseen',      'lastseenmedcolor', '#FF4500',                                                                  True),
+    #('lastseen',      'lastseenhighcolor','#FF0000',                                                                  True),
 
 
     # [headings] section defaults

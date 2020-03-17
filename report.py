@@ -26,30 +26,6 @@ import drdatetime
 import options
 
 # fldDefs = Dictionary of field definitions
-"""
-fldDefs = {
-    # field                 [0]Title                [1]dbField             [2]alignment[3]gig/meg? [4]hdrDef   [5]normDef   [6]megaDef  [7]gigaDef
-    'source':               ('Source',              'source',              'left',     False,      '20',       '20'),
-    'destination':          ('Destination',         'destination',         'left',     False,      '20',       '20'),
-    'dupversion':           ('Version',             'dupversion',          'left',     False,      '20',       '20'),
-    'date':                 ('Date',                'dateStr',             'left',     False,      '13',       '13'),
-    'time':                 ('Time',                'timeStr',             'left',     False,      '11',       '11'),
-    'duration':             ('Duration',            'duration',            'right',    False,      '15',       '15'),
-    'files':                ('Files',               'examinedFiles',       'right',    False,      '>12',      '>12,'),
-    'filesplusminus':       ('+/-',                 'examinedFilesDelta',  'right',    False,      '>12',      '>+12,'),
-    'size':                 ('Size',                'sizeOfExaminedFiles', 'right',    True,       '>20',      '>20,',      '>20,.2f', '>20,.2f'),
-    'sizeplusminus':        ('+/-',                 'fileSizeDelta',       'right',    True,       '>20',      '>+20,',     '>+20,.2f', '>+20,.2f'),
-    'added':                ('Added',               'addedFiles',          'right',    False,      '>12',      '>12,'),
-    'deleted':              ('Deleted',             'deletedFiles',        'right',    False,      '>12',      '>12,'),
-    'modified':             ('Modified',            'modifiedFiles',       'right',    False,      '>12',      '>12,'),
-    'errors':               ('Errors',              'filesWithError',      'right',    False,      '>12',      '>12,'),
-    'result':               ('Result',              'parsedResult',        'left',     False,      '>13',      '>13'),
-    'jobmessages':          ('JobMessages',         'messages',            'center',   False,      '^50',      '^50'),
-    'jobwarnings':          ('JobWarnings',         'warnings',            'center',   False,      '^50',      '^50'),
-    'joberrors':            ('JobErrors',           'errors',              'center',   False,      '^50',      '^50'),
-    'joblogdata':           ('Log Data',            'logdata',             'center',   False,      '^50',      '^50')
-    }
-"""
 fldDefs = {
     # field                 [0]alignment    [1]hdrDef   [2]colDef
     'source':               ('left',        '20',       '20'),
@@ -72,11 +48,6 @@ fldDefs = {
     'errors':               ('center',      '^50',      '^50'),
     'logdata':              ('center',      '^50',      '^50')
     }
-
-
-
-# List of columns in the report
-rptColumns = ['source', 'destination', 'dupversion', 'date', 'time', 'duration', 'files', 'filesplusminus', 'size',  'sizeplusminus', 'added', 'deleted', 'modified', 'errors', 'result', 'jobmessages', 'jobwarnings', 'joberrors', 'joblogdata']
 
 # List of allowable keyword substitutions
 keyWordList = { 
@@ -179,7 +150,8 @@ def buildOutput(reportStructure):
             reportOutput['sections'].append(buildReportOutput(report))
         elif report['type'] == 'noactivity':
             reportOutput['sections'].append(buildNoActivityOutput(report))
-            pass
+        elif report['type'] == 'lastseen':
+            reportOutput['sections'].append(buildLastSeenOutput(report))
     
     return reportOutput
 
@@ -192,9 +164,14 @@ def buildNoActivityOutput(report):
     singleReport['title'] = report['options']['title']
     singleReport['columnCount'] = 3
     singleReport['columnNames'] = []
-    singleReport['columnNames'].append('Source', 'Source')
-    singleReport['columnNames'].append('Destination', 'Destination')
-    singleReport['columnNames'].append('Last Seen', 'Last Seen')
+
+    markup = toMarkup(bold=True)
+    singleReport['columnNames'].append(['source', 'Source', '#FFFFFF', markup])
+    singleReport['columnNames'].append(['destination', 'Destination', '#FFFFFF', markup])
+    singleReport['columnNames'].append(['lastseen', 'Last Seen', '#FFFFFF', markup])
+    singleReport['inlineColumnCount'] = 3
+    singleReport['inlineColumnNames'] = singleReport['columnNames']
+
     singleReport['groups'] = []
     singleReport['groups'].append({})
     singleReport['groups'][0]['dataRows'] = []
@@ -205,35 +182,126 @@ def buildNoActivityOutput(report):
     sourceDestList = dbCursor.fetchall()
 
     dataRowIndex = -1
-    for source, destination, lasttimestamp in sourceDestList:
-        selStmt = "SELECT count(*) FROM report WHERE source='{}' and destination='{}'"
+    for source, destination, lastTimestamp in sourceDestList:
+        sqlStmt = "SELECT count(*) FROM report WHERE source='{}' and destination='{}'".format(source, destination)
         dbCursor = globs.db.execSqlStmt(sqlStmt)
-        sourceDestList = dbCursor.fetchall()
         countRows = dbCursor.fetchone()
 
         if countRows[0] == 0:
             # If src/dest is known offline, skip
             srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
             offline = globs.optionManager.getRcOption(srcDest, 'offline')
-            if offline != None:
+            if offline != None:  
                 if offline.lower() in ('true'):
                     continue
 
-            # Calculate days since last activity
+            # Calculate days since last activity & set background accordingly
             diff = drdatetime.daysSince(lastTimestamp)
+            pastInterval, interval = pastBackupInterval(srcDest, diff)
+
+            if interval == 0:   # Normal backup times apply
+                bgColor = report['options']['normalbg']
+                if diff > report['options']['normaldays']:
+                    bgColor = report['options']['warningbg']
+                if diff > report['options']['warningdays']:
+                    bgColor = report['options']['errorbg']
+            else:   # Backup interval in play
+                bgColor = report['options']['normalbg']
+                if diff > interval:
+                    bgColor = report['options']['warningbg']
+                if diff > (interval + int(report['options']['warningdays'])):
+                    bgColor = report['options']['errorbg']
 
             singleReport['groups'][0]['dataRows'].append([])
             dataRowIndex += 1
+            markupPlain = toMarkup()
+            markupItal = toMarkup(italic=True)
             # See if we're past the backup interval before reporting
-            result, interval = pastBackupInterval(srcDest, diff)
-            singleReport['groups'][0]['dataRows'][dataRowIndex].append(source)
-            singleReport['groups'][0]['dataRows'][dataRowIndex].append(destination)
-            if result is False:
+            singleReport['groups'][0]['dataRows'][dataRowIndex].append([source, '#FFFFFF', markupPlain])
+            singleReport['groups'][0]['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
+            if pastInterval is False:
                 globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
-                singleReport['groups'][0]['dataRows'][dataRowIndex].append('{} days ago. Backup interval is {} days.'.format(diff, interval))
+                singleReport['groups'][0]['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
             else:
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                singleReport['groups'][0]['dataRows'][dataRowIndex].append('Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff))
+                singleReport['groups'][0]['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+
+    
+    if dataRowIndex == -1:  # No rows in unseen table
+        singleReport['groups'][0]['dataRows'].append([])
+        markup = toMarkup(italic=True, align='center')
+        singleReport['groups'][0]['dataRows'][0].append(['None', '#FFFFFF', markup, '', '', 3])
+
+    return singleReport
+
+def buildLastSeenOutput(report):
+
+    singleReport = {}
+
+    # Copy basic report information from the report definition
+    singleReport['name'] = report['name']
+    singleReport['title'] = report['options']['title']
+    singleReport['columnCount'] = 3
+    singleReport['columnNames'] = []
+
+    markup = toMarkup(bold=True)
+    singleReport['columnNames'].append(['source', 'Source', '#FFFFFF', markup])
+    singleReport['columnNames'].append(['destination', 'Destination', '#FFFFFF', markup])
+    singleReport['columnNames'].append(['lastseen', 'Last Seen', '#FFFFFF', markup])
+    singleReport['inlineColumnCount'] = 3
+    singleReport['inlineColumnNames'] = singleReport['columnNames']
+
+    singleReport['groups'] = []
+    singleReport['groups'].append({})
+    singleReport['groups'][0]['dataRows'] = []
+
+    # Select all source/destination pairs (& last seen timestamp) from the backupset list 
+    sqlStmt = "SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination"
+    dbCursor = globs.db.execSqlStmt(sqlStmt)
+    sourceDestList = dbCursor.fetchall()
+    globs.log.write(3,'sourceDestList=[{}]'.format(sourceDestList))
+
+    dataRowIndex = -1
+    for source, destination, lastTimestamp in sourceDestList:
+        # If src/dest is known offline, skip
+        srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+        offline = globs.optionManager.getRcOption(srcDest, 'offline')
+        if offline != None:  
+            if offline.lower() in ('true'):
+                continue
+
+        lastDate = drdatetime.fromTimestamp(lastTimestamp)
+        diff = drdatetime.daysSince(lastTimestamp)
+
+        # Calculate days since last activity & set background accordingly
+        pastInterval, interval = pastBackupInterval(srcDest, diff)
+
+        if interval == 0:   # Normal backup times apply
+            bgColor = report['options']['normalbg']
+            if diff > report['options']['normaldays']:
+                bgColor = report['options']['warningbg']
+            if diff > report['options']['warningdays']:
+                bgColor = report['options']['errorbg']
+        else:   # Backup interval in play
+            bgColor = report['options']['normalbg']
+            if diff > interval:
+                bgColor = report['options']['warningbg']
+            if diff > (interval + int(report['options']['warningdays'])):
+                bgColor = report['options']['errorbg']
+
+        singleReport['groups'][0]['dataRows'].append([])
+        dataRowIndex += 1
+        markupPlain = toMarkup()
+        markupItal = toMarkup(italic=True)
+        # See if we're past the backup interval before reporting
+        singleReport['groups'][0]['dataRows'][dataRowIndex].append([source, '#FFFFFF', markupPlain])
+        singleReport['groups'][0]['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
+        if pastInterval is False:
+            globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
+            singleReport['groups'][0]['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+        else:
+            lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
+            singleReport['groups'][0]['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
 
     return singleReport
 
@@ -247,7 +315,7 @@ markupDefs = {
     'right': 0x20
     }
 
-def toMarkup(bold, italic, underline, align='left'):
+def toMarkup(bold=False, italic=False, underline=False, align='left'):
     markup = 0
 
     if bold:
@@ -258,11 +326,9 @@ def toMarkup(bold, italic, underline, align='left'):
         markup += markupDefs['underline'] 
     
     markup += markupDefs[align]
-    
     return markup
 
 def fromMarkup(markup):
-    
     fmtStart = ''
     fmtEnd = ''
 
@@ -303,7 +369,7 @@ def buildReportOutput(report):
     singleReport['columnCount'] = len(report['options']['columns'])
     singleReport['columnNames'] = []
     for i in range(len(report['options']['columns'])):
-        markup = toMarkup(bold=True, italic=False, underline=False, align=fldDefs[report['options']['columns'][i][0]][0])
+        markup = toMarkup(bold=True, align=fldDefs[report['options']['columns'][i][0]][0])
         singleReport['columnNames'].append([report['options']['columns'][i][0], report['options']['columns'][i][1], '#FFFFFF', markup]) # Column names are white and bold
     singleReport['title'] = report['options']['title']
 
@@ -363,19 +429,16 @@ def buildReportOutput(report):
             for i in range(len(report['options']['columns'])):
                 # See if we need to substitute date, time, or duration fields
                 if report['options']['columns'][i][0] == 'date':
-                    markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs['date'][0])
+                    markup = toMarkup(align=fldDefs['date'][0])
                     dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                    #singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(['date', dateStr, '#FFFFFF', markup])
                     singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([dateStr, '#FFFFFF', markup])
                 elif report['options']['columns'][i][0] == 'time':
-                    markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs['time'][0])
+                    markup = toMarkup(align=fldDefs['time'][0])
                     dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                    #singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(['time', timeStr, '#FFFFFF', markup])
                     singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([timeStr, '#FFFFFF', markup])
                 elif report['options']['columns'][i][0] == 'duration':
-                    markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs['duration'][0])
+                    markup = toMarkup(align=fldDefs['duration'][0])
                     tDiff = drdatetime.timeDiff(rowList[rl][i], report['options']['durationzeroes'])
-                    #singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append(['duration', tDiff, '#FFFFFF', markup])
                     singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([tDiff, '#FFFFFF', markup])
                 elif ((report['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (report['options']['weminline'] is False)):
                     if rowList[rl][i] != '':
@@ -389,10 +452,10 @@ def buildReportOutput(report):
                         elif type == 'logdata':
                             bground = report['options']['joblogdatabg']
                         truncatedMsg = truncateWarnErrMsgs(type, rowList[rl][i], report['options'])
-                        markup = toMarkup(bold=False, italic=False, underline=False, align=fldDefs[type][0])
+                        markup = toMarkup(align=fldDefs[type][0])
                         msgList[report['options']['columns'][i][0]] = [truncatedMsg, bground, markup, report['options']['columns'][i][1]]
                 else:
-                    markup = toMarkup(bold=False, italic=False, underline=False, align='left')
+                    markup = toMarkup()
                     singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([rowList[rl][i], '#FFFFFF', markup])
 
             # If there are warnings, errors, messages to output and we don't want them inline, print separate lines after the main columns
@@ -400,7 +463,6 @@ def buildReportOutput(report):
                 for msg in msgList:
                     singleReport['groups'][groupIndex]['dataRows'].append([msgList[msg]])
                     dataRowIndex += 1
-
 
     return singleReport
 
@@ -418,9 +480,7 @@ def adjustColumnInfo(count, colNames, wemInLine):
     
     return newColCount, newColNames
 
-def createHtmlOutput(reportStructure, reportOutput):
-
-
+def createHtmlOutput(reportStructure, reportOutput, startTime):
     msgHtml = '<html><head></head><body>\n'
 
     rptIndex = -1
@@ -435,41 +495,65 @@ def createHtmlOutput(reportStructure, reportOutput):
         # Add title               
         msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['titlebg'], rptOptions['title'])
 
-        if rptOptions['repeatheaders'] is False:    # Only print headers at the top of the report
-            # Print column headings
-            msgHtml += '<tr>'
-            for i in range(len(report['inlineColumnNames'])):
-                msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
-            msgHtml += '</tr>\n'
-
-        # Loop through each group in the report
-        grpIndex = -1
-        for group in reportOutput['sections'][rptIndex]['groups']:
-            grpIndex += 1
-            
-            # Print group heading
-            msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'][0])
-
-            if rptOptions['repeatheaders'] is True:    # Only print headers at the top of the report
+        if reportStructure['sections'][rptIndex]['type'] == 'report':
+            if rptOptions['repeatheaders'] is False:    # Only print headers at the top of the report
                 # Print column headings
                 msgHtml += '<tr>'
                 for i in range(len(report['inlineColumnNames'])):
                     msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
                 msgHtml += '</tr>\n'
 
-            # Print data rows & columns for that group
-            for row in report['groups'][grpIndex]['dataRows']:
-                msgHtml += '<tr>'
-                if len(row) != 1:  # Standard, multicolumn report 
-                    for column in range(len(row)):
-                        msgHtml += printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
-                        #msgHtml += '<td align=\"{}\">'.format(fldDefs[report['inlineColumnNames'][column][0]][0]) + outStr + '</td>'
-                else:   # Single column - error, warning, message
-                    msgHtml += printField(row[0], '', '', 'html', row[0][3], report['inlineColumnCount'])
-                    #msgHtml += '<td colspan={} align=\"{}\"><details><summary>{}</summary><p><i>'.format(report['inlineColumnCount'], report['inlineColumnNames'][column][0], row[column][1]) + outStr + '</i></p></details></td>'
+            # Loop through each group in the report
+            grpIndex = -1
+            for group in reportOutput['sections'][rptIndex]['groups']:
+                grpIndex += 1
+            
+                # Print group heading
+                msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'][0])
+
+                if rptOptions['repeatheaders'] is True:    # Only print headers at the top of the report
+                    # Print column headings
+                    msgHtml += '<tr>'
+                    for i in range(len(report['inlineColumnNames'])):
+                        msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
+                    msgHtml += '</tr>\n'
+
+                # Print data rows & columns for that group
+                for row in report['groups'][grpIndex]['dataRows']:
+                    msgHtml += '<tr>'
+                    if len(row) != 1:  # Standard, multicolumn report 
+                        for column in range(len(row)):
+                            msgHtml += printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
+                    else:   # Single column - error, warning, message
+                        msgHtml += printField(row[0], '', '', 'html', row[0][3], report['inlineColumnCount'], summary=True)
+                    msgHtml += '</tr>\n'
+        elif reportStructure['sections'][rptIndex]['type'] in ['noactivity', 'lastseen']:
+            # Loop through each group in the report
+            grpIndex = -1
+            for group in reportOutput['sections'][rptIndex]['groups']:
+                grpIndex += 1
+            
+                # Print column headings
+                for i in range(len(report['inlineColumnNames'])):
+                    msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
                 msgHtml += '</tr>\n'
+
+                # Print data rows
+                msgHtml += '<tr>'
+                for row in group['dataRows']:
+                    msgHtml += '<tr>'
+                    if len(row) != 1:  # Standard, multicolumn report 
+                        # Print data rows & columns for that group
+                        for column in range(len(row)):
+                            msgHtml += printField(row[column], report['inlineColumnNames'][column][0], '', 'html')
+                    else:   # Single column
+                        msgHtml += printField(row[0], '', '', 'html', row[0][3], report['inlineColumnCount'])
+                    msgHtml += '</tr>\n'
+
         msgHtml += '</table><br>'
 
+    msgHtml += '<br>{}'.format(getRunningTime(startTime))
+    msgHtml += '<br>Report generated by <a href=\'https://github.com/HandyGuySoftware/dupReport\'>dupReport</a> Version {}.{}.{} ({})<br>'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
     msgHtml += '</body></html>\n'
 
     return msgHtml
@@ -504,7 +588,7 @@ def printTitle(fldTuple, options, typ):
     return outStr
 
 # Provide a field format specification for the data fields (cells) in the report
-def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0):
+def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0, summary=False):
     outStr = None
 
     fmtStart, fmtEnd, align = fromMarkup(fldTuple[2])
@@ -527,21 +611,20 @@ def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0):
         if title is None:  # Standard data field
             outStr = '<td align=\"{}\" bgcolor=\"{}\">{}{}{}</td>'.format(align, fldTuple[1], fmtStart, fldTuple[0], fmtEnd)
         else: # Err/warn/message field
-            outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\"><details><summary>{}</summary><p>{}{}{}</details></td>'.format(columnCount, align, fldTuple[1], title, fmtStart, fldTuple[0], fmtEnd)
-            #msgHtml += '<td colspan={} align=\"{}\"><details><summary>{}</summary><p><i>'.format(report['inlineColumnCount'], report['inlineColumnNames'][column][0], row[column][1]) + outStr + '</i></p></details></td>'
+            if summary is True:
+                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\"><details><summary>{}</summary><p>{}{}{}</details></td>'.format(columnCount, align, fldTuple[1], title, fmtStart, fldTuple[0], fmtEnd)
+            else:
+                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\">{}{}{}</td>'.format(columnCount, align, fldTuple[1], fmtStart, fldTuple[0], fmtEnd)
     elif typ == 'text':
         outStr = '{:{fmt}}'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][1])
     elif typ == 'csv':
         outStr = '\"{:{fmt}}\",'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fld][1])
 
-#    if type == 'html':
-#        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
-#    elif type == 'text':
-#        outStr = '{:{fmt}}'.format(v, fmt=outFmt)
-#    elif type == 'csv':
-#        outStr = '\"{:{fmt}}\",'.format(v, fmt=outFmt)
-
     return outStr
+
+# Get running time of program
+def getRunningTime(start):
+    return 'Running Time: {:.3f} seconds.'.format(time.time() - start)
 
 # Send report to an output file
 # msgH = HTML message
@@ -577,73 +660,6 @@ def sendReportToFile(msgH, msgT, msgC = None):
 
     return
 
-# Initialize bacic report varibles for individual reports
-def initReportVars():
-    # Get header and column info
-    return len(rptColumns), fldDefs, globs.report.reportOpts, rptColumns, globs.report.reportTits
-
-def rptTop(rOpts, nFlds):
-    # Start HTML and text messages
-
-    msgHtml = '<html><head></head><body>\n'
-    msgText = ''
-    msgCsv = ''
-    if rOpts['lastseensummary'] == 'top':      # add summary to top of report
-        msgHtml2, msgText2, msgCsv2 =  lastSeenTable(globs.report.reportOpts)
-        msgHtml += msgHtml2 + '<br>\n'
-        msgText += msgText2 + '\n'
-        msgCsv += msgCsv2 + '\n'
-
-    msgHtml += '<table border={} cellpadding="{}">'.format(rOpts['border'], rOpts['padding'])
-
-    # Add report title
-    msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(nFlds, rOpts['titlebg'], rOpts['reporttitle'])
-    msgText += '{}\n'.format(rOpts['reporttitle'])
-    msgCsv += '\"{}\"\n'.format(rOpts['reporttitle'])
-
-    return msgHtml, msgText, msgCsv
-    
-
-def rptPrintTitles(html, text, csv, cols):
-    # Start column headings for HTML Message
-    html += '<tr>'
-
-    # Now, generate headings for the columns that are left
-    # Some may have been removed in the .rc file configuration, [headings] section
-    for col in cols:
-        html += printTitle(col, 'html')
-        text += printTitle(col, 'text')
-        csv += printTitle(col, 'csv')
-
-    # End of column headings row
-    html += '</tr>\n'
-    text += '\n'
-    csv += '\n'
-
-    return html, text, csv
-
-def rptBottom(html, text, csv, start, nfld):
-
-    # Add final rows & close
-    runningTime = 'Running Time: {:.3f} seconds.'.format(time.time() - start)
-    html += '<tr><td colspan={} align="center"><b>{}</b></td></tr>\n'.format(nfld, runningTime)
-    html += '</table>'
-    text += runningTime + '\n'
-    csv += '\"' + runningTime + '\"\n'
-
-    if globs.report.reportOpts['lastseensummary'] == 'bottom':      # add summary to top of report
-        msgHtml2, msgText2, msgCsv2 =  lastSeenTable(globs.report.reportOpts)
-        html += '<br>' + msgHtml2 + '\n'
-        text += '\n' + msgText2
-        csv += '\n' + msgCsv2
-
-    html += '<br><br>Report generated by <a href=\'https://github.com/HandyGuySoftware/dupReport\'>dupReport</a> Version {}.{}.{} ({})<br>'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
-    html += '</body></html>'
-    text += '\n\nReport generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
-    csv += '\n\"Report generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})\"'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
-
-    return html, text, csv
-
 def pastBackupWarningThreshold(src, dest, nDays, opts):
     globs.log.write(1,'report.pastBackupWarningThreshold({}, {}, {})'.format(src, dest, nDays))
 
@@ -670,7 +686,6 @@ def pastBackupWarningThreshold(src, dest, nDays, opts):
 
     globs.log.write(3,'pastBackupWarningThreshold returning {}'.format(retVal))
     return retVal
-
 
 def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     globs.log.write(1,'buildWarningMessage({}, {}, {}, {})'.format(source, destination, nDays, lastTimestamp))
@@ -733,21 +748,6 @@ def getLatestTimestamp(src, dest):
         globs.log.write(2, 'Didn\'t find any timestamp for {}-{}: something is wrong!'.format(src, dest))
         return None
 
-def getLastSeenColor(opts, days, interval = 0):
-    
-    # Need to account for the backup interval when calculating "overtime" days
-    if interval != 0:
-        ndays = days - interval
-    else:
-        ndays = days
-
-    if ndays <= opts['lastseenlow']:
-        return opts['lastseenlowcolor']
-    elif ndays <= opts['lastseenmed']:
-        return opts['lastseenmedcolor']
-    else:
-        return opts['lastseenhighcolor']
-
 def pastBackupInterval(srcDest, days):
     # Get backup interval from rc file. Default is 0
     backupInterval = globs.optionManager.getRcOption(srcDest, 'backupinterval')
@@ -761,51 +761,6 @@ def pastBackupInterval(srcDest, days):
         return True, backupInterval     # At or past the backup interval
     else:
         return False, backupInterval    # Not yet past the backup interval
-
-def lastSeenTable(opts):
-    globs.log.write(1, 'report.lastSeenTable()')
-
-    msgHtml = '<table border={} cellpadding="{}"><td align=\"center\" colspan = \"4\"><b>{}</b></td>\n'.format(opts['border'],opts['padding'], opts['lastseensummarytitle'])
-    msgHtml += '<tr><td><b>Source</b></td><td><b>Destination</b></td><td><b>Duplicati Version</b></td><td><b>Last Seen</b></td></tr>\n'
-    msgText = '***** {} *****\n(Source-Destination-Duplicati Version-Last Seen)\n'.format(opts['lastseensummarytitle'])
-    msgCsv = '\"{}\",\n\"Source\",\"Destination\",\"Duplicati Version\",\"Last Seen\"\n'.format(opts['lastseensummarytitle'])
-
-    dbCursor = globs.db.execSqlStmt("SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination")
-    sdSets = dbCursor.fetchall()
-    globs.log.write(3,'sdSets=[{}]'.format(sdSets))
-    for source, destination, lastTimestamp in sdSets:
-
-        # If src/dest is known offline, skip
-        srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
-        offline = globs.optionManager.getRcOption(srcDest, 'offline')
-        if offline != None:
-            if offline.lower() in ('true'):
-                continue
-
-        lastDate = drdatetime.fromTimestamp(lastTimestamp)
-        days = drdatetime.daysSince(lastTimestamp)
-
-        dbCursor = globs.db.execSqlStmt("SELECT dupversion FROM emails WHERE sourcecomp='{}' AND destcomp='{}' and dupversion != '' ORDER BY emailtimestamp DESC".format(source, destination))
-        dvPtr = dbCursor.fetchone()
-        # Issue #123
-        # Earlier versions of Duplicati did not return the version number in the email. Need to account for that.
-        dVersion = dvPtr[0] if dvPtr != None else ''
-
-        result, interval = pastBackupInterval(srcDest, days)
-        if result is False:
-            globs.log.write(3,'source=[{}] destination=[{}] dupversion=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, dVersion, lastTimestamp, lastDate, days))
-            msgHtml += '<tr><td>{}</td><td>{}</td><td>{}</td><td>{} {} ({} days ago. Backup interval is {} days)</td></tr>\n'.format(source, destination, dVersion, lastDate[0], lastDate[1], days, interval)
-            msgText += '{}{}{} Version {}: Last seen on {} {} ({} days ago. Backup interval is {} days.)\n'.format(source, globs.opts['srcdestdelimiter'], destination, dVersion, lastDate[0], lastDate[1], days, interval)
-            msgCsv += '\"{}\",\"{}\",\"{}\",\"{} {} ({} days ago. Backup interval is {} days.)\"\n'.format(source, destination, dVersion, lastDate[0], lastDate[1], days, interval)
-        else:            
-            globs.log.write(3,'source=[{}] destination=[{}] dupversion=[{}] lastTimestamp=[{}] lastDate=[{}] days=[{}]'.format(source, destination, dVersion, lastTimestamp, lastDate, days))
-            msgHtml += '<tr><td>{}</td><td>{}</td><td>{}</td><td bgcolor=\"{}\">{} {} ({} days ago)</td></tr>\n'.format(source, destination, dVersion, getLastSeenColor(opts, days), lastDate[0], lastDate[1], days)
-            msgText += '{}{}{} Version {}: Last seen on {} {} ({} days ago)\n'.format(source, globs.opts['srcdestdelimiter'], destination, dVersion, lastDate[0], lastDate[1], days)
-            msgCsv += '\"{}\",\"{}\",\"{}\",\"{} {} ({} days ago)\"\n'.format(source, destination, dVersion, lastDate[0], lastDate[1], days)
-
-    msgHtml += '</table>'
-
-    return msgHtml, msgText, msgCsv
 
 # Truncate warning & error messages
 def truncateWarnErrMsgs(field, msg, options):
@@ -906,7 +861,6 @@ class Report:
                 for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
                     if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
                        self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
-
         
                 # Some options are lists masquerading as strings. Need to split them out into their own list structures
                 if 'columns' in self.rStruct['sections'][rIndex]['options']:
@@ -919,7 +873,18 @@ class Report:
                     self.rStruct['sections'][rIndex]['options']['layout'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['layout'])
             elif self.rStruct['sections'][rIndex]['type'] == 'noactivity':
                 self.rStruct['sections'][rIndex]['options'] = readDefaultOptions(section[0])
-        
+
+                # Fix some of the data field types - integers
+                for item in ('border', 'padding', 'normaldays', 'warningdays'):
+                    if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
+                        self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
+
+            elif self.rStruct['sections'][rIndex]['type'] == 'lastseen':
+                self.rStruct['sections'][rIndex]['options'] = readDefaultOptions(section[0])
+                # Fix some of the data field types - integers
+                for item in ('border', 'padding', 'normaldays', 'warningdays'):
+                    if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
+                        self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
         return None
 
 

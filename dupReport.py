@@ -117,7 +117,7 @@ def sendNoBackupWarnings():
 
             latestTimeStamp = report.getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
-            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.reportOpts) is True:
+            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['options']) is True:
                 globs.log.write(2,'{}-{} is past backup warning threshold @ {} days. Sending warning email'.format(source, destination, diff))
                 warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.reportOpts)
                 globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
@@ -257,24 +257,9 @@ if __name__ == "__main__":
 
         globs.report.extractReportData()
 
-        # Select report module based on config parameters
-        #if globs.report.reportOpts['style'] == 'srcdest':
-        #    import rpt_srcdest as rpt
-        #elif globs.report.reportOpts['style'] == 'bydest':
-        #    import rpt_bydest as rpt
-        #elif globs.report.reportOpts['style'] == 'bysource':
-        #    import rpt_bysource as rpt
-        #elif globs.report.reportOpts['style'] == 'bydate':
-        #    import rpt_bydate as rpt
-        #else:
-        #    globs.log.err('Invalid report specification: Style:{}  Please check .rc file for correct configuration.'.format(globs.report.reportOpts['style']))
-        #    globs.closeEverythingAndExit(1)
-
         # Run selected report
-        #msgHtml, msgText, msgCsv = rpt.runReport(startTime)
-        #globs.log.write(1,msgText)
         reportOutput = report.buildOutput(globs.report.rStruct)
-        htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput)
+        htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput, startTime)
         outfile = open('output.html','w')
         outfile.write(htmlOutput)
         outfile.close()
