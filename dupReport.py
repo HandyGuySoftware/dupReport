@@ -118,15 +118,15 @@ def sendNoBackupWarnings():
 
             latestTimeStamp = report.getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
-            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['options']) is True:
+            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['defaults']) is True:
                 globs.log.write(2,'{}-{} is past backup warning threshold @ {} days. Sending warning email'.format(source, destination, diff))
-                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.reportOpts)
+                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.rStruct['defaults'])
                 globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
     return None
 
 if __name__ == "__main__":
 
-    # Set program home directory
+    # Get program home directory
     globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
 
     # Open a LogHandler object. 
@@ -260,24 +260,6 @@ if __name__ == "__main__":
 
         # Run selected report
         reportOutput = report.buildOutput(globs.report.rStruct)
-        htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput, startTime)
-        textOutput = report.createTextOutput(globs.report.rStruct, reportOutput, startTime)
-        csvOutput = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime)
-        with open('output.html','w') as outfile:
-            outfile.write(htmlOutput)
-            outfile.close()
-
-        with open('output.txt','w') as outfile:
-            outfile.write(textOutput)
-            outfile.close()
-
-        with open('output.csv','w') as outfile:
-            outfile.write(csvOutput)
-            outfile.close()
-
-        with open('output.json', 'w') as outfile:
-            json.dump(reportOutput, outfile)
-
 
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
@@ -291,7 +273,10 @@ if __name__ == "__main__":
     if globs.ofileList and not globs.opts['collect']:
         if globs.opts['showprogress'] > 0:
             globs.log.out('Creating report file(s).')
-        report.sendReportToFile(msgHtml, msgText, msgCsv)
+        htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput, startTime)
+        textOutput = report.createTextOutput(globs.report.rStruct, reportOutput, startTime)
+        csvOutput = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime)
+        report.sendReportToFile(htmlOutput, textOutput, csvOutput)
    
     # Are we forbidden from sending report to email?
     if not globs.opts['nomail'] and not globs.opts['collect']: 
@@ -299,7 +284,7 @@ if __name__ == "__main__":
             globs.log.out('Sending report emails.')
 
         # Send email to SMTP server
-        globs.outServer.sendEmail(msgHtml, msgText)
+        globs.outServer.sendEmail(htmlOutput, textOutput)
 
     # Do we need to purge the database?
     if globs.opts['purgedb'] == True:
