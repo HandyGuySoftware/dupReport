@@ -13,6 +13,7 @@
 import time
 import sys
 import os
+import json
 
 # Import dupReport modules
 import globs
@@ -260,9 +261,23 @@ if __name__ == "__main__":
         # Run selected report
         reportOutput = report.buildOutput(globs.report.rStruct)
         htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput, startTime)
-        outfile = open('output.html','w')
-        outfile.write(htmlOutput)
-        outfile.close()
+        textOutput = report.createTextOutput(globs.report.rStruct, reportOutput, startTime)
+        csvOutput = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime)
+        with open('output.html','w') as outfile:
+            outfile.write(htmlOutput)
+            outfile.close()
+
+        with open('output.txt','w') as outfile:
+            outfile.write(textOutput)
+            outfile.close()
+
+        with open('output.csv','w') as outfile:
+            outfile.write(csvOutput)
+            outfile.close()
+
+        with open('output.json', 'w') as outfile:
+            json.dump(reportOutput, outfile)
+
 
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
