@@ -127,13 +127,6 @@ def sendNoBackupWarnings():
 
 if __name__ == "__main__":
 
-    if 'sourcex' in report.fldDefs:
-        print("Yes")
-    else:
-        print("no")
-    globs.closeEverythingAndExit(1)
-
-
     # Get program home directory
     globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
 
