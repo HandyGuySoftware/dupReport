@@ -51,6 +51,9 @@ fldDefs = {
     'logdata':              ('center',      '^50',      '^50')
     }
 
+# List of all the valid column names that can be used in reports
+colNames = ['source','destination','date','time','examinedFiles','examinedFilesDelta','sizeOfExaminedFiles','fileSizeDelta','addedFiles','deletedFiles','modifiedFiles','filesWithError','parsedResult','messages','warnings','errors','duration','logdata','dupversion']
+
 # List of allowable keyword substitutions
 keyWordList = { 
     #  database field: keyword mask
@@ -58,6 +61,15 @@ keyWordList = {
     'destination': '#DESTINATION#', 
     'date': '#DATE#', 
     'time': '#TIME#'
+    }
+
+markupDefs = {
+    'bold':     0x01,
+    'italic':   0x02,
+    'underline': 0x04,
+    'left':     0x08,
+    'center': 0x10,
+    'right': 0x20
     }
 
 # Build an SQL query statement based on a given report's options ('groupby', 'columns', and 'columsort')
@@ -131,15 +143,18 @@ def splitRcIntoList(inputString):
     # Remove them and convert to list, split by commas
     strTmp = inputString.replace('\n','').split(',')
     
-    # Loop through each value in the list
+    # Loop through each value. 
     for i in range(len(strTmp)):
-        splitVal = strTmp[i].split(':')             # Split based on ':'
-        if len(splitVal) == 1:                      # Len == 1 if there was no ':' (i.e. just a value)
-            iniList.append([splitVal[0].strip()])   # Strip while space off end and append to list
-        else:                                       # Len == 2 if there was a ':' (i.e. item:modifier)
-            iniList.append([splitVal[0].strip(), splitVal[1].strip()])  # Strip while space off end and append to list
+        splitVal = strTmp[i].split(':')
+        if len(splitVal) == 0: # Empty set. probably because there was a comma at the end of the line. just Skip it
+            continue
+        elif len(splitVal) == 1:
+            iniList.append([splitVal[0].strip()])
+        else:
+            iniList.append([splitVal[0].strip(), splitVal[1].strip()])
 
     return iniList
+
 
 def buildOutput(reportStructure):
 
@@ -308,15 +323,6 @@ def buildLastSeenOutput(report):
     return singleReport
 
 
-markupDefs = {
-    'bold':     0x01,
-    'italic':   0x02,
-    'underline': 0x04,
-    'left':     0x08,
-    'center': 0x10,
-    'right': 0x20
-    }
-
 def toMarkup(bold=False, italic=False, underline=False, align='left'):
     markup = 0
 
@@ -456,8 +462,11 @@ def buildReportOutput(report):
                         truncatedMsg = truncateWarnErrMsgs(type, rowList[rl][i], report['options'])
                         markup = toMarkup(align=fldDefs[type][0])
                         msgList[report['options']['columns'][i][0]] = [truncatedMsg, bground, markup, report['options']['columns'][i][1]]
+                elif report['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:  # Right-aligned fields
+                    markup = toMarkup(align='right')
+                    singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([rowList[rl][i], '#FFFFFF', markup])
                 else:
-                    markup = toMarkup()
+                    markup = toMarkup(align='left')
                     singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([rowList[rl][i], '#FFFFFF', markup])
 
             # If there are warnings, errors, messages to output and we don't want them inline, print separate lines after the main columns
@@ -734,7 +743,6 @@ def printTitle(fldTuple, options, typ):
 def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0, summary=False):
     outStr = None
 
-
     val = fldTuple[0]
 
     # Process fields based on their type.
@@ -745,29 +753,28 @@ def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0, s
             if sizeDisplay[:2].lower() == 'mb':
                 val = val / 1000000.00
             elif sizeDisplay[:2].lower() == 'gb':
-                vval = val / 1000000000.00
+                val = val / 1000000000.00
         
     # Create HTML, text, and csv versions of the format string
     if typ == 'html':
         fmtStart, fmtEnd, align = fromMarkup(fldTuple[2])
         if title is None:  # Standard data field
-            outStr = '<td align=\"{}\" bgcolor=\"{}\">{}{}{}</td>'.format(align, fldTuple[1], fmtStart, fldTuple[0], fmtEnd)
+            outStr = '<td align=\"{}\" bgcolor=\"{}\">{}{:{fmt}}{}</td>'.format(align, fldTuple[1], fmtStart, val, fmtEnd, fmt=fldDefs[fldName][2])
         else: # Err/warn/message field
             if summary is True:
-                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\"><details><summary>{}</summary><p>{}{}{}</details></td>'.format(columnCount, align, fldTuple[1], title, fmtStart, fldTuple[0], fmtEnd)
+                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\"><details><summary>{}</summary><p>{}{}{}</details></td>'.format(columnCount, align, fldTuple[1], title, fmtStart, val, fmtEnd)
             else:
-                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\">{}{}{}</td>'.format(columnCount, align, fldTuple[1], fmtStart, fldTuple[0], fmtEnd)
+                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\">{}{}{}</td>'.format(columnCount, align, fldTuple[1], fmtStart, val, fmtEnd)
     elif typ == 'txt':
         if title is None:  # Standard data field
-            outStr = '{:{fmt}} '.format(fldTuple[0], fmt=fldDefs[fldName][2])
+            outStr = '{:{fmt}} '.format(val, fmt=fldDefs[fldName][2])
         else: # Err/warn/message field
-            outStr = '{} '.format(fldTuple[0])
+            outStr = '{} '.format(val)
     elif typ == 'csv':
         if title is None:  # Standard data field
-            outStr = '\"{:{fmt}}\",'.format(fldTuple[0], fmt=fldDefs[fldName][2])
+            outStr = '\"{:{fmt}}\",'.format(val, fmt=fldDefs[fldName][2])
         else: # Err/warn/message field
-            outStr = '\"{}\",'.format(fldTuple[0])
-            #outStr = '\"{:{fmt}}\",'.format(fldDefs[fld][0] + displayAddOn, fmt=fldDefs[fldName][2])
+            outStr = '\"{}\",'.format(val)
 
     return outStr
 
@@ -941,24 +948,6 @@ def truncateWarnErrMsgs(field, msg, options):
     
     return msgRet
 
-def splitRcIntoList(inputString):
-    iniList = []
-
-    # Strip newlines & split along comma delimeters
-    strTmp = inputString.replace('\n','').split(',')
-    
-    # Loop through each value. 
-    for i in range(len(strTmp)):
-        tmp2 = strTmp[i].split(':')
-        if len(tmp2) == 0: # Empty set. probably because there was a comma at the end of the line. just Skip it
-            continue
-        elif len(tmp2) == 1:
-            iniList.append([tmp2[0].strip()])
-        else:
-            iniList.append([tmp2[0].strip(), tmp2[1].strip()])
-
-    return iniList
-
 def readDefaultOptions(section):
     return globs.optionManager.getRcSection(section)
 
@@ -968,6 +957,7 @@ class Report:
         globs.log.write(1,'Report:__init__()')
 
         self.rStruct = {}
+        self.validConfig = True     # Is the report config valid? Default to true for now. Alter if true later
         
         # Read in the default options
         self.rStruct['defaults'] = globs.optionManager.getRcSection('report')
@@ -983,11 +973,6 @@ class Report:
         # Get reports that need to run as defined in [report]layout option
         layoutSections = splitRcIntoList(self.rStruct['defaults']['layout'])
         self.rStruct['sections'] = []
-
-        # Basic field value checking - TO DO
-        isValid = self.validateReportFields(self.rStruct)
-        if not isValid:
-            pass# Do something here
 
         # Now, loop through each report and get the specific configurations
         for section in layoutSections:
@@ -1027,7 +1012,13 @@ class Report:
                 if 'layout' in self.rStruct['sections'][rIndex]['options']:
                     self.rStruct['sections'][rIndex]['options']['layout'] = splitRcIntoList(self.rStruct['sections'][rIndex]['options']['layout'])
             elif self.rStruct['sections'][rIndex]['type'] == 'noactivity':
-                self.rStruct['sections'][rIndex]['options'] = readDefaultOptions(section[0])
+                # Get default options
+                self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
+
+                # Get report-specific options
+                optionTmp = readDefaultOptions(section[0])
+                for optTmp in optionTmp:
+                    self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
                 # Fix some of the data field types - integers
                 for item in ('border', 'padding', 'normaldays', 'warningdays'):
@@ -1035,15 +1026,93 @@ class Report:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
             elif self.rStruct['sections'][rIndex]['type'] == 'lastseen':
-                self.rStruct['sections'][rIndex]['options'] = readDefaultOptions(section[0])
+                # Get default options
+                self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
+
+                # Get report-specific options
+                optionTmp = readDefaultOptions(section[0])
+                for optTmp in optionTmp:
+                    self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
+
                 # Fix some of the data field types - integers
                 for item in ('border', 'padding', 'normaldays', 'warningdays'):
                     if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
+
+        # Basic field value checking - TO DO
+        self.validConfig = self.validateReportFields()
+
         return None
 
+    def validateColumns(self, section, colSpec):
+        allGood = True
 
-    def validateReportFields(self, rStruct):
+        colList = splitRcIntoList(colSpec)
+        for i in range(len(colList)):
+            if colList[i][0] not in colNames:
+                globs.log.write(1,'[{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
+                allGood = False
+            if len(colList[i]) != 2:
+                globs.log.write(1,'[{}] section: Column \'{}\' does not have a title definition. Defaulting to column name as title.'.format(section, colList[i][0]))
+                allGood = False
+            elif colList[i][1] =='':
+                globs.log.write(1,'[{}] section: Title field for column \'{}\' is empty. This is not an error, but that column will not have a title when printed.'.format(section, colList[i][0]))
+
+        return allGood
+
+    def isValidReportField(self, fname):
+        for i in range(len(options.rcParts)):
+            if options.rcParts[i][0] != 'report':
+                continue
+            if options.rcParts[i][1] == fname:
+                return True
+        return False
+
+    def validateReportFields(self):
+        globs.log.write(1,'Validating report specifications in .rc file.')
+        anyProblems = 0
+        
+        # First, check the [report]columns section for validity
+        if self.validateColumns('report', self.rStruct['defaults']['columns']) == False:
+            anyProblems += 1
+
+        sectionList = splitRcIntoList(self.rStruct['defaults']['layout'])
+        for i in range(len(sectionList)):
+            sect = globs.optionManager.getRcSection(sectionList[i][0])
+            if sect == None: #Section does not exist
+                globs.log.write(1,'[report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
+                anyProblems += 1
+            elif 'type' not in sect:
+                globs.log.write(1,'No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
+                anyProblems += 1
+            elif sect['type'] not in ['report', 'noactivity', 'lastseen']:
+                globs.log.write(1,'[{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
+                anyProblems += 1
+            else:
+                if 'columns' in sect:
+                    if self.validateColumns(sectionList[i][0], sect['columns']) == False:
+                        anyProblems += 1
+
+                for optName in sect:    # Check that each option is valid
+                    if optName in ['type', 'groupheading']:
+                        continue
+                    if optName in ['groupby', 'columnsort']:    # See if these two fields are specified correctly
+                        oList = splitRcIntoList(sect[optName])
+                        for i in range(len(oList)):
+                            if oList[i][0] not in colNames:
+                                globs.log.write(1,'[{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[i][0]))
+                                anyProblems += 1
+                            if oList[i][1] not in ['ascending', 'descending']:
+                                globs.log.write(1,'[{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
+                                anyProblems += 1
+                    else:
+                        if not self.isValidReportField(optName):
+                            globs.log.write(1,'[{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
+                            anyProblems += 1
+
+        globs.log.write(1,'Found {} report validation errors.'.format(anyProblems))
+        if anyProblems > 0:
+            return False
         return True
 
     # Extract the data needed for the report and move it to the report table in the database

@@ -127,6 +127,13 @@ def sendNoBackupWarnings():
 
 if __name__ == "__main__":
 
+    if 'sourcex' in report.fldDefs:
+        print("Yes")
+    else:
+        print("no")
+    globs.closeEverythingAndExit(1)
+
+
     # Get program home directory
     globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -167,6 +174,13 @@ if __name__ == "__main__":
 
     # Open log file (finally!)
     globs.log.openLog(globs.opts['logpath'], globs.opts['logappend'], globs.opts['verbose'])
+
+    # Open report object and validate report options
+    # We may not be running reports, but the options will be needed later in the program 
+    globs.report = report.Report()
+    if globs.report.validConfig is False:
+        globs.log.out('Report configuration has errors. See log file {} for information on how to correct it.'.format(globs.logName))
+        globs.closeEverythingAndExit(0)
 
     # see if [apprise] section exists in .rc file. If so, initialize Apprise options
     if globs.optionManager.parser.has_section("apprise"):
@@ -246,10 +260,6 @@ if __name__ == "__main__":
             if globs.opts['markread'] is True and globs.inServer.protocol == 'imap':
                 globs.inServer.markMessagesRead()
 
-    # Open report object and initialize report options
-    # We may not be running reports, but the options will be needed later in the program 
-    globs.report = report.Report()
-
     # Are we just reporting or not just collecting?
     if (globs.opts['report'] or not globs.opts['collect']):
         # All email has been collected. Create the report
@@ -275,10 +285,6 @@ if __name__ == "__main__":
             globs.log.out('Creating report file(s).')
 
         report.sendReportToFiles(reportOutput, startTime)
-        textOutput = report.createTextOutput(globs.report.rStruct, reportOutput, startTime)
-        csvOutput = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime)
-        jsonOutput = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime)
-        report.sendReportToFile(htmlOutput, textOutput, csvOutput)
    
     # Are we forbidden from sending report to email?
     if not globs.opts['nomail'] and not globs.opts['collect']: 

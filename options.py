@@ -97,12 +97,17 @@ rcParts= [
     #('report',      'lastseenlowcolor', '#FFFF00',                                                                  True),
     #('report',      'lastseenmedcolor', '#FF4500',                                                                  True),
     #('report',      'lastseenhighcolor','#FF0000',                                                                  True),
-    ('report',      'truncatemessage',  '0',                                                                        True),
-    ('report',      'truncatewarning',  '0',                                                                        True),
-    ('report',      'truncateerror',    '0',                                                                        True),
-    ('report',      'truncatelogdata',  '0',                                                                        True),
-    ('report',      'durationzeroes',   'true',                                                                     True),
-
+    ('report',       'normaldays',       '5',                                                                         True),
+    ('report',       'normalbg',         '#FFFFFF',                                                                   True),
+    ('report',       'warningdays',      '20',                                                                        True),
+    ('report',       'warningbg',        '#FFFF00',                                                                   True),
+    ('report',       'errorbg',         '#FF0000',                                                                   True),
+    ('report',       'truncatemessage',  '0',                                                                         True),
+    ('report',       'truncatewarning',  '0',                                                                         True),
+    ('report',       'truncateerror',    '0',                                                                         True),
+    ('report',       'truncatelogdata',  '0',                                                                         True),
+    ('report',       'durationzeroes',   'true',                                                                      True),
+    ('report',       'weminline',       'false',                                                                      True),
     #('lastseen',      'lastseensummary',  'none',                                                                     True),
     #('lastseen',      'lastseensummarytitle', 'Backup Sets Last Seen',                                                True),
     #('lastseen',      'lastseenlow',      '5',                                                                        True),
@@ -110,8 +115,6 @@ rcParts= [
     #('lastseen',      'lastseenlowcolor', '#FFFF00',                                                                  True),
     #('lastseen',      'lastseenmedcolor', '#FF4500',                                                                  True),
     #('lastseen',      'lastseenhighcolor','#FF0000',                                                                  True),
-
-
     # [headings] section defaults
     #('headings',    'Source',           'Source',                                                                   True),
     #('headings',    'Destination',      'Destination',                                                              True),
@@ -133,7 +136,6 @@ rcParts= [
     #('headings',    'JobErrors',        'Errors',                                                                   True),
     #('headings',    'JobLogdata',       'Log Data',                                                                 True),
    ]
-
 
 # Class to manage all program options
 class OptionManager:

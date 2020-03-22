@@ -1,6 +1,7 @@
 3.0.0
 ------
 - Re-built reporting engine to allow for user-created reporting formats
+- Added logic to validate reports before they are run
 - Database specification and .rc file specification can now be either file names or full path specifications
 - Can now send output to JSON file
 
