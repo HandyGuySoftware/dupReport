@@ -30,6 +30,7 @@ def versionInfo():
     globs.log.out('\n-----\ndupReport: A summary email report generator for Duplicati.')
     globs.log.out('Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
     globs.log.out('Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+    globs.log.out('RC File Version {}.{}.{}'.format(globs.rcVersion[0], globs.rcVersion[1], globs.rcVersion[2]))
     globs.log.out('{}'.format(globs.copyright))
     globs.log.out('Distributed under MIT License. See LICENSE file for details.')
     globs.log.out('\nFollow dupReport on Twitter @dupreport\n-----\n')
@@ -94,7 +95,7 @@ def validateOutputFiles():
             if len(fsplit) != 2:
                 globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
                 canContinue = False
-            elif fsplit[1] not in ('html','txt', 'csv'):
+            elif fsplit[1] not in ('html','txt', 'csv', 'json'):
                 globs.log.err('Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.'.format(fsplit[0], fsplit[1]))
                 canContinue = False
 
@@ -153,7 +154,6 @@ if __name__ == "__main__":
     # Initialize program options
     # This includes command line options and .rc file options
     canContinue = initOptions() 
-
     if not canContinue: # Something changed in the .rc file that needs manual editing
         globs.closeEverythingAndExit(1)
 
@@ -273,9 +273,11 @@ if __name__ == "__main__":
     if globs.ofileList and not globs.opts['collect']:
         if globs.opts['showprogress'] > 0:
             globs.log.out('Creating report file(s).')
-        htmlOutput = report.createHtmlOutput(globs.report.rStruct, reportOutput, startTime)
+
+        report.sendReportToFiles(reportOutput, startTime)
         textOutput = report.createTextOutput(globs.report.rStruct, reportOutput, startTime)
         csvOutput = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime)
+        jsonOutput = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime)
         report.sendReportToFile(htmlOutput, textOutput, csvOutput)
    
     # Are we forbidden from sending report to email?

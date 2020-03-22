@@ -246,7 +246,7 @@ class OptionManager:
     
         # Extract sections and options from .rc file
         # Only need [main], [incoming], and [outgoing] sections
-        # [report] and [headings] sections will be parsed when report object is initiated (report.py)
+        # [report] and associated] sections will be parsed when report object is initiated (report.py)
         for section in ('main', 'incoming', 'outgoing'):
             for name, value in self.parser.items(section):
                 self.options[name] = value
@@ -268,23 +268,24 @@ class OptionManager:
             globs.log.err('RC file error: Invalid time format [{}]'.format(self.options['timeformat']))
             restart = True
 
+        # Set default path for RC file. Command line may override this.
+        self.options['rcpath'] = globs.progPath + '/' + globs.rcName
+        
         # Now, override with command line options
-        #
-        # Database Path - default stored in globs.dbName
-        if self.cmdLineArgs.dbpath != None:  # dbPath specified on command line
-            self.options['dbpath'] = '{}/{}'.format(self.processPath(self.cmdLineArgs.dbpath), globs.dbName) 
-        elif self.options['dbpath'] == '':  # No command line & not specified in RC file
-            self.options['dbpath'] = '{}/{}'.format(os.path.dirname(path, globs.rcName), globs.dbName)
-        else:  # Path specified in rc file. Add dbname for full path
-            self.options['dbpath'] = '{}/{}'.format(self.processPath(self.options['dbpath']), globs.dbName)
+        # Database, rc file, and log file paths - default stored in globs.dbName
+        configList = [  [self.cmdLineArgs.dbpath, 'dbpath', globs.dbName], 
+                        [self.cmdLineArgs.rcpath, 'rcpath', globs.rcName], 
+                        [self.cmdLineArgs.logpath, 'logpath', globs.logName]
+                     ]
 
-        # Log file path
-        if self.cmdLineArgs.logpath != None:  #logPath specified on command line
-            self.options['logpath'] = '{}/{}'.format(self.processPath(self.cmdLineArgs.logpath), globs.logName)
-        elif self.options['logpath'] == '':  # No command line & not specified in RC file
-            self.options['logpath'] = '{}/{}'.format(globs.progPath, globs.logName)
-        else:  # Path specified in rc file. Add dbname for full path
-            self.options['logpath'] = '{}/{}'.format(self.processPath(self.options['logpath']), globs.logName)
+        for option, optName, globName in configList:
+            if option != None:  # option specified on command line
+                globs.log.write(2, 'Option {} path specified on command line.'.format(optName))
+                self.options[optName] = self.processPath(option, globName)
+            elif optName in self.options and self.options[optName] == '':  # No command line & not specified in RC file. Use default path & filename
+                self.options[optname] = self.processPath(globs.progPath, globName)
+            else:  # Path specified in rc file. Add file name if necessary for full path
+                self.options[optName] = self.processPath(self.options[optName], globName)
 
         # Mask Sensitive Data
         if self.cmdLineArgs.masksensitive: # Force sensitive data masking
@@ -302,22 +303,20 @@ class OptionManager:
         # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
         self.options['rollbackx'] = self.cmdLineArgs.rollbackx
-        if self.options['rollback']: # Roll back and continue
-            ret = drdatetime.toTimestamp(self.options['rollback'], self.options['dateformat'], self.options['timeformat'])
-            if not ret:
-                globs.log.err('Invalid rollback date specification: {}.'.format(self.options['rollback']))
-                restart = True
-        elif self.options['rollbackx']:  # Roll back and stop
-            ret = drdatetime.toTimestamp(self.options['rollbackx'], self.options['dateformat'], self.options['timeformat'])
-            if not ret:
-                globs.log.err('Invalid rollback date specification: {}.'.format(self.options['rollback']))
-                restart = True
+        # Check for valid time stamp specifications
+        for rb in ['rollback', 'rollbackx']:
+            if self.options[rb] != None: # Roll back and continue
+                if not drdatetime.toTimestamp(self.options[rb], self.options['dateformat'], self.options['timeformat']):
+                    globs.log.err('Invalid rollback date specification: {}.'.format(self.options[rb]))
+                    globs.closeEverythingAndExit(1)
 
+        # Misc command line arguments
         if self.cmdLineArgs.verbose != None:
             self.options['verbose'] = self.cmdLineArgs.verbose
         if self.cmdLineArgs.purgedb == True:
             self.options['purgedb'] = self.cmdLineArgs.purgedb
-        self.options['logappend'] = self.cmdLineArgs.append
+        if self.cmdLineArgs.append == True: # ONly override logappend if specified on the command line, else take whatever's in the rc file
+            self.options['logappend'] = self.cmdLineArgs.append
         self.options['initdb'] = self.cmdLineArgs.initdb
         
         # Store output files for later use
@@ -353,7 +352,6 @@ class OptionManager:
 
     # Get operating parameters from .rc file, overlay with command line options
     def processCmdLineArgs(self):
-
         globs.log.write(1, 'options.processCmdLineArgs()')
 
         # Parse command line options with ArgParser library
@@ -415,12 +413,12 @@ class OptionManager:
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
             globs.log.write(2, 'RC path specified on command line.')
-            rc = '{}/{}'.format(self.processPath(self.cmdLineArgs.rcpath),globs.rcName)
+            rc = self.cmdLineArgs.rcpath
+            if os.path.isdir(rc): # directory specified only. Add default file name
+                rc += '/{}'.format(globs.rcName)
         else: # RC path not specified on command line. use default location
-            path = os.path.dirname(os.path.realpath(sys.argv[0]))
             globs.log.write(2, 'RC path not specified on command line. Using default.')
-            rc = '{}/{}'.format(path, globs.rcName)
-
+            rc = '{}/{}'.format(globs.progPath, globs.rcName)
         self.options['rcfilename'] = rc
         
         globs.log.write(3, 'Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], self.maskPath())))
@@ -494,9 +492,23 @@ class OptionManager:
         return dtfmt, tmfmt
     
     # Strips trailing slash character from a path specification if one exists
-    def processPath(self, path):
-        if path[-1:] == '/' or path[-1:] == '\\':
-            newpath = path[:-1]
-            return newpath
-        else:
-            return path
+    def processPath(self, path, fName):
+        # Split path into head & tail
+        head, tail = os.path.split(path)
+
+        if head == '':
+            head = globs.progPath
+        if tail == '':
+            tail = fName
+
+        # See if the directory is valid
+        if not os.path.isdir(head):
+            raise ValueError('Invalid path specification: {}. Most likely, the path does not exist.'.format(path))
+            closeEverythingAndExit(1)
+        # See if given path ends in a '/' or '\' and trim it
+        if head[-1:] in ['/', '\\']:
+            head = head[:-1]
+        # Re-build new spec
+        newPath = head + '/' + tail
+
+        return newPath

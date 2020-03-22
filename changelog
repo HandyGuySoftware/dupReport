@@ -1,3 +1,9 @@
+3.0.0
+------
+- Re-built reporting engine to allow for user-created reporting formats
+- Database specification and .rc file specification can now be either file names or full path specifications
+- Can now send output to JSON file
+
 2.2.11
 ------
 - Fix SMTP connection bug for some email services (Issue #129)

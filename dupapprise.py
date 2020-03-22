@@ -24,7 +24,7 @@ class dupApprise:
     def __init__(self):
         globs.log.write(1, 'dupApprise.__init__()')
 
-        import apprise
+        #import apprise
 
         # Read name/value pairs from [apprise] section
         self.appriseOpts = globs.optionManager.getRcSection('apprise')

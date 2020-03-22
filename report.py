@@ -7,7 +7,6 @@
 #
 #####
 
-
 # Import system modules
 import datetime
 import time
@@ -18,12 +17,14 @@ import smtplib
 import re
 import sys
 import os
+import json
 
 # Import dupReport modules
 import globs
 import db
 import drdatetime
 import options
+import report
 
 # fldDefs = Dictionary of field definitions
 fldDefs = {
@@ -698,6 +699,9 @@ def createCsvOutput(reportStructure, reportOutput, startTime):
 
     return msgCsv
 
+def createJsonOutput(reportStructure, reportOutput, startTime):
+    return reportOutput
+
 # Provide a field format specification for the titles in the report
 def printTitle(fldTuple, options, typ):
     outStr = None
@@ -771,11 +775,15 @@ def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0, s
 def getRunningTime(start):
     return 'Running Time: {:.3f} seconds.'.format(time.time() - start)
 
-# Send report to an output file
-# msgH = HTML message
-# msgT = Text message
-# msgC = CSV message
-def sendReportToFile(msgH, msgT, msgC = None):
+def sendReportToFiles(reportOutput, startTime):
+
+    # Set variables so you only need to generate a report format once
+    msgHtml = None
+    msgTxt = None
+    msgCsv = None
+    msgJson = None
+
+    msgContent = {'html': None, 'txt': None, 'csv': None, 'json': None}
 
     # See where the output files are going
     for fspec in globs.ofileList:
@@ -783,27 +791,33 @@ def sendReportToFile(msgH, msgT, msgC = None):
         fName = fsplit[0]
         fmt = fsplit[1]
 
-        if fmt == 'html':
-            outMsg = msgH
-        elif fmt == 'txt':
-            outMsg = msgT
-        elif fmt == 'csv':
-            outMsg = msgC
+        if msgContent[fmt] is None:  # Report output hasn't been created yet. Do it now.
+            if fmt == 'html':
+                msgContent[fmt] = report.createHtmlOutput(globs.report.rStruct, reportOutput, startTime)
+            elif fmt == 'txt':
+                msgContent[fmt] = report.createTextOutput(globs.report.rStruct, reportOutput, startTime) 
+            elif fmt == 'csv':
+                msgContent[fmt] = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime) 
+            elif fmt == 'json':
+                msgContent[fmt] = report.createJsonOutput(globs.report.rStruct, reportOutput, startTime) 
 
         if fName == 'stdout':
-            sys.stdout.write(outMsg)
+            sys.stdout.write(msgContent[fmt])
         elif fName == 'stderr':
-            sys.stderr.write(outMsg)
+            sys.stderr.write(msgContent[fmt])
         else:
             try:
                 outfile = open(fName,'w')
             except (OSError, IOError):
                 sys.stderr.write('Error opening output file: {}\n'.format(fName))
                 return
-            outfile.write(outMsg)
+            if fmt in ['html', 'txt', 'csv']:
+                outfile.write(msgContent[fmt])
+            else:
+                json.dump(msgContent[fmt], outfile)
             outfile.close()
+    return None
 
-    return
 
 def pastBackupWarningThreshold(src, dest, nDays, opts):
     globs.log.write(1,'report.pastBackupWarningThreshold({}, {}, {})'.format(src, dest, nDays))
@@ -1099,6 +1113,3 @@ class Report:
                     lastFileSize = sizeOfExaminedFiles
 
         return None
-
-
-
