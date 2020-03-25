@@ -24,6 +24,7 @@ import options
 import dremail
 import drdatetime
 import dupapprise
+from datetime import datetime
 
 # Print program verersion info
 def versionInfo():
@@ -35,71 +36,6 @@ def versionInfo():
     globs.log.out('Distributed under MIT License. See LICENSE file for details.')
     globs.log.out('\nFollow dupReport on Twitter @dupreport\n-----\n')
     return None
-
-# Initialize options in the program
-# Return True if program can continue
-# Return False if enough changed in the .rc file that program needs to stop
-def initOptions():
-    globs.log.write(1, 'initOptions()')
-
-    # Set program path
-
-    # Create OptionManager instance
-    oMgr = options.OptionManager()
-    # Parse command line options
-    globs.log.write(1,'Processing command line...')
-    oMgr.processCmdLineArgs()
-    # Prepare the .rc file for processing
-    oMgr.openRcFile(oMgr.options['rcfilename'])   
-    
-    # Check if .rc file needs upgrading
-    #needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
-    #if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
-    #    globs.log.out('RC file is out of date. Needs update from version {} to version {}{}{}.'.format(currRcVersion, globs.rcVersion[0], globs.rcVersion[1], globs.rcVersion[2]))
-    #    import convert
-    #    convert.convertRc(oMgr, currRcVersion)
-    #    globs.log.out('RC file has been updated to the latest version.')
-    
-    # Check .rc file structure to see if all proper fields are there
-    if oMgr.setRcDefaults() is True:
-        globs.log.out('RC file {} has changed. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
-        return False
-
-    # RC file is structurally correct. Now need to parse rc options for global use. 
-    if oMgr.readRcOptions() is True:  # Need to restart program (.rc file needs editing)
-        return False
-
-    # Set global variables for OptionManager and program options
-    # A bit "un-pure', but makes programming much easier
-    globs.optionManager = oMgr
-    globs.opts = oMgr.options
-
-   # If output files are specified on the command line (-f), make sure their specification is correct
-    if validateOutputFiles() is False:
-        return False
-
-    globs.log.write(1, 'Program initialization complete. Continuing program.')
-
-    return True
-
-# Determine if output files specified on command line (-f or -F) have proper format spec
-# Specification is -f <file>,<format>
-# <format> can be 'html', 'txt', or 'csv'
-def validateOutputFiles():
-    canContinue = True
-
-    # See where the output files are going
-    if globs.ofileList:    # Potential list of output files specified on command line
-        for fspec in globs.ofileList:
-            fsplit = fspec[0].split(',')   
-            if len(fsplit) != 2:
-                globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
-                canContinue = False
-            elif fsplit[1] not in ('html','txt', 'csv', 'json'):
-                globs.log.err('Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.'.format(fsplit[0], fsplit[1]))
-                canContinue = False
-
-    return canContinue
 
 def sendNoBackupWarnings():
     globs.log.write(1, 'sendNoBackupWarnings()')
@@ -126,7 +62,6 @@ def sendNoBackupWarnings():
     return None
 
 if __name__ == "__main__":
-
     # Get program home directory
     globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -153,7 +88,7 @@ if __name__ == "__main__":
 
     # Initialize program options
     # This includes command line options and .rc file options
-    canContinue = initOptions() 
+    canContinue = options.initOptions() 
     if not canContinue: # Something changed in the .rc file that needs manual editing
         globs.closeEverythingAndExit(1)
 

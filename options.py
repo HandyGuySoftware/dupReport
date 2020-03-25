@@ -26,6 +26,7 @@ import globs
 # 4 - is the default value acceptable if not already present in .rc file (true/false)?
 rcParts= [
     # [0] Section   [1] Option          [2] Default                                                                 [3]is the default value acceptable if not already present in .rc file (true/false)?
+
     # [main] section defaults
     ('main',        'rcversion',        '{}.{}.{}'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]),True),
     ('main',        'dbpath',           os.path.dirname(os.path.realpath(sys.argv[0])),                             True),
@@ -68,73 +69,77 @@ rcParts= [
     ('outgoing',    'outkeepalive',     'false',                                                                    True),
 
     # [report] section defaults
-    #('report',      'style',            'srcdest',                                                                  True),
-    #('report',      'sortby',           'source',                                                                   True),
-    ('report',      'columns',           'source:Source, destination:Destination',                                  True),
-    ('report',      'layout',           'title, lastseen, table',                                  True),
+    ('report',      'layout',           'srcdest, noactivity, lastseen',                                            True),
+    ('report',      'title',            'Duplicati Backup Summary Report',                                          True),
+    ('report',      'titlebg',          '#FFFFFF',                                                                  True),
+    ('report',      'columns',           ' dupversion:Version, date: Date, time: Time, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, \
+    fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, filesWithError:Errors, parsedResult:Result, \
+    messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
     ('report',      'border',           '1',                                                                        True),
     ('report',      'padding',          '5',                                                                        True),
-    ('report',      'title',            'Duplicati Backup Summary Report',                                          True),
     ('report',      'sizedisplay',      'byte',                                                                     True),
-    ('report',      'showsizedisplay',  'true',                                                                     True),
+    #('report',      'showsizedisplay',  'true',                                                                     True),
     ('report',      'displaymessages',  'false',                                                                    True),
-    ('report',      'displaywarnings',  'true',                                                                     True),
-    ('report',      'displayerrors',    'true',                                                                     True),
-    ('report',      'displaylogdata',   'true',                                                                     True),
-    ('report',      'titlebg',          '#FFFFFF',                                                                  True),
-    ('report',      'groupheadingbg',   '#D3D3D3',                                                                  True),
     ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
+    ('report',      'truncatemessage',  '0',                                                                        True),
+    ('report',      'displaywarnings',  'true',                                                                     True),
     ('report',      'jobwarningbg',     '#FFFF00',                                                                  True),
+    ('report',      'truncatewarning',  '0',                                                                        True),
+    ('report',      'displayerrors',    'true',                                                                     True),
+    ('report',      'truncateerror',    '0',                                                                        True),
     ('report',      'joberrorbg',       '#FF0000',                                                                  True),
+    ('report',      'displaylogdata',   'true',                                                                     True),
     ('report',      'joblogdatabg',     '#FF0000',                                                                  True),
+    ('report',      'groupheadingbg',   '#D3D3D3',                                                                  True),
     ('report',      'repeatheaders',    'false',                                                                    True),
     ('report',      'nobackupwarn',     '0',                                                                        True),
     ('report',      'nbwsubject',       'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
-    #('report',      'lastseensummary',  'none',                                                                     True),
-    #('report',      'lastseensummarytitle', 'Backup Sets Last Seen',                                                True),
-    #('report',      'lastseenlow',      '5',                                                                        True),
-    #('report',      'lastseenmed',      '10',                                                                       True),
-    #('report',      'lastseenlowcolor', '#FFFF00',                                                                  True),
-    #('report',      'lastseenmedcolor', '#FF4500',                                                                  True),
-    #('report',      'lastseenhighcolor','#FF0000',                                                                  True),
-    ('report',       'normaldays',       '5',                                                                         True),
-    ('report',       'normalbg',         '#FFFFFF',                                                                   True),
-    ('report',       'warningdays',      '20',                                                                        True),
-    ('report',       'warningbg',        '#FFFF00',                                                                   True),
-    ('report',       'errorbg',         '#FF0000',                                                                   True),
-    ('report',       'truncatemessage',  '0',                                                                         True),
-    ('report',       'truncatewarning',  '0',                                                                         True),
-    ('report',       'truncateerror',    '0',                                                                         True),
-    ('report',       'truncatelogdata',  '0',                                                                         True),
-    ('report',       'durationzeroes',   'true',                                                                      True),
-    ('report',       'weminline',       'false',                                                                      True),
-    #('lastseen',      'lastseensummary',  'none',                                                                     True),
-    #('lastseen',      'lastseensummarytitle', 'Backup Sets Last Seen',                                                True),
-    #('lastseen',      'lastseenlow',      '5',                                                                        True),
-    #('lastseen',      'lastseenmed',      '10',                                                                       True),
-    #('lastseen',      'lastseenlowcolor', '#FFFF00',                                                                  True),
-    #('lastseen',      'lastseenmedcolor', '#FF4500',                                                                  True),
-    #('lastseen',      'lastseenhighcolor','#FF0000',                                                                  True),
-    # [headings] section defaults
-    #('headings',    'Source',           'Source',                                                                   True),
-    #('headings',    'Destination',      'Destination',                                                              True),
-    #('headings',    'Date',             'Date',                                                                     True),
-    #('headings',    'Time',             'Time',                                                                     True),
-    #('headings',    'dupVersion',       'Version',                                                                  True),
-    #('headings',    'Duration',         'Duration',                                                                 True),
-    #('headings',    'Files',            'Files',                                                                    True),
-    #('headings',    'FilesPlusMinus',   '+/-',                                                                      True),
-    #('headings',    'Size',             'Size',                                                                     True),
-    #('headings',    'SizePlusMinus',    '+/-',                                                                      True),
-    #('headings',    'Added',            'Added',                                                                    True),
-    #('headings',    'Deleted',          'Deleted',                                                                  True),
-    #('headings',    'Modified',         'Modified',                                                                 True),
-    #('headings',    'Errors',           'Errors',                                                                   True),
-    #('headings',    'Result',           'Result',                                                                   True),
-    #('headings',    'JobMessages',      'Messages',                                                                 True),
-    #('headings',    'JobWarnings',      'Warnings',                                                                 True),
-    #('headings',    'JobErrors',        'Errors',                                                                   True),
-    #('headings',    'JobLogdata',       'Log Data',                                                                 True),
+    ('report',      'normaldays',       '5',                                                                         True),
+    ('report',      'normalbg',         '#FFFFFF',                                                                   True),
+    ('report',      'warningdays',      '20',                                                                        True),
+    ('report',      'warningbg',        '#FFFF00',                                                                   True),
+    ('report',      'errorbg',          '#FF0000',                                                                   True),
+    ('report',      'truncatelogdata',  '0',                                                                         True),
+    ('report',      'durationzeroes',   'true',                                                                      True),
+    ('report',      'weminline',        'false',                                                                     True),
+
+    # [srcdest] sample specification
+    ('srcdest',     'type',             'report',                                                                    True),
+    ('srcdest',     'title',            'Duplicati Backup Summary Report - By Source / Destination',                 True),
+    ('srcdest',     'groupby',          'source: ascending, destination : ascending',                                True),
+    ('srcdest',     'groupheading',     'Source: #SOURCE# - Destination: #DESTINATION#',                             True),
+    ('srcdest',     'columns',          'source:Source, destination:Destination, dupversion:Version, date:Date, time:Time, examinedfiles:Files, examinedfilesdelta:+/-, sizeofexaminedfiles:Size, filesizedelta:+/-, addedfiles:Added, deletedfiles:Deleted, modifiedfiles:Modified, fileswitherror:Errors, parsedresult:Result, messages:Messages, warnings:Warnings, errors:Errors, duration:Duration, logdata:Log Data',                       True),
+    ('srcdest',     'columnsort',       'source : ascending, destination : ascending',                              True),
+
+    # [bysrc] sample specification
+    ('bysrc',     'type',               'report',                                                                    True),
+    ('bysrc',     'title',              'Duplicati Backup Summary Report - By Destination',                          True),
+    ('bysrc',     'groupby',            'source : ascending, destination: ascending',                                True),
+    ('bysrc',     'groupheading',       'Source: #SOURCE#',                                                          True),
+    ('bysrc',     'columns',            'destination: Destination, dupversion : Version, date : Date, time : Time, duration : Duration, examinedFiles : Files, examinedFilesDelta : +/ -, sizeOfExaminedFiles : Size, fileSizeDelta: +/ -, errors : Errors, parsedResult : Result, logdata: Log Data, errors:Errors, columnsort = source : ascending, destination : ascending',                      True),
+    ('bysrc',     'columnsort',         'source : ascending, destination : ascending',                               True),
+
+    # [bydest] sample specification
+    ('bydest',     'type',             'report',                                                                     True),
+    ('bydest',     'title',            'Duplicati Backup Summary Report - By Source',                                True),
+    ('bydest',     'groupby',          'destination: ascending, source : ascending',                                 True),
+    ('bydest',     'groupheading',     'Source: #SOURCE#',                                                           True),
+    ('bydest',     'columns',          'destination: Destination, dupversion : Version, date : Date, time : Time, duration : Duration, examinedFiles : Files, examinedFilesDelta : +/ -, sizeOfExaminedFiles : Size, fileSizeDelta: +/ -, errors : Errors, parsedResult : Result, logdata: Log Data, errors:Errors, columnsort = source : ascending, destination : ascending',                      True),
+    ('bydest',     'columnsort',       'source : ascending, destination : ascending',                                True),
+
+    # [bydate] sample specification
+    ('bydate',     'type',             'report',                                                                     True),
+    ('bydate',     'title',            'Duplicati Backup Summary Report - By Date',                                  True),
+    ('bydate',     'groupby',          'date : ascending',                                                           True),
+    ('bydate',     'groupheading',     'Source: #SOURCE#',                                                           True),
+    ('bydate',     'columns',          'time : Time, source: Source, destination: Destination, dupversion : Version, duration : Duration, examinedFiles : Files, examinedFilesDelta : +/ -, sizeOfExaminedFiles : Size, fileSizeDelta: +/ -, errors : Errors, parsedResult : Result, logdata: Log Data, errors:Errors, columnsort = source : ascending, destination : ascending',                      True),
+    ('bydate',     'columnsort',       'source : ascending, destination : ascending',                                True),
+
+    # No activity & last seen reports
+    ('noactivity', 'type',              'noactivity',                                                                True),
+    ('noactivity', 'title',             'Non-Activity Report',                                                       True),
+    ('lastseen',   'type',              'lastseen',                                                                  True),
+    ('lastseen',   'title',             'Backup Sets Last Seen',                                                     True)
    ]
 
 # Class to manage all program options
@@ -188,6 +193,7 @@ class OptionManager:
             # Current RC version not available. Using a really old version of the program, so need to upgrade
             needToUpgrade = True
 
+        # Got the RC version, not see if it's the current one
         if needToUpgrade == False:
             verParts = rcVersion.split('.')
             currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
@@ -346,7 +352,7 @@ class OptionManager:
 
     # save updated RC configuration to .rc file
     def updateRc(self):
-        globs.log.write(1, 'options.updateRc()')
+        globs.log.write(1, 'Updating .rc file')
 
         with open(self.rcFileName, 'w') as configfile:
             self.parser.write(configfile)
@@ -464,6 +470,11 @@ class OptionManager:
 
         return vals
 
+    def clearRcSection(self, section):
+        globs.log.write(1, 'options.clearRcSection({})'.format(section))
+        self.parser.remove_section(section)
+        return None
+
     def getRcSectionDateTimeFmt(self, src, dest):
         globs.log.write(1, 'options.getRcSectionDateTimeFmt({}, {})'.format(src, dest))
 
@@ -492,25 +503,87 @@ class OptionManager:
 
         globs.log.write(3,'returning [{}][{}]'.format(dtfmt, tmfmt))
         return dtfmt, tmfmt
-    
+
+
+
     # Strips trailing slash character from a path specification if one exists
     def processPath(self, path, fName):
-        # Split path into head & tail
-        head, tail = os.path.split(path)
+        basename = os.path.basename(path)
+        dirname = os.path.dirname(path)
+        isDir = os.path.isdir(path)
 
-        if head == '':
-            head = globs.progPath
-        if tail == '':
-            tail = fName
+        if isDir:   # Path is clearly a directory (w/no file name component). Join it with the fName & return it
+            joined = os.path.join(path, fName)
+            return joined
 
-        # See if the directory is valid
-        if not os.path.isdir(head):
-            raise ValueError('Invalid path specification: {}. Most likely, the path does not exist.'.format(path))
-            closeEverythingAndExit(1)
-        # See if given path ends in a '/' or '\' and trim it
-        if head[-1:] in ['/', '\\']:
-            head = head[:-1]
-        # Re-build new spec
-        newPath = head + '/' + tail
+        if path == '':  # no path, use the default path & join it with fName
+            joined = os.path.join(globs.progPath, fName)
+            return joined
 
-        return newPath
+        return path     #Assume it's a full filespec. Return it and the OS will raise an error if it tries to open it & can't
+
+# Initialize options in the program
+# Return True if program can continue
+# Return False if enough changed in the .rc file that program needs to stop
+def initOptions():
+    globs.log.write(1, 'initOptions()')
+
+    # Set program path
+
+    # Create OptionManager instance
+    oMgr = OptionManager()
+    # Parse command line options
+    globs.log.write(1,'Processing command line...')
+    oMgr.processCmdLineArgs()
+    # Prepare the .rc file for processing
+    oMgr.openRcFile(oMgr.options['rcfilename'])   
+    
+    # Check if .rc file needs upgrading
+    needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
+    if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
+        globs.log.out('RC file is out of date. Needs update from version {} to version {}{}{}.'.format(currRcVersion, globs.rcVersion[0], globs.rcVersion[1], globs.rcVersion[2]))
+        import convert
+        convert.convertRc(oMgr, currRcVersion)
+        globs.log.out('RC file has been updated to the latest version.')
+    
+    # Check .rc file structure to see if all proper fields are there
+    if oMgr.setRcDefaults() is True:
+        globs.log.out('RC file {} has changed. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
+        return False
+
+    # RC file is structurally correct. Now need to parse rc options for global use. 
+    if oMgr.readRcOptions() is True:  # Need to restart program (.rc file needs editing)
+        return False
+
+    # Set global variables for OptionManager and program options
+    # A bit "un-pure', but makes programming much easier
+    globs.optionManager = oMgr
+    globs.opts = oMgr.options
+
+   # If output files are specified on the command line (-f), make sure their specification is correct
+    if validateOutputFiles() is False:
+        return False
+
+    globs.log.write(1, 'Program initialization complete. Continuing program.')
+
+    return True
+
+# Determine if output files specified on command line (-f or -F) have proper format spec
+# Specification is -f <file>,<format>
+# <format> can be 'html', 'txt', or 'csv'
+def validateOutputFiles():
+    canContinue = True
+
+    # See where the output files are going
+    if globs.ofileList:    # Potential list of output files specified on command line
+        for fspec in globs.ofileList:
+            fsplit = fspec[0].split(',')   
+            if len(fsplit) != 2:
+                globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
+                canContinue = False
+            elif fsplit[1] not in ('html','txt', 'csv', 'json'):
+                globs.log.err('Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.'.format(fsplit[0], fsplit[1]))
+                canContinue = False
+
+    return canContinue
+

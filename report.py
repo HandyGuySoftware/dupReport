@@ -720,13 +720,13 @@ def printTitle(fldTuple, options, typ):
     # This is kind of a cheat, but there is no other more elegant way of doing it
     displayAddOn = '' # Start with nothing
     if ((fldTuple[0] == 'sizeOfExaminedFiles') or (fldTuple[0] == 'fileSizeDelta')):  # These are the only fields that can use the add-on
-        if options['showsizedisplay'] is True:  # Do we want to show it, based on .rec config?
-            if options['sizedisplay'][:2].lower() == 'mb':    # Need to add (MB)
-                displayAddOn = ' (Mb)'
-            elif options['sizedisplay'][:2].lower() == 'gb': # giga - need to add (GB)
-                displayAddOn = ' (Gb)'
-            else: # Unknown, revert to default
-                pass
+        #if options['showsizedisplay'] is True:  # Do we want to show it, based on .rec config?
+        if options['sizedisplay'][:2].lower() == 'mb':    # Need to add (MB)
+            displayAddOn = ' (Mb)'
+        elif options['sizedisplay'][:2].lower() == 'gb': # giga - need to add (GB)
+            displayAddOn = ' (Gb)'
+        else: # 'None' or Unknown, revert to default
+            pass
 
     if typ == 'html':
         fmtStart, fmtEnd, align = fromMarkup(fldTuple[3])
@@ -967,7 +967,8 @@ class Report:
             self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
-        for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+        #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
             self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
             
         # Get reports that need to run as defined in [report]layout option
@@ -998,7 +999,8 @@ class Report:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
                 # Fix some of the data field types - boolean
-                for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+                #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
                     if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
                        self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
         
