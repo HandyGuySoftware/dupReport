@@ -26,6 +26,7 @@ import ssl
 # Import dupReport modules
 import globs
 import drdatetime
+import report
 
 
 #Define message segments (line parts) for Duplicati result email messages
@@ -582,14 +583,14 @@ class EmailServer:
             return ''
 
     # Send final email result
-    def sendEmail(self, msgHtml, msgText = None, subject = None, sender = None, receiver = None):
-        globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, globs.maskData(sender), globs.maskData(receiver)))
+    def sendEmail(self,rptOutput = None, strtTime = None, msgHtml = None, msgText = None, subject = None, sender = None, receiver = None):
+        #globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, globs.maskData(sender), globs.maskData(receiver)))
         self.connect()
 
         # Build email message
         msg = MIMEMultipart('alternative')
         if subject is None:
-            subject = globs.report.reportOpts['reporttitle']
+            subject = globs.report.rStruct['defaults']['title']
         msg['Subject'] = subject
         if sender is None:
             sender = globs.opts['outsender']
@@ -605,12 +606,17 @@ class EmailServer:
         # Attach parts into message container.
         # According to RFC 2046, the last part of a multipart message is best and preferred.
         # So attach text first, then HTML
-        if msgText is not None:
-            msgPart = MIMEText(msgText, 'plain')
-            msg.attach(msgPart)
-        if msgHtml is not None:
-            msgPart = MIMEText(msgHtml, 'html')
-            msg.attach(msgPart)
+        txtContent = msgText
+        if txtContent == None:     # Take content from rptOutput
+            txtContent = report.createTextOutput(globs.report.rStruct, rptOutput, strtTime)
+        msgPart = MIMEText(txtContent, 'plain')
+        msg.attach(msgPart)
+
+        htmlContent = msgHtml
+        if htmlContent == None:     # Take content from reportOutput
+            htmlContent = report.createHtmlOutput(globs.report.rStruct, rptOutput, strtTime)
+        msgPart = MIMEText(htmlContent, 'html')
+        msg.attach(msgPart)
 
         # See which files need to be emailed
         # ofileList consists of tuples of (<filespec>,<emailSpec>)

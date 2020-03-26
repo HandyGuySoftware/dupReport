@@ -220,7 +220,7 @@ if __name__ == "__main__":
             globs.log.out('Sending report emails.')
 
         # Send email to SMTP server
-        globs.outServer.sendEmail(htmlOutput, textOutput)
+        globs.outServer.sendEmail(rptOutput = reportOutput, strtTime = startTime)
 
     # Do we need to purge the database?
     if globs.opts['purgedb'] == True:
