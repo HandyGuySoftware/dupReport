@@ -402,7 +402,7 @@ def buildReportOutput(report):
             grpHeading = ''
             for i in range(len(groupName)):
                 grpHeading += str(groupName[i]) + ' '
-            singleReport['groups'][groupIndex]['groupHeading'] = grpHeading
+            #singleReport['groups'][groupIndex]['groupHeading'] = grpHeading
 
         # Perform keyword substutution on the group heading
         for keyWdTmp in keyWordList:
@@ -418,7 +418,7 @@ def buildReportOutput(report):
                     else:
                         grpHeading = grpHeading.replace(keyWordList[keyWdTmp], str(groupName[i]))
 
-        singleReport['groups'][groupIndex]['groupHeading'] = [grpHeading,  report['options']['groupheadingbg'], 0x01]
+        singleReport['groups'][groupIndex]['groupHeading'] = [grpHeading,  report['options']['groupheadingbg'], toMarkup(bold=True)]
         singleReport['groups'][groupIndex]['dataRows'] = []
 
         sqlQuery = {}
@@ -452,12 +452,20 @@ def buildReportOutput(report):
                     if rowList[rl][i] != '':
                         type = report['options']['columns'][i][0]
                         if type == 'messages':
+                            if report['options']['displaymessages'] == False:
+                                continue
                             bground = report['options']['jobmessagebg']
                         elif type == 'warnings':
+                            if report['options']['displaywarnings'] == False:
+                                continue
                             bground = report['options']['jobwarningbg']
                         elif type == 'errors':
+                            if report['options']['displayerrors'] == False:
+                                continue
                             bground = report['options']['joberrorbg']
                         elif type == 'logdata':
+                            if report['options']['displaylogdata'] == False:
+                                continue
                             bground = report['options']['joblogdatabg']
                         truncatedMsg = truncateWarnErrMsgs(type, rowList[rl][i], report['options'])
                         markup = toMarkup(align=fldDefs[type][0])
@@ -474,6 +482,13 @@ def buildReportOutput(report):
                 for msg in msgList:
                     singleReport['groups'][groupIndex]['dataRows'].append([msgList[msg]])
                     dataRowIndex += 1
+
+    if len(singleReport['groups']) == 0:    # No activity
+        singleReport['groups'].append({})
+        singleReport['groups'][0]['groupHeading'] = ['No Email Activity Today', '#FFFFFF', toMarkup(bold=True, italic=True)] 
+        singleReport['groups'][0]['dataRows'] = []
+        singleReport['groups'][0]['dataRows'].append([])
+        singleReport['groups'][0]['dataRows'][0].append(['No Email Activity', '#FFFFFF', toMarkup(italic=True), 'No Email Activity'])
 
     return singleReport
 
@@ -608,7 +623,7 @@ def createTextOutput(reportStructure, reportOutput, startTime):
                         for column in range(len(row)):
                             msgText += printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'txt')
                     else:   # Single column - error, warning, message
-                        msgText += printField(row[0], report['inlineColumnNames'][column][0], '', 'txt', row[0][3], report['inlineColumnCount'], summary=True)
+                        msgText += printField(row[0], report['inlineColumnNames'][0][0], '', 'txt', row[0][3], report['inlineColumnCount'], summary=True)
                     msgText += '\n'
         elif reportStructure['sections'][rptIndex]['type'] in ['noactivity', 'lastseen']:
             # Loop through each group in the report
