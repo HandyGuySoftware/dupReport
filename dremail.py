@@ -608,13 +608,13 @@ class EmailServer:
         # So attach text first, then HTML
         txtContent = msgText
         if txtContent == None:     # Take content from rptOutput
-            txtContent = report.createTextOutput(globs.report.rStruct, rptOutput, strtTime)
+            txtContent = globs.report.createFormattedOutput(rptOutput, 'txt', strtTime)
         msgPart = MIMEText(txtContent, 'plain')
         msg.attach(msgPart)
 
         htmlContent = msgHtml
         if htmlContent == None:     # Take content from reportOutput
-            htmlContent = report.createHtmlOutput(globs.report.rStruct, rptOutput, strtTime)
+            htmlContent = globs.report.createFormattedOutput(rptOutput, 'html', strtTime)
         msgPart = MIMEText(htmlContent, 'html')
         msg.attach(msgPart)
 

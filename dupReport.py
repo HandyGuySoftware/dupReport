@@ -197,7 +197,7 @@ if __name__ == "__main__":
         globs.report.extractReportData()
 
         # Run selected report
-        reportOutput = report.buildOutput(globs.report.rStruct)
+        reportOutput = globs.report.createReport(globs.report.rStruct)
 
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
