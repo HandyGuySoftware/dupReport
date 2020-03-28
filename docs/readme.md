@@ -50,7 +50,7 @@ Enjoy!
 Configuring dupReport
 
 - [Source-Destination Pairs](SrcDestPairs.md)
-- [Identifying Emails of Interest](EmailsofInterest)
+- [Identifying Emails of Interest](EmailsofInterest.md)
 - [System Requirements](SystemRequirements.md)
 
 [Installation](Installation.md)
