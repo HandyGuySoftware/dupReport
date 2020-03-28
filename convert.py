@@ -36,7 +36,6 @@ optList210 = [
     ('main',        'disperrors',       'report',       'displayerrors'),
     ('main',        'dispwarnings',     'report',       'displaywarnings'),
     ('main',        'dispmessages',     'report',       'displaymessages'),
-    ('main',        'sortorder',        'report',       'sortby'),
     ('main',        'dateformat',       'main',         'dateformat'),
     ('main',        'timeformat',       'main',         'timeformat'),
 

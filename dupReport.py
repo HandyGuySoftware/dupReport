@@ -107,8 +107,11 @@ if __name__ == "__main__":
     # We may not be running reports, but the options will be needed later in the program 
     globs.report = report.Report()
     if globs.report.validConfig is False:
-        globs.log.out('Report configuration has errors. See log file {} for information on how to correct it.'.format(globs.logName))
+        globs.log.err('Report configuration has errors. See log file {} for specific error messages.'.format(globs.logName))
         globs.closeEverythingAndExit(0)
+    if globs.opts['validatereport'] == True:  # We just want to validate the report. Exit from here without doing anyting else.
+        globs.closeEverythingAndExit(0)
+
 
     # see if [apprise] section exists in .rc file. If so, initialize Apprise options
     if globs.optionManager.parser.has_section("apprise"):

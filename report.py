@@ -427,16 +427,6 @@ def truncateWarnErrMsgs(field, msg, options):
     msgRet = msg
     msgLen = options[msgFldDefs[field]]
 
-    # Truncate string if length of string is > desired length
-    #if field == 'errors':
-    #    msgLen = options['truncateerror']
-    #elif field == 'messages':
-    #    msgLen = options['truncatemessage']
-    #elif field == 'warnings':
-    #    msgLen = options['truncatewarning']
-    #elif field == 'logdata':
-    #    msgLen = options['truncatelogdata']
-
     if msgLen != 0:
         msgRet = msg[:msgLen] if len(msg) > msgLen else msg  
     
@@ -464,8 +454,8 @@ class Report:
             self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
-        #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
-        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+        #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
+        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
             self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
             
         # Get reports that need to run as defined in [report]layout option
@@ -496,8 +486,8 @@ class Report:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
                 # Fix some of the data field types - boolean
-                #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
-                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatheaders', 'durationzeroes', 'weminline'):
+                #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
+                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
                     if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
                        self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
         
@@ -545,20 +535,26 @@ class Report:
 
     # Determine if a column specified in the .rc file is a valid column name
     def validateColumns(self, section, colSpec):
-        allGood = True
+        errRate = 0
 
-        colList = splitRcIntoList(colSpec)
+        colList = colSpec
+        # The first time around (checking the default colums) colList comes in as a string
+        # By the time the individual report columns come in for checking, they have been converted to lists
+        # Check if they're already lists to avoid program crashes
+        if isinstance(colSpec, str):
+            colList = splitRcIntoList(colSpec)
+
         for i in range(len(colList)):
             if colList[i][0] not in colNames:
-                globs.log.write(1,'[{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
-                allGood = False
+                globs.log.err('ERROR: [{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
+                globs.log.write(1, 'ERROR: [{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
+                errRate += 1
             if len(colList[i]) != 2:
-                globs.log.write(1,'[{}] section: Column \'{}\' does not have a title definition. Defaulting to column name as title.'.format(section, colList[i][0]))
-                allGood = False
+                globs.log.write(1, 'WARNING: [{}] section: Column \'{}\' does not have a title definition. Defaulting to column name as title.'.format(section, colList[i][0]))
             elif colList[i][1] =='':
-                globs.log.write(1,'[{}] section: Title field for column \'{}\' is empty. This is not an error, but that column will not have a title when printed.'.format(section, colList[i][0]))
+                globs.log.write(1, 'WARNING: [{}] section: Title field for column \'{}\' is empty. This is not an error, but that column will not have a title when printed.'.format(section, colList[i][0]))
 
-        return allGood
+        return errRate
 
     def isValidReportField(self, fname):
         for i in range(len(options.rcParts)):
@@ -575,26 +571,30 @@ class Report:
         globs.log.write(1,'Validating report specifications in .rc file.')
         anyProblems = 0
         
-        # First, check the [report]columns section for validity
-        if self.validateColumns('report', self.rStruct['defaults']['columns']) == False:
-            anyProblems += 1
+        # First, check the default [report]columns section for validity
+        anyProblems = self.validateColumns('report', self.rStruct['defaults']['columns'])
+        # Now check each of the reports for column validity
+        for i in range(len(self.rStruct['sections'])):
+            anyProblems += self.validateColumns('report', self.rStruct['sections'][i]['options']['columns'])
 
         sectionList = splitRcIntoList(self.rStruct['defaults']['layout'])
         for i in range(len(sectionList)):
             sect = globs.optionManager.getRcSection(sectionList[i][0])
             if sect == None: #Section does not exist
-                globs.log.err('[report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
+                globs.log.err('ERROR: [report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
+                globs.log.write(1, 'ERROR: [report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
                 anyProblems += 1
             elif 'type' not in sect:
-                globs.log.err(1,'No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
+                globs.log.err('ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
+                globs.log.write(1,'ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
                 anyProblems += 1
             elif sect['type'] not in ['report', 'noactivity', 'lastseen']:
-                globs.log.err(1,'[{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
+                globs.log.write(1,'ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
+                globs.log.err('ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
                 anyProblems += 1
             else:
                 if 'columns' in sect:
-                    if self.validateColumns(sectionList[i][0], sect['columns']) == False:
-                        anyProblems += 1
+                    anyProblems += self.validateColumns(sectionList[i][0], sect['columns'])
 
                 for optName in sect:    # Check that each option is valid
                     if optName in ['type', 'groupheading']:
@@ -603,21 +603,27 @@ class Report:
                         oList = splitRcIntoList(sect[optName])
                         for i in range(len(oList)):
                             if oList[i][0] not in colNames:
-                                globs.log.err(1,'[{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[i][0]))
+                                globs.log.err('ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[i][0]))
+                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[i][0]))
                                 anyProblems += 1
                             if oList[i][1] not in ['ascending', 'descending']:
-                                globs.log.err(1,'[{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
+                                globs.log.err('ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
+                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
                                 anyProblems += 1
                     else:
                         if not self.isValidReportField(optName):
-                            globs.log.write(1,'[{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
+                            globs.log.write(1,'ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
+                            globs.log.err('ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
                             anyProblems += 1
 
         globs.log.write(1, 'Found {} report validation errors.'.format(anyProblems))
+        if globs.opts['validatereport'] == True:
+            globs.log.out('Found {} report validation errors. See log file for details'.format(anyProblems))
         if anyProblems > 0:
             globs.log.err('Found {} report validation errors.'.format(anyProblems))
             return False
-        return True
+        else:
+            return True
 
     # Extract the data needed for the report and move it to the report table in the database
     # This data will be picked up later by the specific report module
@@ -1020,7 +1026,7 @@ class Report:
             msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['titlebg'], rptOptions['title'])
 
             if reportStructure['sections'][rptIndex]['type'] == 'report':
-                if rptOptions['repeatheaders'] is False:    # Only print headers at the top of the report
+                if rptOptions['repeatcolumntitles'] is False:    # Only print headers at the top of the report
                     # Print column headings
                     msgHtml += '<tr>'
                     for i in range(len(report['inlineColumnNames'])):
@@ -1035,7 +1041,7 @@ class Report:
                     # Print group heading
                     msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'][0])
 
-                    if rptOptions['repeatheaders'] is True:    # Only print headers at the top of the report
+                    if rptOptions['repeatcolumntitles'] is True:    # Only print headers at the top of the report
                         # Print column headings
                         msgHtml += '<tr>'
                         for i in range(len(report['inlineColumnNames'])):
@@ -1095,7 +1101,7 @@ class Report:
             msgText += rptOptions['title'] + '\n'
 
             if reportStructure['sections'][rptIndex]['type'] == 'report':
-                if rptOptions['repeatheaders'] is False:    # Only print headers at the top of the report
+                if rptOptions['repeatcolumntitles'] is False:    # Only print headers at the top of the report
                     # Print column headings
                     for i in range(len(report['inlineColumnNames'])):
                         msgText += printTitle(report['inlineColumnNames'][i], rptOptions, 'txt')
@@ -1109,7 +1115,7 @@ class Report:
                     # Print group heading
                     msgText += '{}\n'.format(report['groups'][grpIndex]['groupHeading'][0])
 
-                    if rptOptions['repeatheaders'] is True:    # Only print headers at the top of the report
+                    if rptOptions['repeatcolumntitles'] is True:    # Only print headers at the top of the report
                         # Print column headings
                         for i in range(len(report['inlineColumnNames'])):
                             msgText += printTitle(report['inlineColumnNames'][i], rptOptions, 'txt')
@@ -1165,7 +1171,7 @@ class Report:
             msgCsv += rptOptions['title'] + '\n'
 
             if reportStructure['sections'][rptIndex]['type'] == 'report':
-                if rptOptions['repeatheaders'] is False:    # Only print headers at the top of the report
+                if rptOptions['repeatcolumntitles'] is False:    # Only print headers at the top of the report
                     # Print column headings
                     for i in range(len(report['inlineColumnNames'])):
                         msgCsv += printTitle(report['inlineColumnNames'][i], rptOptions, 'csv')
@@ -1179,7 +1185,7 @@ class Report:
                     # Print group heading
                     msgCsv += '\"{}\"\n'.format(report['groups'][grpIndex]['groupHeading'][0])
 
-                    if rptOptions['repeatheaders'] is True:    # Only print headers at the top of the report
+                    if rptOptions['repeatcolumntitles'] is True:    # Only print headers at the top of the report
                         # Print column headings
                         for i in range(len(report['inlineColumnNames'])):
                             msgCsv += printTitle(report['inlineColumnNames'][i], rptOptions, 'csv')

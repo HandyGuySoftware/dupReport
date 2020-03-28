@@ -5,13 +5,13 @@
 			"Title": "Table Title",
 			"type": "table"
 			"columnCount": 4,
-			"columns": [ [colName, ColTitle, bgColor, markup], [colA,ColumnA, bgColor, markup], [colB,ColumnB, bgColor, markup], [colC, ColumnC, bgColor, markup], ... ],
+			"columnNames": [ [colName, ColTitle, bgColor, markup], [colA,ColumnA, bgColor, markup], [colB,ColumnB, bgColor, markup], [colC, ColumnC, bgColor, markup], ... ],
 							# Markup = 	0x01 - Bold
 							#			0x02 - Italic
 							# 			0x04 - Underline
-							#			0x08 - Left justified
-							#			0x10 - Center justified
-							#			0x20 - Right justified
+							#			0x08 - Left align
+							#			0x10 - Center align
+							#			0x20 - Right align
 			"inlineColumnCount": 2,
 			"inlineColumns": [ [colName, ColTitle, bgColor, markup], [colA,ColumnA, bgColor, markup], ... ],
 			"groups": [
@@ -19,25 +19,25 @@
 					"groupHeading": ["Group 1", bgColor, markup ]
 					"dataRows": [
 						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
-						[msgTitle, msg, colVal, bgColor, markup],
-						[warnTitle, warn, , colVal, bgColor, markup],
-						[errorTitle, error, , colVal, bgColor, markup],
-						[dataTitle, data, , colVal, bgColor, markup],
+						[msgVal, bgColor, markup, msgTitle],
+						[warnVal, bgColor, markup, warnTitle],
+						[errVal, bgColor, markup, errorTitle],
+						[dataVal, bgColor, markup, dataTitle],
 						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
 						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
 					],
 				},
 				{
-					"groupHeading": "Group 2",
+					"groupHeading": ["Group 2", bgColor, markup ]
 					"dataRows": [
 						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
-						[msgTitle, msg, colVal, bgColor, markup],
-						[warnTitle, warn, , colVal, bgColor, markup],
-						[errorTitle, error, , colVal, bgColor, markup],
-						[dataTitle, data, , colVal, bgColor, markup],
+						[msgVal, bgColor, markup, msgTitle],
+						[warnVal, bgColor, markup, warnTitle],
+						[errVal, bgColor, markup, errorTitle],
+						[dataVal, bgColor, markup, dataTitle],
 						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
 						[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup], ... ],
-						[dataTitle, data],
+						[dataVal, bgColor, markup, dataTitle],
 					],
 				},
 			],
@@ -46,12 +46,18 @@
 			"name": "noactivity",
 			"Title": "title",
 			"type": "noactivity"
-			"columns": [ ['source', 'Source', bgColor, markup], ['destination', 'Destination', bgColor, markup], [lastActivity, 'Last Activity', bgColor, markup]],
-			"dataRows": [
-				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
-				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
-				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
-				[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+			"columnCount": 3,
+			"columnNames": [ ['source', 'Source', bgColor, markup], ['destination', 'Destination', bgColor, markup], [lastActivity, 'Last Activity', bgColor, markup]],
+			"inlineColumnCount": 3,
+			"inlineColumnNames": [ ['source', 'Source', bgColor, markup], ['destination', 'Destination', bgColor, markup], [lastActivity, 'Last Activity', bgColor, markup]],
+			"groups": [
+				"dataRows": [
+					[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+					[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+					[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+					[ [colVal, bgColor, markup], [colVal, bgColor, markup], [colVal, bgColor, markup] ],
+				],
 			],
+		}
 	],
 }

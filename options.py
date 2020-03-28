@@ -70,37 +70,36 @@ rcParts= [
 
     # [report] section defaults
     ('report',      'layout',           'srcdest, noactivity, lastseen',                                            True),
-    ('report',      'title',            'Duplicati Backup Summary Report',                                          True),
-    ('report',      'titlebg',          '#FFFFFF',                                                                  True),
     ('report',      'columns',           ' dupversion:Version, date: Date, time: Time, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, \
     fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, filesWithError:Errors, parsedResult:Result, \
     messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
+    ('report',      'title',            'Duplicati Backup Summary Report',                                          True),
+    ('report',      'titlebg',          '#FFFFFF',                                                                  True),
     ('report',      'border',           '1',                                                                        True),
     ('report',      'padding',          '5',                                                                        True),
     ('report',      'sizedisplay',      'byte',                                                                     True),
-    #('report',      'showsizedisplay',  'true',                                                                     True),
+    ('report',      'repeatcolumntitles',    'true',                                                                    True),
+    ('report',      'durationzeroes',   'true',                                                                      True),
     ('report',      'displaymessages',  'false',                                                                    True),
     ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
-    ('report',      'truncatemessage',  '0',                                                                        True),
     ('report',      'displaywarnings',  'true',                                                                     True),
     ('report',      'jobwarningbg',     '#FFFF00',                                                                  True),
-    ('report',      'truncatewarning',  '0',                                                                        True),
     ('report',      'displayerrors',    'true',                                                                     True),
-    ('report',      'truncateerror',    '0',                                                                        True),
     ('report',      'joberrorbg',       '#FF0000',                                                                  True),
     ('report',      'displaylogdata',   'true',                                                                     True),
+    ('report',      'truncatemessage',  '0',                                                                        True),
+    ('report',      'truncatewarning',  '0',                                                                        True),
+    ('report',      'truncateerror',    '0',                                                                        True),
+    ('report',      'truncatelogdata',  '0',                                                                         True),
     ('report',      'joblogdatabg',     '#FF0000',                                                                  True),
-    ('report',      'groupheadingbg',   '#D3D3D3',                                                                  True),
-    ('report',      'repeatheaders',    'false',                                                                    True),
     ('report',      'nobackupwarn',     '0',                                                                        True),
     ('report',      'nbwsubject',       'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
+    ('report',      'groupheadingbg',   '#D3D3D3',                                                                  True),
     ('report',      'normaldays',       '5',                                                                         True),
     ('report',      'normalbg',         '#FFFFFF',                                                                   True),
     ('report',      'warningdays',      '20',                                                                        True),
     ('report',      'warningbg',        '#FFFF00',                                                                   True),
     ('report',      'errorbg',          '#FF0000',                                                                   True),
-    ('report',      'truncatelogdata',  '0',                                                                         True),
-    ('report',      'durationzeroes',   'true',                                                                      True),
     ('report',      'weminline',        'false',                                                                     True),
 
     # [srcdest] sample specification
@@ -307,6 +306,7 @@ class OptionManager:
         self.options['nomail'] = self.cmdLineArgs.nomail
         self.options['remove'] = self.cmdLineArgs.remove
         self.options['stopbackupwarn'] = self.cmdLineArgs.stopbackupwarn
+        self.options['validatereport'] = self.cmdLineArgs.validatereport
 
         # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
@@ -365,36 +365,43 @@ class OptionManager:
         # Parse command line options with ArgParser library
         argParser = argparse.ArgumentParser(description='dupReport options.')
 
-        argParser.add_argument("-r","--rcpath", help="Path to dupReport config file.", action="store")
-        argParser.add_argument("-d","--dbpath", help="Path to dupReport database file.", action="store")
-        argParser.add_argument("-l","--logpath", help="Path to dupReport log file. (Default: 'dupReport.log'. Same as [main]logpath= in rc file.", action="store")
-        argParser.add_argument("-v", "--verbose", help="Log file verbosity, 0-3. Same as [main]verbose= in rc file.", \
-            type=int, action="store", choices=[0,1,2,3])
-        argParser.add_argument("-V","--Version", help="dupReport version and program info.", action="store_true")
         argParser.add_argument("-a","--append", help="Append new logs to log file. Same as [main]logappend= in rc file.", action="store_true")
-        argParser.add_argument("-s","--size", help="Convert file sizes to megabytes or gigabytes. Options are 'byte', 'mb' 'gb'. \
-            Same as [report]sizedisplay= in rc file.", action="store", choices=['mb','gb','byte'])
-        argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
         argParser.add_argument("-b","--rollback", help="Roll back datebase to specified date. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-B","--rollbackx", help="Roll back datebase to specified date, then exit program. Format is -b <datetimespec>", action="store")
-        argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
-        argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
-        argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
-        argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
-        argParser.add_argument("-p", "--purgedb", help="Purge emails that are no longer on the server from the database. Same as [main]purgedb=true in rc file.", action="store_true")
-        argParser.add_argument("-w", "--stopbackupwarn", help="Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in rc file.", action="store_true")
-
+#
         opGroup1 = argParser.add_mutually_exclusive_group()
         opGroup1.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
         opGroup1.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
-
+#
+        argParser.add_argument("-d","--dbpath", help="Path to dupReport database file.", action="store")
+        argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
+        argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
+        argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
+#
         opGroup2 = argParser.add_mutually_exclusive_group()
         opGroup2.add_argument("-k", "--masksensitive", help="Mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
         opGroup2.add_argument("-K", "--nomasksensitive", help="Don't mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
+#
+        argParser.add_argument("-l","--logpath", help="Path to dupReport log file. (Default: 'dupReport.log'. Same as [main]logpath= in rc file.", action="store")
+        argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
+        argParser.add_argument("-o", "--validatereport", help="Validate the report options for accuracy then exit the program.", action="store_true")
+        argParser.add_argument("-p", "--purgedb", help="Purge emails that are no longer on the server from the database. Same as [main]purgedb=true in rc file.", action="store_true")
+        argParser.add_argument("-r","--rcpath", help="Path to dupReport config file.", action="store")
+        argParser.add_argument("-s","--size", help="Convert file sizes to megabytes or gigabytes. Options are 'byte', 'mb' 'gb'. \
+            Same as [report]sizedisplay= in rc file.", action="store", choices=['mb','gb','byte'])
+        argParser.add_argument("-v", "--verbose", help="Log file verbosity, 0-3. Same as [main]verbose= in rc file.", \
+            type=int, action="store", choices=[0,1,2,3])
+        argParser.add_argument("-V","--Version", help="dupReport version and program info.", action="store_true")
+        argParser.add_argument("-w", "--stopbackupwarn", help="Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in rc file.", action="store_true")
+        argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
 
         # Parse the arguments based on the argument definitions above.
         # Store results in 'args'
-        self.cmdLineArgs = argParser.parse_args()
+        try:
+            self.cmdLineArgs = argParser.parse_args()
+        except:
+            globs.closeEverythingAndExit(1)
+
 
         globs.log.write(3, 'Command line parsed:')
         globs.log.write(3, '- rcpath = [{}]'.format(globs.maskData(self.cmdLineArgs.rcpath, True)))
@@ -417,6 +424,7 @@ class OptionManager:
         globs.log.write(3, '- report = [{}]'.format(self.cmdLineArgs.report))
         globs.log.write(3, '- masksensitive = [{}]'.format(self.cmdLineArgs.masksensitive))
         globs.log.write(3, '- nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
+        globs.log.write(3, '- validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
     
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
@@ -430,6 +438,8 @@ class OptionManager:
         self.options['rcfilename'] = rc
         
         globs.log.write(3, 'Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], self.maskPath())))
+
+        return None
 
     # Get individual .rc file option
     def getRcOption(self, section, option):

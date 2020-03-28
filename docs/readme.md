@@ -49,17 +49,16 @@ Enjoy!
 
 [Getting Started (Quickly)](QuickStart.md)
 
-Configuring dupReport
+Understanding dupReport
 
 - [Source-Destination Pairs](SrcDestPairs.md)
-- [Identifying Emails of Interest](EmailsofInterest.md)
+- [Identifying Emails of Interest](Config-EmailsofInterest.md)
 
 Running dupReport
 
 - [Installation](Installation.md)
 
-- [Basic Command Line Format](CommandLine.md)
-- [Command Line Options](CommandLineOptions.md)
+- [Command Line Options](CommandLine.md)
 
 [dupReport.rc File Configuration](RcFileConfig.md)
 
@@ -68,17 +67,7 @@ Running dupReport
 - Handling Specific Backup Jobs: The [[\<source-destination>] Sections](RcFileConfig-SourceDestination.md)
 - Push Notifications Using Apprise: The [[apprise] Section](RcFileConfig-Apprise.md)
 
-- Reporting
-  - [The [report] Section](RcFileConfig-ReportSection.md)
-  - [The [headings] Section](HeadingsSection.md)
-  - [[Source-Destination] Sections](SourceDestinationSection.md)
-  - [Report Formats](ReportFormats.md)
+[Reporting](Reporting.md)
 
-
-
-
-
-
-
-
-
+- [The [report] Section](RcFileConfig-ReportSection.md)
+- [Custom Report Formats](Reporting-CustomReportSpec.md)
