@@ -2,7 +2,7 @@
 
 # Source-Destination Pairs
 
-dupReport identifies backup jobs as a series of "Source-Destination" pairs. dupReport uses Source-Destination Pairs to identify the source and destination systems for each backup job. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
+dupReport uses "Source-Destination Pairs" to identify the source and destination systems for each backup job. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
 
 > **Source:** Fred_Home_Desktop   **Destination:** Homers_Minio
 
@@ -40,6 +40,8 @@ Together the full source-destination regex is:
 You can modify the specification of these elements by replacing each with a regular expression defining how dupReport can find that element in a email's subject line. 
 
 ***WARNING!*** *dupReport relies on the Source-Destination pair format for all of its operations. If you do not properly specify your Source-Destination pair formats in both the program (through the dupReport.rc file) and in Duplicati (through proper job naming) none of this will work for you. In particular (and repeating what's already been stated) make sure that you **DO NOT INCLUDE ANY SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications in your Duplicati job names.*
+
+
 
 
 
