@@ -1,0 +1,18 @@
+
+
+## Basic Command Line Structure
+
+Once all the options have been set in the .rc file, use the following commands to run dupReport normally:
+
+```
+Linux systems: user@system:~$ /path/to/dupReport/dupReport.py <options>
+```
+
+```
+Windows Systems: C:\users\me> python.exe \path\to\dupreport\dupReport.py <options>
+```
+
+
+
+
+
