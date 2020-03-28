@@ -119,7 +119,7 @@ Indicates the types of messages that dupReport will send to Apprise. This is bas
 
 **Using Apprise for Email Notification**
 
-Apprise and Email interaction**: If you want to use email notifications through Apprise instead of direct email from dupReport for notifications, use the '-x' option on the command line to suppress sending of dupReport emails.
+If you want to use email notifications through Apprise instead of direct email from dupReport for notifications, use the '-x' option on the command line to suppress sending of dupReport emails.
 
 
 
