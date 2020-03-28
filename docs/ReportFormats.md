@@ -6,7 +6,7 @@ dupReport has several formats for reporting that are specified in the “style�
 
 **The ‘srcdest’ report**, also known as the “classic” report, displays backup jobs in groups of Source-Destination pairs. Here is an example of the ‘srcdest’ report:
 
-![report_srcdest](D:/Users/parents/Documents/Development/dupReport/docs/report_srcdest.jpg)
+![report_srcdest](report_srcdest.jpg)
 
 
 
@@ -14,7 +14,7 @@ dupReport has several formats for reporting that are specified in the “style�
 
 **The 'bydest' report** displays backup jobs grouped by destination. Here is an example of the ‘bydest’ report:
 
-![report_bydest](D:/Users/parents/Documents/Development/dupReport/docs/report_bydest.jpg)
+![report_bydest](report_bydest.jpg)
 
 
 
@@ -22,7 +22,7 @@ dupReport has several formats for reporting that are specified in the “style�
 
 **The ‘bysource’ report** displays backup jobs grouped by source. Here is an example of the ‘bysource’ report:
 
-![report_bysource](D:/Users/parents/Documents/Development/dupReport/docs/report_bysource.jpg)
+![report_bysource](report_bysource.jpg)
 
 
 
@@ -30,7 +30,7 @@ dupReport has several formats for reporting that are specified in the “style�
 
 **The ‘bydate’ report** displays backup jobs grouped by the date the jobs were run. Here is an example of the ‘bydate’ report:
 
-![report_bydate](D:/Users/parents/Documents/Development/dupReport/docs/report_bydate.jpg)
+![report_bydate](report_bydate.jpg)
 
 
 

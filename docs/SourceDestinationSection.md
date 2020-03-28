@@ -52,7 +52,7 @@ backupinterval = 1
 
 This option can be used if a backup set is run at some interval other than once a day. If a backup from a source/destination pair is not seen while scanning the emails but the number of days since the last backup is less than the backupinterval= value, the program will simply print a notification message rather than the standard warning message. For example (from the 'bydest' report):
 
-![interval_example](D:/Users/parents/Documents/Development/dupReport/docs/interval_example.jpg)
+![interval_example](interval_example.jpg)
 
 The first line represents a backup that missed its daily execution. The second line represents a backup that only runs every 5 days. If no backupinterval= value is specified in a [source-destination] section, the default is 0.
 

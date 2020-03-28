@@ -16,3 +16,4 @@ Windows Systems: C:\users\me> python.exe \path\to\dupreport\dupReport.py <option
 
 
 
+Return to [Main Page](readme.md)
