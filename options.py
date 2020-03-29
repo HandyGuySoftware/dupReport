@@ -70,16 +70,14 @@ rcParts= [
 
     # [report] section defaults
     ('report',      'layout',           'srcdest, noactivity, lastseen',                                            True),
-    ('report',      'columns',           ' dupversion:Version, date: Date, time: Time, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, \
-    fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, filesWithError:Errors, parsedResult:Result, \
-    messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
+    ('report',      'columns',           'source:Source, destination:Destination, date:Date, time:Time, duration:Duration, dupversion:Version, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, filesWithError:File Errors, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
     ('report',      'title',            'Duplicati Backup Summary Report',                                          True),
     ('report',      'titlebg',          '#FFFFFF',                                                                  True),
     ('report',      'border',           '1',                                                                        True),
     ('report',      'padding',          '5',                                                                        True),
     ('report',      'sizedisplay',      'byte',                                                                     True),
-    ('report',      'repeatcolumntitles',    'true',                                                                    True),
-    ('report',      'durationzeroes',   'true',                                                                      True),
+    ('report',      'repeatcolumntitles',    'true',                                                                True),
+    ('report',      'durationzeroes',   'true',                                                                     True),
     ('report',      'displaymessages',  'false',                                                                    True),
     ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
     ('report',      'displaywarnings',  'true',                                                                     True),
@@ -90,55 +88,55 @@ rcParts= [
     ('report',      'truncatemessage',  '0',                                                                        True),
     ('report',      'truncatewarning',  '0',                                                                        True),
     ('report',      'truncateerror',    '0',                                                                        True),
-    ('report',      'truncatelogdata',  '0',                                                                         True),
+    ('report',      'truncatelogdata',  '0',                                                                        True),
     ('report',      'joblogdatabg',     '#FF0000',                                                                  True),
     ('report',      'nobackupwarn',     '0',                                                                        True),
     ('report',      'nbwsubject',       'Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days', True),
     ('report',      'groupheadingbg',   '#D3D3D3',                                                                  True),
-    ('report',      'normaldays',       '5',                                                                         True),
-    ('report',      'normalbg',         '#FFFFFF',                                                                   True),
-    ('report',      'warningdays',      '20',                                                                        True),
-    ('report',      'warningbg',        '#FFFF00',                                                                   True),
-    ('report',      'errorbg',          '#FF0000',                                                                   True),
-    ('report',      'weminline',        'false',                                                                     True),
+    ('report',      'normaldays',       '5',                                                                        True),
+    ('report',      'normalbg',         '#FFFFFF',                                                                  True),
+    ('report',      'warningdays',      '20',                                                                       True),
+    ('report',      'warningbg',        '#FFFF00',                                                                  True),
+    ('report',      'errorbg',          '#FF0000',                                                                  True),
+    ('report',      'weminline',        'false',                                                                    True),
 
     # [srcdest] sample specification
-    ('srcdest',     'type',             'report',                                                                    True),
-    ('srcdest',     'title',            'Duplicati Backup Summary Report - By Source / Destination',                 True),
-    ('srcdest',     'groupby',          'source: ascending, destination : ascending',                                True),
-    ('srcdest',     'groupheading',     'Source: #SOURCE# - Destination: #DESTINATION#',                             True),
-    ('srcdest',     'columns',          'source:Source, destination:Destination, dupversion:Version, date:Date, time:Time, examinedfiles:Files, examinedfilesdelta:+/-, sizeofexaminedfiles:Size, filesizedelta:+/-, addedfiles:Added, deletedfiles:Deleted, modifiedfiles:Modified, fileswitherror:Errors, parsedresult:Result, messages:Messages, warnings:Warnings, errors:Errors, duration:Duration, logdata:Log Data',                       True),
-    ('srcdest',     'columnsort',       'source : ascending, destination : ascending',                              True),
+    ('srcdest',     'type',             'report',                                                                   True),
+    ('srcdest',     'title',            'Duplicati Backup Summary Report - By Source/Destination',                  True),
+    ('srcdest',     'groupby',          'source:ascending, destination:ascending',                                  True),
+    ('srcdest',     'groupheading',     'Source: #SOURCE# - Destination: #DESTINATION#',                            True),
+    ('srcdest',     'columns',          'date:Date, time:Time, dupversion:Version, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
+    ('srcdest',     'columnsort',       'date:ascending, time:ascending',                                           True),
 
     # [bysrc] sample specification
-    ('bysrc',     'type',               'report',                                                                    True),
-    ('bysrc',     'title',              'Duplicati Backup Summary Report - By Destination',                          True),
-    ('bysrc',     'groupby',            'source : ascending, destination: ascending',                                True),
-    ('bysrc',     'groupheading',       'Source: #SOURCE#',                                                          True),
-    ('bysrc',     'columns',            'destination: Destination, dupversion : Version, date : Date, time : Time, duration : Duration, examinedFiles : Files, examinedFilesDelta : +/ -, sizeOfExaminedFiles : Size, fileSizeDelta: +/ -, errors : Errors, parsedResult : Result, logdata: Log Data, errors:Errors, columnsort = source : ascending, destination : ascending',                      True),
-    ('bysrc',     'columnsort',         'source : ascending, destination : ascending',                               True),
+    ('bysrc',     'type',               'report',                                                                   True),
+    ('bysrc',     'title',              'Duplicati Backup Summary Report - By Source',                              True),
+    ('bysrc',     'groupby',            'source : ascending',                                                       True),
+    ('bysrc',     'groupheading',       'Source: #SOURCE#',                                                         True),
+    ('bysrc',     'columns',            'destination:Destiation, date:Date, time:Time, dupversion:Version, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
+    ('bysrc',     'columnsort',         'destination:ascending, date:ascending, time:ascending',                    True),
 
     # [bydest] sample specification
-    ('bydest',     'type',             'report',                                                                     True),
-    ('bydest',     'title',            'Duplicati Backup Summary Report - By Source',                                True),
-    ('bydest',     'groupby',          'destination: ascending, source : ascending',                                 True),
-    ('bydest',     'groupheading',     'Source: #SOURCE#',                                                           True),
-    ('bydest',     'columns',          'destination: Destination, dupversion : Version, date : Date, time : Time, duration : Duration, examinedFiles : Files, examinedFilesDelta : +/ -, sizeOfExaminedFiles : Size, fileSizeDelta: +/ -, errors : Errors, parsedResult : Result, logdata: Log Data, errors:Errors, columnsort = source : ascending, destination : ascending',                      True),
-    ('bydest',     'columnsort',       'source : ascending, destination : ascending',                                True),
+    ('bydest',     'type',             'report',                                                                    True),
+    ('bydest',     'title',            'Duplicati Backup Summary Report - By Destination',                          True),
+    ('bydest',     'groupby',          'destination:ascending',                                                     True),
+    ('bydest',     'groupheading',     'Destination: #SOURCE#',                                                     True),
+    ('bydest',     'columns',          'source:Source, date:Date, time:Time, dupversion:Version, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
+    ('bydest',     'columnsort',       'source:ascending, date:ascending, time:ascending',                          True),
 
     # [bydate] sample specification
-    ('bydate',     'type',             'report',                                                                     True),
-    ('bydate',     'title',            'Duplicati Backup Summary Report - By Date',                                  True),
-    ('bydate',     'groupby',          'date : ascending',                                                           True),
-    ('bydate',     'groupheading',     'Source: #SOURCE#',                                                           True),
-    ('bydate',     'columns',          'time : Time, source: Source, destination: Destination, dupversion : Version, duration : Duration, examinedFiles : Files, examinedFilesDelta : +/ -, sizeOfExaminedFiles : Size, fileSizeDelta: +/ -, errors : Errors, parsedResult : Result, logdata: Log Data, errors:Errors, columnsort = source : ascending, destination : ascending',                      True),
-    ('bydate',     'columnsort',       'source : ascending, destination : ascending',                                True),
+    ('bydate',     'type',             'report',                                                                    True),
+    ('bydate',     'title',            'Duplicati Backup Summary Report - By Date',                                 True),
+    ('bydate',     'groupby',          'date:ascending',                                                            True),
+    ('bydate',     'groupheading',     'Date: #DATE#',                                                              True),
+    ('bydate',     'columns',          'time:Time, source:Source, destination:Destination, dupversion:Version, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
+    ('bydate',     'columnsort',       'time:ascending',                                                            True),
 
     # No activity & last seen reports
-    ('noactivity', 'type',              'noactivity',                                                                True),
-    ('noactivity', 'title',             'Non-Activity Report',                                                       True),
-    ('lastseen',   'type',              'lastseen',                                                                  True),
-    ('lastseen',   'title',             'Backup Sets Last Seen',                                                     True)
+    ('noactivity', 'type',              'noactivity',                                                               True),
+    ('noactivity', 'title',             'Non-Activity Report',                                                      True),
+    ('lastseen',   'type',              'lastseen',                                                                 True),
+    ('lastseen',   'title',             'Backup Sets Last Seen',                                                    True)
    ]
 
 # Class to manage all program options
@@ -213,32 +211,32 @@ class OptionManager:
     def setRcDefaults(self):
         globs.log.write(1,'options.setRcDefaults()')
         if not self.parser:
-            globs.log.err('RC file not yet opened. Can not set defaults')
+            globs.log.err('RC file not yet opened. Can not set defaults.\n')
             return False
 
         globs.log.write(1, 'rc.setDefaults({})'.format(globs.maskData(self.rcFileName, self.maskPath())))
 
-        newRc = False
-        needUpdate = False
+        defaultsOK = True       # Is the file configuration OK?
+        needUpdate = False      # Do we need to update/refresh the file
+
         # Loop through all the required parts of the RC file. If not there, add them
         for section, option, default, canCont in rcParts:
-            if self.parser.has_section(section) == False: # Whole section is missing. Probably a new install.
+            if not self.parser.has_section(section): # Whole section is missing.
                 globs.log.write(2, 'Adding RC section: [{}]'.format(section))
                 self.parser.add_section(section)
-                newRc=True
                 needUpdate = True
 
-            if self.parser.has_option(section, option) == False: # Option is missing. Might be able to continue if non-critical.
+            if not self.parser.has_option(section, option): # Option is missing. Might be able to continue if non-critical.
                 globs.log.write(2, 'Adding RC option: [{}] {}={}'.format(section, option, default))
                 self.parser.set(section, option, default)
                 needUpdate = True
                 if canCont == False:
-                    newRc=True
+                    defaultsOK = False
 
-        globs.log.write(3,'newRc={}'.format(newRc))
+        globs.log.write(3,'needUpdate = {} defaultsOK={}'.format(needUpdate, defaultsOK))
         if needUpdate:
             self.updateRc()
-        return newRc
+        return defaultsOK
 
     # Read .rc file options
     # Many command line options have .rc equivalents. 
@@ -267,12 +265,12 @@ class OptionManager:
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
-            globs.log.err('RC file error: Invalid date format: [{}]'.format(self.options['dateformat']))
+            globs.log.err('RC file error: Invalid date format: [{}]\n'.format(self.options['dateformat']))
             restart = True
 
         # Check for valid time format
         if self.options['timeformat'] not in drdatetime.dtFmtDefs:
-            globs.log.err('RC file error: Invalid time format [{}]'.format(self.options['timeformat']))
+            globs.log.err('RC file error: Invalid time format [{}]\n'.format(self.options['timeformat']))
             restart = True
 
         # Set default path for RC file. Command line may override this.
@@ -315,7 +313,7 @@ class OptionManager:
         for rb in ['rollback', 'rollbackx']:
             if self.options[rb] != None: # Roll back and continue
                 if not drdatetime.toTimestamp(self.options[rb], self.options['dateformat'], self.options['timeformat']):
-                    globs.log.err('Invalid rollback date specification: {}.'.format(self.options[rb]))
+                    globs.log.err('Invalid rollback date specification: {}.\n'.format(self.options[rb]))
                     globs.closeEverythingAndExit(1)
 
         # Misc command line arguments
@@ -480,6 +478,14 @@ class OptionManager:
 
         return vals
 
+    def hasSection(self, section):
+        globs.log.write(1, 'options.hasSection({})'.format(section))
+
+        if self.parser.has_section(section):
+            return True
+        return False
+
+
     def clearRcSection(self, section):
         globs.log.write(1, 'options.clearRcSection({})'.format(section))
         self.parser.remove_section(section)
@@ -556,9 +562,9 @@ def initOptions():
         convert.convertRc(oMgr, currRcVersion)
         globs.log.out('RC file has been updated to the latest version.')
     
-    # Check .rc file structure to see if all proper fields are there
-    if oMgr.setRcDefaults() is True:
-        globs.log.out('RC file {} has changed. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
+    # Check .rc file structure to see if all proper fields are there. If False, something needs attention.
+    if oMgr.setRcDefaults() is False:
+        globs.log.out('RC file {} has changed or has an unrecoverable error. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
         return False
 
     # RC file is structurally correct. Now need to parse rc options for global use. 
@@ -589,10 +595,10 @@ def validateOutputFiles():
         for fspec in globs.ofileList:
             fsplit = fspec[0].split(',')   
             if len(fsplit) != 2:
-                globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
+                globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.\n'.format(fsplit))
                 canContinue = False
             elif fsplit[1] not in ('html','txt', 'csv', 'json'):
-                globs.log.err('Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.'.format(fsplit[0], fsplit[1]))
+                globs.log.err('Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.\n'.format(fsplit[0], fsplit[1]))
                 canContinue = False
 
     return canContinue

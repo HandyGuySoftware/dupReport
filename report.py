@@ -279,12 +279,6 @@ def getRunningTime(start):
     return 'Running Time: {:.3f} seconds.'.format(time.time() - start)
 
 def sendReportToFiles(reportOutput, startTime):
-    # Set variables so you only need to generate a report format once
-    #msgHtml = None
-    #msgTxt = None
-    #msgCsv = None
-    #msgJson = None
-
     # See where the output files are going
     for fspec in globs.ofileList:
         fsplit = fspec[0].split(',')
@@ -292,14 +286,6 @@ def sendReportToFiles(reportOutput, startTime):
         fmt = fsplit[1]
 
         msgContent = globs.report.createFormattedOutput(reportOutput, fmt, startTime) 
-#            if fmt == 'html':
-#                msgContent[fmt] = report.createHtmlOutput(globs.report.rStruct, reportOutput, startTime)
-#            elif fmt == 'txt':
-#                msgContent[fmt] = report.createTextOutput(globs.report.rStruct, reportOutput, startTime) 
-#            elif fmt == 'csv':
-#                msgContent[fmt] = report.createCsvOutput(globs.report.rStruct, reportOutput, startTime) 
-#            elif fmt == 'json':
-
         if fName == 'stdout':
             sys.stdout.write(msgContent)
         elif fName == 'stderr':
@@ -546,7 +532,7 @@ class Report:
 
         for i in range(len(colList)):
             if colList[i][0] not in colNames:
-                globs.log.err('ERROR: [{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
+                globs.log.err('ERROR: [{}] section: Column \'{}\' is an undefined field.\n'.format(section, colList[i][0]))
                 globs.log.write(1, 'ERROR: [{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
                 errRate += 1
             if len(colList[i]) != 2:
@@ -573,24 +559,22 @@ class Report:
         
         # First, check the default [report]columns section for validity
         anyProblems = self.validateColumns('report', self.rStruct['defaults']['columns'])
-        # Now check each of the reports for column validity
-        for i in range(len(self.rStruct['sections'])):
-            anyProblems += self.validateColumns('report', self.rStruct['sections'][i]['options']['columns'])
 
+        # Now, validate each report in the [report]layout= option
         sectionList = splitRcIntoList(self.rStruct['defaults']['layout'])
         for i in range(len(sectionList)):
             sect = globs.optionManager.getRcSection(sectionList[i][0])
             if sect == None: #Section does not exist
-                globs.log.err('ERROR: [report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
+                globs.log.err('ERROR: [report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.\n'.format(sectionList[i][0], sectionList[i][0]))
                 globs.log.write(1, 'ERROR: [report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
                 anyProblems += 1
             elif 'type' not in sect:
-                globs.log.err('ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
+                globs.log.err('ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\'\n'.format(sectionList[i][0]))
                 globs.log.write(1,'ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
                 anyProblems += 1
             elif sect['type'] not in ['report', 'noactivity', 'lastseen']:
                 globs.log.write(1,'ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
-                globs.log.err('ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
+                globs.log.err('ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\'\n'.format(sectionList[i][0], sect['type']))
                 anyProblems += 1
             else:
                 if 'columns' in sect:
@@ -603,24 +587,24 @@ class Report:
                         oList = splitRcIntoList(sect[optName])
                         for i in range(len(oList)):
                             if oList[i][0] not in colNames:
-                                globs.log.err('ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[i][0]))
+                                globs.log.err('ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.\n'.format(sectionList[i][0], optName, oList[i][0]))
                                 globs.log.write(1,'ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[i][0]))
                                 anyProblems += 1
                             if oList[i][1] not in ['ascending', 'descending']:
-                                globs.log.err('ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
+                                globs.log.err('ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.\n'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
                                 globs.log.write(1,'ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
                                 anyProblems += 1
                     else:
                         if not self.isValidReportField(optName):
                             globs.log.write(1,'ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
-                            globs.log.err('ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
+                            globs.log.err('ERROR: [{}] section: invalid option: \'{}\'.\n'.format(sectionList[i][0], optName))
                             anyProblems += 1
 
         globs.log.write(1, 'Found {} report validation errors.'.format(anyProblems))
         if globs.opts['validatereport'] == True:
             globs.log.out('Found {} report validation errors. See log file for details'.format(anyProblems))
         if anyProblems > 0:
-            globs.log.err('Found {} report validation errors.'.format(anyProblems))
+            globs.log.err('Found {} report validation errors.\n'.format(anyProblems))
             return False
         else:
             return True
@@ -755,6 +739,7 @@ class Report:
 
         # Determine how the report is grouped
         singleReport['groups'] = []
+
         sqlStmt = buildQuery(report['options'], groupby=True)
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         groupList = dbCursor.fetchall()
