@@ -55,7 +55,7 @@ def sendNoBackupWarnings():
 
             latestTimeStamp = report.getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
-            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['defaults']) is True:
+            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['defaults']['nobackupwarn']) is True:
                 globs.log.write(2,'{}-{} is past backup warning threshold @ {} days. Sending warning email'.format(source, destination, diff))
                 warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.rStruct['defaults'])
                 globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
 
     # see if [apprise] section exists in .rc file. If so, initialize Apprise options
-    if globs.optionManager.parser.has_section("apprise"):
+    if globs.optionManager.parser.has_section('apprise'):
         globs.appriseObj = dupapprise.dupApprise()
 
     # Open SQLITE database
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         globs.report.extractReportData()
 
         # Run selected report
-        reportOutput = globs.report.createReport(globs.report.rStruct)
+        reportOutput = globs.report.createReport(globs.report.rStruct, startTime)
 
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
@@ -215,7 +215,7 @@ if __name__ == "__main__":
         if globs.opts['showprogress'] > 0:
             globs.log.out('Creating report file(s).')
 
-        report.sendReportToFiles(reportOutput, startTime)
+        report.sendReportToFiles(reportOutput)
    
     # Are we forbidden from sending report to email?
     if not globs.opts['nomail'] and not globs.opts['collect']: 
