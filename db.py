@@ -195,7 +195,7 @@ class Database:
 
         # backup sets contains information on all source-destination pairs in the backups
         self.execSqlStmt("create table backupsets (source varchar(20), destination varchar(20), lastFileCount integer, lastFileSize integer, \
-            lastTimestamp real)")
+            lastTimestamp real, dupversion varchar(100))")
 
         self.dbCommit()
 
@@ -225,8 +225,8 @@ class Database:
             return True
 
         if add2Db is True:
-            sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTimestamp) \
-                VALUES ('{}', '{}', 0, 0, 0)".format(src, dest)
+            sqlStmt = "INSERT INTO backupsets (source, destination, lastFileCount, lastFileSize, lastTimestamp, dupversion) \
+                VALUES ('{}', '{}', 0, 0, 0, '')".format(src, dest)
             globs.log.write(3, '{}'.format(sqlStmt))
             self.execSqlStmt(sqlStmt)
             self.dbCommit()
@@ -252,9 +252,9 @@ class Database:
         setRows= dbCursor.fetchall()
         for source, destination in setRows:
             # Select largest timestamp from remaining data for that source/destination
-            sqlStmt = 'select max(endTimeStamp), examinedFiles, sizeOfExaminedFiles from emails where sourceComp = \'{}\' and destComp= \'{}\''.format(source, destination)
+            sqlStmt = 'select max(endTimeStamp), examinedFiles, sizeOfExaminedFiles, dupversion from emails where sourceComp = \'{}\' and destComp= \'{}\''.format(source, destination)
             dbCursor = self.execSqlStmt(sqlStmt)
-            emailTimestamp, examinedFiles, sizeOfExaminedFiles = dbCursor.fetchone()
+            emailTimestamp, examinedFiles, sizeOfExaminedFiles, dupversion = dbCursor.fetchone()
             if emailTimestamp is None:
                 # After the rollback, some srcdest pairs may have no corresponding entries in the the database, meaning they were not seen until after the rollback period
                 # We should remove these from the database, to return it to the state it was in before the rollback.
@@ -264,7 +264,7 @@ class Database:
             else:
                 globs.log.write(2, 'Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp)))
                 # Update backupset table to reflect rolled-back date
-                sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTimestamp={} where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, source, destination)
+                sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTimestamp={}, dupversion=\'{}\' where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, dupversion, source, destination)
                 dbCursor = self.execSqlStmt(sqlStmt)
             
         self.dbCommit()

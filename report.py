@@ -34,7 +34,7 @@ fldDefs = {
     'dupversion':           ('left',        '35',       '35'),
     'date':                 ('left',        '13',       '13'),
     'time':                 ('left',        '11',       '11'),
-    'duration':             ('right',       '15',       '15'),
+    'duration':             ('right',       '>15',      '>15'),
     'examinedFiles':        ('right',       '>12',      '>12,'),
     'examinedFilesDelta':   ('right',       '>12',      '>+12,'),
     'sizeOfExaminedFiles':  ('right',       '>20',      '>20,.2f'),
@@ -45,11 +45,20 @@ fldDefs = {
     'filesWithError':       ('right',       '>12',      '>12,'),
     'parsedResult':         ('left',        '>13',      '>13'),
     'lastseen':             ('left',        '50',       '50'),
-    'messages':             ('center',      '^50',      '^50'),
-    'warnings':             ('center',      '^50',      '^50'),
-    'errors':               ('center',      '^50',      '^50'),
-    'logdata':              ('center',      '^50',      '^50')
+    'messages':             ('left',        '50',       '50'),
+    'warnings':             ('left',        '50',       '50'),
+    'errors':               ('left',        '50',       '50'),
+    'logdata':              ('left',        '50',       '50')
     }
+
+dataRowTypes = {
+        'rptTitle':     0x01,
+        'grpHeading':   0x02,
+        'rowHead':      0x04,
+        'data':         0x08,
+        'wemData':      0x10,
+        'singleLine':   0x20
+        }
 
 # List of all the valid column names that can be used in reports
 colNames = ['source','destination','date','time','examinedFiles','examinedFilesDelta','sizeOfExaminedFiles','fileSizeDelta','addedFiles','deletedFiles','modifiedFiles','filesWithError','parsedResult','messages','warnings','errors','duration','logdata','dupversion']
@@ -61,6 +70,15 @@ keyWordList = {
     'destination':  '#DESTINATION#', 
     'date':         '#DATE#', 
     'time':         '#TIME#'
+    }
+
+markupDefs = {
+    'bold':         0x01,
+    'italic':       0x02,
+    'underline':    0x04,
+    'left':         0x08,
+    'center':       0x10,
+    'right':        0x20
     }
 
 # Build an SQL query statement based on a given report's options ('groupby', 'columns', and 'columsort')
@@ -79,7 +97,7 @@ def buildQuery(options, whereOpts = None, groupby=False):
         sqlStmt += ' ORDER BY ' + buildOrderList(options['groupby']) 
     elif 'columnsort' in options:
         sqlStmt += ' ORDER BY ' + buildOrderList(options['columnsort']) 
-    
+
     return sqlStmt
 
 # Build a list of fields to select based on 'list' 
@@ -105,6 +123,7 @@ def buildWhereClause(grpList, vals):
         # Are there more where clauses to add?
         if i != (len(grpList) - 1):
             whereString += ' AND '
+
     return whereString
 
 # Build the ORDER BY clause of the SQL query.
@@ -146,60 +165,50 @@ def splitRcIntoList(inputString):
 
     return iniList
 
-markupDefs = {
-    'bold':         0x01,
-    'italic':       0x02,
-    'underline':    0x04,
-    'left':         0x08,
-    'center':       0x10,
-    'right':         0x20
-    }
-
 # Create a markup value based on what's specified in markupDefs
 def toMarkup(bold=False, italic=False, underline=False, align='left'):
     markup = 0
-
     if bold:
         markup += markupDefs['bold'] 
     if italic:
         markup += markupDefs['italic'] 
     if underline:
         markup += markupDefs['underline'] 
-    
     markup += markupDefs[align]
     return markup
 
 # Return HTML markup tags based on what's store in a markup variable
+# Returns start_tag, end_tag, alignment
 def fromMarkup(markup):
     fmtStart = ''
     fmtEnd = ''
 
     if bool(markup & markupDefs['bold']):
-        fmtStart += ' <b> '
-        fmtEnd += ' </b> '
+        fmtStart += '<b>'
+        fmtEnd += '</b>'
     if bool(markup & markupDefs['italic']):
-        fmtStart += ' <i> '
-        fmtEnd += ' </i> '
+        fmtStart += '<i>'
+        fmtEnd += '</i>'
     if bool(markup & markupDefs['underline']):
-        fmtStart += ' <u> '
-        fmtEnd += ' </u> '
+        fmtStart += '<u>'
+        fmtEnd += '</u>'
 
-    if markup & markupDefs['center']:
-        align = 'center'
+    if markup & markupDefs['left']:
+        align = 'left'
     elif markup & markupDefs['right']:
         align = 'right'
     else:
-        align = 'left'
+        align = 'center'
 
     return fmtStart, fmtEnd, align
 
 # If errors, messages, etc are put on separate lines (weminline = False), they shouldn't be included in the column layout or count
 # Adjust the column layout  & count (inlineColumns, inlineColumnCount to account for this
-def adjustColumnInfo(count, colNames, wemInLine):
+def adjustColumnCountInfo(count, colNames, wemInLine):
     newColCount = count
     newColNames = colNames.copy()
     
-    if wemInLine is False:
+    if wemInLine == False:
         for i in reversed(range(len(colNames))):
             if newColNames[i][0] in ['messages', 'warnings', 'errors', 'logdata']:
                 newColNames.pop(i)
@@ -207,125 +216,52 @@ def adjustColumnInfo(count, colNames, wemInLine):
     
     return newColCount, newColNames
 
-# Provide a field format specification for the titles in the report
-def printTitle(fldTuple, options, typ):
-    outStr = None
-    globs.log.write(3, 'report.printTitle({}, {})'.format(fldTuple[1], typ))
-
-    # Need to see if we should add the size display after the heading  (e.g. '(MB)' or '(GB)')
-    # This is kind of a cheat, but there is no other more elegant way of doing it
-    displayAddOn = '' # Start with nothing
-    if ((fldTuple[0] == 'sizeOfExaminedFiles') or (fldTuple[0] == 'fileSizeDelta')):  # These are the only fields that can use the add-on
-        #if options['showsizedisplay'] is True:  # Do we want to show it, based on .rec config?
-        if options['sizedisplay'][:2].lower() == 'mb':    # Need to add (MB)
-            displayAddOn = ' (Mb)'
-        elif options['sizedisplay'][:2].lower() == 'gb': # giga - need to add (GB)
-            displayAddOn = ' (Gb)'
-        else: # 'None' or Unknown, revert to default
-            pass
-
-    if typ == 'html':
-        fmtStart, fmtEnd, align = fromMarkup(fldTuple[3])
-        outStr = '<td align=\"{}\" bgcolor=\"{}\">{}{}{}{}</td>'.format(align, fldTuple[2], fmtStart, fldTuple[1], displayAddOn, fmtEnd)
-    elif typ == 'txt':
-        outStr = '{:{fmt}} '.format(fldTuple[1] + displayAddOn, fmt=fldDefs[fldTuple[0]][1])
-    elif typ == 'csv':
-        outStr = '\"{:{fmt}}\",'.format(fldTuple[1] + displayAddOn, fmt=fldDefs[fldTuple[0]][1])
-
-    globs.log.write(3, 'outStr = {}'.format(outStr))
-    return outStr
-
-# Provide a field format specification for the data fields (cells) in the report
-def printField(fldTuple, fldName, sizeDisplay, typ, title=None, columnCount=0, summary=False):
-    outStr = None
-
-    val = fldTuple[0]
-
-    # Process fields based on their type.
-    if not isinstance(val,str): # i.e., ints & floats
-        # Need to adjust value based on MB/GB specification
-        # 'display' option (from reportOutput['sections'][rptIndex]['options']['sizedisplay']) indicates if we want to convert sizes to MB/GB
-        if fldName in ['sizeOfExaminedFiles', 'fileSizeDelta']:
-            if sizeDisplay[:2].lower() == 'mb':
-                val = val / 1000000.00
-            elif sizeDisplay[:2].lower() == 'gb':
-                val = val / 1000000000.00
-        
-    # Create HTML, text, and csv versions of the format string
-    if typ == 'html':
-        fmtStart, fmtEnd, align = fromMarkup(fldTuple[2])
-        if title is None:  # Standard data field
-            outStr = '<td align=\"{}\" bgcolor=\"{}\">{}{:{fmt}}{}</td>'.format(align, fldTuple[1], fmtStart, val, fmtEnd, fmt=fldDefs[fldName][2])
-        else: # Err/warn/message field
-            if summary is True:
-                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\"><details><summary>{}</summary><p>{}{}{}</details></td>'.format(columnCount, align, fldTuple[1], title, fmtStart, val, fmtEnd)
-            else:
-                outStr = '<td colspan={} align=\"{}\" bgcolor=\"{}\">{}{}{}</td>'.format(columnCount, align, fldTuple[1], fmtStart, val, fmtEnd)
-    elif typ == 'txt':
-        if title is None:  # Standard data field
-            outStr = '{:{fmt}} '.format(val, fmt=fldDefs[fldName][2])
-        else: # Err/warn/message field
-            outStr = '{} '.format(val)
-    elif typ == 'csv':
-        if title is None:  # Standard data field
-            outStr = '\"{:{fmt}}\",'.format(val, fmt=fldDefs[fldName][2])
-        else: # Err/warn/message field
-            outStr = '\"{}\",'.format(val)
-
-    return outStr
-
-# Get running time of program
-def getRunningTime(start):
-    return 'Running Time: {:.3f} seconds.'.format(time.time() - start)
-
-def sendReportToFiles(reportOutput, startTime):
-    # See where the output files are going
+def sendReportToFiles(reportOutput):
+    
+    # Loop through filespec list provided on command line
+    # Split into file names and formats
     for fspec in globs.ofileList:
         fsplit = fspec[0].split(',')
-        fName = fsplit[0]
-        fmt = fsplit[1]
+        fileName = fsplit[0]
+        format = fsplit[1]
 
-        msgContent = globs.report.createFormattedOutput(reportOutput, fmt, startTime) 
-        if fName == 'stdout':
+        msgContent = globs.report.createFormattedOutput(reportOutput, format) 
+        if fileName == 'stdout':
             sys.stdout.write(msgContent)
-        elif fName == 'stderr':
+        elif fileName == 'stderr':
             sys.stderr.write(msgContent)
         else:
             try:
-                outfile = open(fName,'w')
+                outfile = open(fileName,'w')
             except (OSError, IOError):
-                sys.stderr.write('Error opening output file: {}\n'.format(fName))
+                sys.stderr.write('Error opening output file: {}\n'.format(fileName))
                 return
-            if fmt in ['html', 'txt', 'csv']:
+            if format in ['html', 'txt', 'csv']:
                 outfile.write(msgContent)
             else:
                 json.dump(msgContent, outfile)
             outfile.close()
     return None
 
-def pastBackupWarningThreshold(src, dest, nDays, opts):
+# Look for nobackup warning threshold
+# Default to value in [eport] section
+# Override if found in pair-specific section
+def pastBackupWarningThreshold(src, dest, nDays, nbWarnDefault):
     globs.log.write(1,'report.pastBackupWarningThreshold({}, {}, {})'.format(src, dest, nDays))
 
-    srcDest = '{}{}{}'.format(src, globs.opts['srcdestdelimiter'], dest)
+    srcDest = src + globs.opts['srcdestdelimiter'] + dest
 
-    # Look for nobackup warning threshold
-    # First look in pair-specific section
-    # Then look in main section
     nbwVal = globs.optionManager.getRcOption(srcDest, 'nobackupwarn')
     if nbwVal is not None:
         nbwVal = int(nbwVal)    # getRcOption returns a string, we need an int
-    else:   # No pair-specific option. Use the global option from [main]
-        nbwVal = opts['nobackupwarn']
+    else:
+        nbwVal = nbWarnDefault
 
     globs.log.write(3,'Nobackup warning threshold is {} days.'.format(nbwVal))
 
-    if nbwVal == 0:     # 0 = do not warn on missing backups
-        retVal = False
-    else:
-        if nDays >= nbwVal:     # Past threshold - need to warn
-            retVal = True
-        else:
-            retVal = False
+    retVal = False
+    if (nbwVal != 0) and (nDays >= nbwVal):     # Past threshold - need to warn
+        retVal = True
 
     globs.log.write(3,'pastBackupWarningThreshold returning {}'.format(retVal))
     return retVal
@@ -333,7 +269,7 @@ def pastBackupWarningThreshold(src, dest, nDays, opts):
 def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     globs.log.write(1,'buildWarningMessage({}, {}, {}, {})'.format(source, destination, nDays, lastTimestamp))
     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-    srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+    srcDest = source + globs.opts['srcdestdelimiter'] + destination
 
     subj = globs.optionManager.getRcOption(srcDest, 'nbwsubject')
     if subj is None:
@@ -364,7 +300,6 @@ def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
 
     globs.log.write(3, 'Sending message to {}'.format(receiver))
     return warnHtml, warnText, subj, sender, receiver
-
 
 def getLatestTimestamp(src, dest):
     globs.log.write(1, 'getLatestTimestamp({}, {})'.format(src, dest))
@@ -418,8 +353,6 @@ def truncateWarnErrMsgs(field, msg, options):
     
     return msgRet
 
-def readDefaultOptions(section):
-    return globs.optionManager.getRcSection(section)
 
 # Class for report management
 class Report:
@@ -440,13 +373,18 @@ class Report:
             self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
-        #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
-        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
+        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'includeruntime'):
             self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
             
         # Get reports that need to run as defined in [report]layout option
+        if globs.opts['layout'] != None:
+            self.rStruct['defaults']['layout'] = globs.opts['layout']
         layoutSections = splitRcIntoList(self.rStruct['defaults']['layout'])
         self.rStruct['sections'] = []
+
+        validReportSpec = self.validateReportFields()
+        if not validReportSpec:
+            globs.closeEverythingAndExit(1)
 
         # Now, loop through each report and get the specific configurations
         for section in layoutSections:
@@ -462,7 +400,7 @@ class Report:
                 self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
 
                 # Get report-specific options
-                optionTmp = readDefaultOptions(section[0])
+                optionTmp = globs.optionManager.getRcSection(section[0])
                 for optTmp in optionTmp:
                     self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
@@ -472,8 +410,7 @@ class Report:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
                 # Fix some of the data field types - boolean
-                #for item in ('showsizedisplay', 'displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
-                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'durationzeroes', 'weminline'):
+                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline'):
                     if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
                        self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
         
@@ -491,7 +428,7 @@ class Report:
                 self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
 
                 # Get report-specific options
-                optionTmp = readDefaultOptions(section[0])
+                optionTmp = globs.optionManager.getRcSection(section[0])
                 for optTmp in optionTmp:
                     self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
@@ -505,7 +442,7 @@ class Report:
                 self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
 
                 # Get report-specific options
-                optionTmp = readDefaultOptions(section[0])
+                optionTmp = globs.optionManager.getRcSection(section[0])
                 for optTmp in optionTmp:
                     self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
@@ -514,8 +451,15 @@ class Report:
                     if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
-        # Basic field value checking
-        self.validConfig = self.validateReportFields()
+        # Add a section for runtime, if necessary
+        if self.rStruct['defaults']['includeruntime'] == True:
+            rIndex = len(self.rStruct['sections'])   # This will be the index number of the next element we add
+            self.rStruct['sections'].append({})
+ 
+            # Get section name & type & default options
+            self.rStruct['sections'][rIndex]['name'] = 'runtime'
+            self.rStruct['sections'][rIndex]['type'] = 'runtime'
+            self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
 
         return None
 
@@ -564,40 +508,47 @@ class Report:
         sectionList = splitRcIntoList(self.rStruct['defaults']['layout'])
         for i in range(len(sectionList)):
             sect = globs.optionManager.getRcSection(sectionList[i][0])
-            if sect == None: #Section does not exist
-                globs.log.err('ERROR: [report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.\n'.format(sectionList[i][0], sectionList[i][0]))
-                globs.log.write(1, 'ERROR: [report] section specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
+            #Section does not exist
+            if sect == None: 
+                globs.log.err('ERROR: [report] section or command line specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
+                globs.log.write(1, 'ERROR: [report] section or command line specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
                 anyProblems += 1
+            # Section doesn't have a 'type' field
             elif 'type' not in sect:
-                globs.log.err('ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\'\n'.format(sectionList[i][0]))
+                globs.log.err('ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
                 globs.log.write(1,'ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
                 anyProblems += 1
+            # Section has an invalid type field
             elif sect['type'] not in ['report', 'noactivity', 'lastseen']:
                 globs.log.write(1,'ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
-                globs.log.err('ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\'\n'.format(sectionList[i][0], sect['type']))
+                globs.log.err('ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
                 anyProblems += 1
+            # OK so far, check the section for correctness
             else:
                 if 'columns' in sect:
                     anyProblems += self.validateColumns(sectionList[i][0], sect['columns'])
 
                 for optName in sect:    # Check that each option is valid
+                    # type and groupheading fields are OK
                     if optName in ['type', 'groupheading']:
                         continue
+                    # Check syntax of groupby and column fields
                     if optName in ['groupby', 'columnsort']:    # See if these two fields are specified correctly
                         oList = splitRcIntoList(sect[optName])
-                        for i in range(len(oList)):
-                            if oList[i][0] not in colNames:
-                                globs.log.err('ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.\n'.format(sectionList[i][0], optName, oList[i][0]))
-                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[i][0]))
+                        for j in range(len(oList)):
+                            if oList[j][0] not in colNames:
+                                globs.log.err('ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[j][0]))
+                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[j][0]))
                                 anyProblems += 1
-                            if oList[i][1] not in ['ascending', 'descending']:
-                                globs.log.err('ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.\n'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
-                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[i][0], oList[i][1]))
+                            if oList[j][1] not in ['ascending', 'descending']:
+                                globs.log.err('ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[j][0], oList[j][1]))
+                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[j][0], oList[j][1]))
                                 anyProblems += 1
+                    # Something else (weird) is happening
                     else:
                         if not self.isValidReportField(optName):
                             globs.log.write(1,'ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
-                            globs.log.err('ERROR: [{}] section: invalid option: \'{}\'.\n'.format(sectionList[i][0], optName))
+                            globs.log.err('ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
                             anyProblems += 1
 
         globs.log.write(1, 'Found {} report validation errors.'.format(anyProblems))
@@ -620,15 +571,15 @@ class Report:
 
 
         # Select source/destination pairs from database
-        sqlStmt = "SELECT source, destination, lastTimestamp, lastFileCount, lastFileSize FROM backupsets ORDER BY source, destination"
+        sqlStmt = "SELECT source, destination, lastTimestamp, lastFileCount, lastFileSize, dupversion FROM backupsets ORDER BY source, destination"
 
         # Loop through backupsets table and then get latest activity for each src/dest pair
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         bkSetRows = dbCursor.fetchall()
         globs.log.write(2, 'bkSetRows=[{}]'.format(bkSetRows))
-        for source, destination, lastTimestamp, lastFileCount, lastFileSize in bkSetRows:
-            globs.log.write(3, 'Src=[{}] Dest=[{}] lastTimestamp=[{}] lastFileCount=[{}] lastFileSize=[{}]'.format(source, 
-                destination, lastTimestamp, lastFileCount, lastFileSize))
+        for source, destination, lastTimestamp, lastFileCount, lastFileSize, lastdupversion in bkSetRows:
+            globs.log.write(3, 'Src=[{}] Dest=[{}] lastTimestamp=[{}] lastFileCount=[{}] lastFileSize=[{}]  dupversion=[{}]'.format(source, 
+                destination, lastTimestamp, lastFileCount, lastFileSize, lastdupversion))
 
             # Select all activity for src/dest pair since last report run
             sqlStmt = 'SELECT dupVersion, endTimestamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
@@ -666,8 +617,8 @@ class Report:
 
                     # Update latest activity into into backupsets
                     sqlStmt = 'UPDATE backupsets SET lastFileCount={}, lastFileSize={}, \
-                        lasttimestamp=\'{}\' WHERE source=\'{}\' AND destination=\'{}\''.format(examinedFiles, sizeOfExaminedFiles, \
-                        endTimeStamp, source, destination)
+                        lasttimestamp=\'{}\', dupversion=\'{}\' WHERE source=\'{}\' AND destination=\'{}\''.format(examinedFiles, sizeOfExaminedFiles, \
+                        endTimeStamp, dupversion, source, destination)
                     globs.db.execSqlStmt(sqlStmt)
                     globs.db.dbCommit()
 
@@ -677,48 +628,82 @@ class Report:
 
         return None
 
-    def createReport(self, reportStructure):
+    def createReport(self, reportStructure, startTime):
 
         reportOutput = {}
         reportOutput['sections'] = []
 
         # Loop through report configurations
-        for report in reportStructure['sections']:
-            if report['type'] == 'report':
-                reportOutput['sections'].append(self.buildReportOutput(report))
-            elif report['type'] == 'noactivity':
-                reportOutput['sections'].append(self.buildNoActivityOutput(report))
-            elif report['type'] == 'lastseen':
-                reportOutput['sections'].append(self.buildLastSeenOutput(report))
-    
+        for reportSection in reportStructure['sections']:
+            if reportSection['type'] == 'report':
+                if 'groupby' in reportSection['options']:
+                    reportOutput['sections'].append(self.buildReportOutputYesGroups(reportSection))
+                else:
+                    reportOutput['sections'].append(self.buildReportOutputNoGroups(reportSection))
+            elif reportSection['type'] == 'noactivity':
+                reportOutput['sections'].append(self.buildNoActivityOutput(reportSection))
+            elif reportSection['type'] == 'lastseen':
+                reportOutput['sections'].append(self.buildLastSeenOutput(reportSection))
+            elif reportSection['type'] == 'lastseen':
+                reportOutput['sections'].append(self.buildLastSeenOutput(reportSection))
+            elif reportSection['type'] == 'runtime':
+                reportOutput['sections'].append(self.buildRuntimeOutput(reportSection, startTime))
+        
         return reportOutput
 
     # Manage the formattedReport dictionary in the class
     # Basically, if a report in a given format has already been generated, just return it. 
     # Otherwise, generate it, store it, and return it.
-    def createFormattedOutput(self, reportOutput, type, startTime):
+    def createFormattedOutput(self, reportOutput, type):
         # Has report already been created?
         if self.formattedReports[type] == None:
             # No. generate the report
             if type == 'html':
-                self.formattedReports[type] = self.createHtmlFormat(globs.report.rStruct, reportOutput, startTime)
+                self.formattedReports[type] = self.createHtmlFormat(globs.report.rStruct, reportOutput)
             elif type == 'txt':
-                self.formattedReports[type] = self.createTextFormat(globs.report.rStruct, reportOutput, startTime) 
+                self.formattedReports[type] = self.createTextFormat(globs.report.rStruct, reportOutput) 
             elif type == 'csv':
-                self.formattedReports[type] = self.createCsvFormat(globs.report.rStruct, reportOutput, startTime) 
+                self.formattedReports[type] = self.createCsvFormat(globs.report.rStruct, reportOutput) 
             elif type == 'json':
-                self.formattedReports[type] = self.createJsonFormat(globs.report.rStruct, reportOutput, startTime) 
+                self.formattedReports[type] = self.createJsonFormat(globs.report.rStruct, reportOutput) 
 
         # Return what you got
         return self.formattedReports[type]
-        pass
 
+    # Perform some Python-Fu to update a tuple
+    def updateTuple(self, tup, pos, newVal):
+        listFromTup = list(tup)
+        listFromTup[pos] = newVal
+        newTup = tuple(listFromTup)
+        return newTup 
+    
+    # Build "Program Running Time" report
+    def buildRuntimeOutput(self, reportStructure, startTime):
+
+        runTime = time.time() - startTime
+
+        singleReport = {}
+        singleReport['name'] = 'runtime'
+        singleReport['inlineColumnCount'] = 1
+        singleReport['inlineColumnNames'] = []
+        singleReport['inlineColumnNames'].append(['runtime', 'Runing Time', '#FFFFFF', toMarkup()]) # Column names are white and bold
+        singleReport['title'] = 'Running Time'
+
+        # Insert runningtime
+        singleReport['dataRows'] = []
+        singleReport['dataRows'].append([])
+        singleReport['dataRows'][0].append([dataRowTypes['singleLine'], 1])
+        singleReport['dataRows'][0].append(['Running Time: {:.3f} seconds.'.format(runTime), '#FFFFFF', toMarkup()])
+
+        return singleReport
+
+    # Crate a report that doesn't have any groups (groupby = None)
     # Take data from report table and build the resulting report structure.
     # Output structure will be used to generate the final report
     # 'reportStructure' is the report options as extracted from the .rc file
     # See docs/DataStructures/ConfigFormat for schema of reportStructure
     # See docs/DataStructures/ReportFormat for schema of reportOutput
-    def buildReportOutput(self, report):
+    def buildReportOutputNoGroups(self, reportStructure):
 
         # singleReport is the output for just this specific report. 
         # It will be appended to reportOutput once it is filled in.
@@ -726,32 +711,245 @@ class Report:
         singleReport = {}
 
         # Copy basic report information from the report definition
-        singleReport['name'] = report['name']
-        singleReport['columnCount'] = len(report['options']['columns'])
+        singleReport['name'] = reportStructure['name']
+        singleReport['columnCount'] = len(reportStructure['options']['columns'])
         singleReport['columnNames'] = []
-        for i in range(len(report['options']['columns'])):
-            markup = toMarkup(bold=True, align=fldDefs[report['options']['columns'][i][0]][0])
-            singleReport['columnNames'].append([report['options']['columns'][i][0], report['options']['columns'][i][1], '#FFFFFF', markup]) # Column names are white and bold
-        singleReport['title'] = report['options']['title']
+        
+        # Each column gets a ['name', 'title', 'bgcolor', markup] list assigned to it
+        for i in range(len(reportStructure['options']['columns'])):
+            markup = toMarkup(bold=True, align=fldDefs[reportStructure['options']['columns'][i][0]][0])
+            singleReport['columnNames'].append([reportStructure['options']['columns'][i][0], reportStructure['options']['columns'][i][1], '#FFFFFF', markup]) # Column names are white and bold
+        
+        # Assign the report title
+        singleReport['title'] = reportStructure['options']['title']
 
         # If we're not showing errors, messages, etc inline, get an adjusted list of the inline column names and count
-        singleReport['inlineColumnCount'], singleReport['inlineColumnNames'] = adjustColumnInfo(singleReport['columnCount'], singleReport['columnNames'], report['options']['weminline'])
+        # Use InlineColumnCount and inlineColumnnames throughout the rest of the routine to keep columns in sync
+        # adjustColumnCountInfo() handles that for us
+        singleReport['inlineColumnCount'], singleReport['inlineColumnNames'] = adjustColumnCountInfo(singleReport['columnCount'], singleReport['columnNames'], reportStructure['options']['weminline'])
 
-        # Determine how the report is grouped
-        singleReport['groups'] = []
+        # dataRowIndex keeps track of what row we're currently adding to dataRows.
+        # dataRows.append(), then increment index, then append data fields to dataRows[dataRowIndex]
+        dataRowIndex = -1
+        
+        # 'dataRows' holds the resulting output data for the table
+        singleReport['dataRows'] = []
 
-        sqlStmt = buildQuery(report['options'], groupby=True)
+        # Add the title row to the report
+        singleReport['dataRows'].append([])
+        dataRowIndex += 1
+        # Title rows get a ['rptTitleType',columnCount], ['title', bgcolor, markup] list assignment. 
+        # columCount = inlineColumnCount, because the single title row spans all columns in the report
+        singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rptTitle'], singleReport['inlineColumnCount']])
+        singleReport['dataRows'][dataRowIndex].append([singleReport['title'], reportStructure['options']['titlebg'], toMarkup(bold=True, align="center")])
+
+        # Add column headings
+        # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
+        # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
+        if reportStructure['options']['suppresscolumntitles'] == False:
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rowHead'], 1])
+            for i in range(singleReport['inlineColumnCount']):
+                # Get the formatting for the title.
+                # The text of the heading comes from the inlineColumNames list
+                # The formatting coms from the fldDefs{} dictionary
+                markup = toMarkup(bold=True, align = fldDefs[singleReport['inlineColumnNames'][i][0]][0])
+                newStr = '{:{fmt}}'.format(singleReport['inlineColumnNames'][i][1], fmt=fldDefs[singleReport['inlineColumnNames'][i][0]][1])
+                singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
+
+        # Build & execute the SQL statement to extract the rows from the report table
+        sqlStmt = buildQuery(reportStructure['options'], groupby=False)
+        dbCursor = globs.db.execSqlStmt(sqlStmt)
+        rowList = dbCursor.fetchall()
+
+        # Loop through all resulting Rows
+        for singleRow in range(len(rowList)):
+            
+            # msgList holds the list of warn/err/log messages that aren't being displayed inline. Gets reset for each new data row extracted from the DB
+            msgList = {}
+
+            # Add another data row for this output
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+
+            # Data rows get a ['dataType', 1] list assignment to start
+            # Then a series of [actualData, bgcolor, markup] lists, one for each column
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], 1])
+
+            # Print column values to dataRows
+            # Here's where things get complicated. Buckle up, it's a bumpy ride
+            
+            # Loop through each column in the row
+            for i in range(len(reportStructure['options']['columns'])):
+                
+                # Figure out the appropriate background. backgrounds. We'll need this in a couple of places
+                # Default color is white (#FFFFFF)
+                bground = '#FFFFFF'
+                if (reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (rowList[singleRow][i] != ''):
+                    msgType = reportStructure['options']['columns'][i][0]
+                    if msgType == 'messages':
+                        bground = reportStructure['options']['jobmessagebg']
+                    elif msgType == 'warnings':
+                        bground = reportStructure['options']['jobwarningbg']
+                    elif msgType == 'errors':
+                        bground = reportStructure['options']['joberrorbg']
+                    elif msgType == 'logdata':
+                        bground = reportStructure['options']['joblogdatabg']
+                
+                # See if we need to substitute date, time, or duration fields
+                # All are stored as timestamp data, so they need to be converted to actual dates & times
+                if reportStructure['options']['columns'][i][0] == 'date':
+                    markup = toMarkup(align=fldDefs['date'][0])
+                    dateStr, timeStr = drdatetime.fromTimestamp(rowList[singleRow][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                    newStr = '{:{fmt}}'.format(dateStr, fmt=fldDefs['date'][2])
+                    singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                elif reportStructure['options']['columns'][i][0] == 'time':
+                    markup = toMarkup(align=fldDefs['time'][0])
+                    dateStr, timeStr = drdatetime.fromTimestamp(rowList[singleRow][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                    newStr = '{:{fmt}}'.format(timeStr, fmt=fldDefs['time'][2])
+                    singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                elif reportStructure['options']['columns'][i][0] == 'duration':
+                    markup = toMarkup(align=fldDefs['duration'][0])
+                    tDiff = drdatetime.timeDiff(rowList[singleRow][i], reportStructure['options']['durationzeroes'])
+                    newStr = '{:{fmt}}'.format(tDiff, fmt=fldDefs['duration'][2])
+                    singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                elif ((reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (reportStructure['options']['weminline'] is False)):
+                    # For these rows, each will go on a separate line, so put them in their own list for now.
+                    # If weminline == True, we would treat them line any other row
+                    if rowList[singleRow][i] != '': # Not empty. Let's see what kind of message it is. Then see if we want to display those (as per the .rc file options) and what the backgound color is
+                        msgType = reportStructure['options']['columns'][i][0]
+                        if msgType == 'messages':
+                            if reportStructure['options']['displaymessages'] == False:
+                                continue
+                        elif msgType == 'warnings':
+                            if reportStructure['options']['displaywarnings'] == False:
+                                continue
+                        elif msgType == 'errors':
+                            if reportStructure['options']['displayerrors'] == False:
+                                continue
+                        elif msgType == 'logdata':
+                            if reportStructure['options']['displaylogdata'] == False:
+                                continue
+                        
+                        # Are we truncating error messages?    
+                        truncatedMsg = truncateWarnErrMsgs(msgType, rowList[singleRow][i], reportStructure['options'])
+                        markup = toMarkup(align=fldDefs[msgType][0])
+                        # Error message lines get a [message, bground, markup, ColTitle] list assigned to it.
+                        # Do all that stuff and add it to msgList for now.
+                        msgList[reportStructure['options']['columns'][i][0]] = [truncatedMsg, bground, markup, reportStructure['options']['columns'][i][1]]
+                # See if the field is one of the numeric fields. Need to ass commas, right justify, & possibly reduce scale (mb/gb)
+                elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:
+                    if reportStructure['options']['columns'][i][0] in ['sizeOfExaminedFiles', 'fileSizeDelta'] and reportStructure['options']['sizedisplay'] != 'none': # Translate to 'mb' or 'gb'
+                        val = rowList[singleRow][i]
+                        if reportStructure['options']['sizedisplay'][:2].lower() == 'mb':
+                            val = val / 1000000.00
+                        else:
+                            val = val / 1000000000.00
+                        rowList[singleRow] = self.updateTuple(rowList[singleRow], i, val)  # Can't directly update a tuple, so need to perform some Python-Fu
+                    markup = toMarkup(align='right')
+                    newStr = '{:{fmt}}'.format(rowList[singleRow][i], fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
+                    singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                else:  # After all that checking, this is just a plain-old data field :-(
+                    # See if we need to truncate WEM messages
+                    msg = rowList[singleRow][i]
+                    msgType = reportStructure['options']['columns'][i][0]
+                    if reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']:
+                        msg = truncatedMsg = truncateWarnErrMsgs(msgType, msg, reportStructure['options'])
+                    markup = toMarkup(align='left')
+                    newStr = '{:{fmt}}'.format(msg, fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
+                    singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+
+            # If there are warnings, errors, messages to output and we don't want them inline, print separate lines after the main columns
+            # WEM lines get [wemData, columnCount], [message] lists assigned to them
+            if len(msgList) != 0 and reportStructure['options']['weminline'] is False:       
+                for msg in msgList:
+                    singleReport['dataRows'].append([])
+                    dataRowIndex += 1
+                    singleReport['dataRows'][dataRowIndex].append([dataRowTypes['wemData'], singleReport['inlineColumnCount']])
+                    singleReport['dataRows'][dataRowIndex].append(msgList[msg])
+
+        if len(rowList) == 0:    # No activity
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], singleReport['inlineColumnCount']])
+            singleReport['dataRows'][dataRowIndex].append(['No Activity', '#FFFFFF', toMarkup(italic=True)])
+
+        return singleReport
+
+    # Crate a report that doesn't have any groups (groupby = None)
+    # Take data from report table and build the resulting report structure.
+    # Output structure will be used to generate the final report
+    # 'reportStructure' is the report options as extracted from the .rc file
+    # See docs/DataStructures/ConfigFormat for schema of reportStructure
+    # See docs/DataStructures/ReportFormat for schema of reportOutput
+    def buildReportOutputYesGroups(self, reportStructure):
+
+        # singleReport is the output for just this specific report. 
+        # It will be appended to reportOutput once it is filled in.
+        # This is how we produce multiple reports from the same run.
+        singleReport = {}
+
+        # Copy basic report information from the report definition
+        singleReport['name'] = reportStructure['name']
+        singleReport['columnCount'] = len(reportStructure['options']['columns'])
+        singleReport['columnNames'] = []
+        
+        # Each column gets a ['name', 'title', 'bgcolor', markup] list assigned to it
+        for i in range(len(reportStructure['options']['columns'])):
+            markup = toMarkup(bold=True, align=fldDefs[reportStructure['options']['columns'][i][0]][0])
+            singleReport['columnNames'].append([reportStructure['options']['columns'][i][0], reportStructure['options']['columns'][i][1], '#FFFFFF', markup]) # Column names are white and bold
+        
+        # Assign the report title
+        singleReport['title'] = reportStructure['options']['title']
+
+        # If we're not showing errors, messages, etc inline, get an adjusted list of the inline column names and count
+        # Use InlineColumnCount and inlineColumnnames throughout the rest of the routine to keep columns in sync
+        # adjustColumnCountInfo() handles that for us
+        singleReport['inlineColumnCount'], singleReport['inlineColumnNames'] = adjustColumnCountInfo(singleReport['columnCount'], singleReport['columnNames'], reportStructure['options']['weminline'])
+
+                # dataRowIndex keeps track of what row we're currently adding to dataRows.
+        # dataRows.append(), then increment index, then append data fields to dataRows[dataRowIndex]
+        dataRowIndex = -1
+        
+        # 'dataRows' holds the resulting output data for the table
+        singleReport['dataRows'] = []
+
+        # Add the title row to the report
+        singleReport['dataRows'].append([])
+        dataRowIndex += 1
+        # Title rows get a ['rptTitleType',columnCount], ['title', bgcolor, markup] list assignment. 
+        # columCount = inlineColumnCount, because the single title row spans all columns in the report
+        singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rptTitle'], singleReport['inlineColumnCount']])
+        singleReport['dataRows'][dataRowIndex].append([singleReport['title'], reportStructure['options']['titlebg'], toMarkup(bold=True, align="center")])
+
+        # If we're not repeating column titles, print titles once at the top of the report
+        if reportStructure['options']['repeatcolumntitles'] == False and reportStructure['options']['suppresscolumntitles'] == False:
+            # Add column headings
+            # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
+            # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rowHead'], 1])
+            for i in range(singleReport['inlineColumnCount']):
+                # Get the formatting for the title.
+                # The text of the heading comes from the inlineColumNames list
+                # The formatting coms from the fldDefs{} dictionary
+                markup = toMarkup(bold=True, align = fldDefs[singleReport['inlineColumnNames'][i][0]][0])
+                newStr = '{:{fmt}}'.format(singleReport['inlineColumnNames'][i][1], fmt=fldDefs[singleReport['inlineColumnNames'][i][0]][1])
+                singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
+
+        
+        sqlStmt = buildQuery(reportStructure['options'], groupby=True)
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         groupList = dbCursor.fetchall()
 
         # Loop through the defined sections and create a new section for each group
         for groupName in groupList:
-            groupIndex = len(singleReport['groups'])  # This will be the index number of the next element we add
-            singleReport['groups'].append({})
 
             # Build the subheading (title) for the group
-            if 'groupheading' in report['options']:                 # Group heading already defined
-                grpHeading = report['options']['groupheading']
+            if 'groupheading' in reportStructure['options']:                 # Group heading already defined
+                grpHeading = reportStructure['options']['groupheading']
             else:                                                   # Group heading not defined. Build it from 'groupby' columns
                 grpHeading = ''
                 for i in range(len(groupName)):
@@ -760,8 +958,8 @@ class Report:
 
             # Perform keyword substutution on the group heading
             for keyWdTmp in keyWordList:
-                for i in range(len(report['options']['groupby'])):
-                    if report['options']['groupby'][i][0] == keyWdTmp: # field is one of the groupbys. See if you need to substitute that value
+                for i in range(len(reportStructure['options']['groupby'])):
+                    if reportStructure['options']['groupby'][i][0] == keyWdTmp: # field is one of the groupbys. See if you need to substitute that value
                         # Check for timestmp expansion
                         if keyWdTmp == 'date':
                             dateStr, timeStr = drdatetime.fromTimestamp(groupName[i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
@@ -772,106 +970,183 @@ class Report:
                         else:
                             grpHeading = grpHeading.replace(keyWordList[keyWdTmp], str(groupName[i]))
 
-            singleReport['groups'][groupIndex]['groupHeading'] = [grpHeading,  report['options']['groupheadingbg'], toMarkup(bold=True)]
-            singleReport['groups'][groupIndex]['dataRows'] = []
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['grpHeading'], singleReport['inlineColumnCount']])
+            singleReport['dataRows'][dataRowIndex].append([grpHeading, reportStructure['options']['groupheadingbg'], toMarkup(align="center")])
 
-            sqlQuery = {}
-            sqlStmt = buildQuery(report['options'], whereOpts = groupName)
+            # If we're repeating column titles, print titles at the top of each group
+            if reportStructure['options']['repeatcolumntitles'] == True and reportStructure['options']['suppresscolumntitles'] == False:
+                # Add column headings
+                # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
+                # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
+                singleReport['dataRows'].append([])
+                dataRowIndex += 1
+                singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rowHead'], 1])
+                for i in range(singleReport['inlineColumnCount']):
+                    # Get the formatting for the title.
+                    # The text of the heading comes from the inlineColumNames list
+                    # The formatting coms from the fldDefs{} dictionary
+                    markup = toMarkup(bold=True, align = fldDefs[singleReport['inlineColumnNames'][i][0]][0])
+                    newStr = '{:{fmt}}'.format(singleReport['inlineColumnNames'][i][1], fmt=fldDefs[singleReport['inlineColumnNames'][i][0]][1])
+                    singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
+
+            sqlStmt = buildQuery(reportStructure['options'], whereOpts = groupName)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
             rowList = dbCursor.fetchall()
 
             # Loop through all rows for that section
-            dataRowIndex = -1
-            for rl in range(len(rowList)):
+            for singleRow in range(len(rowList)):
+                # msgList holds the list of warn/err/log messages that aren't being displayed inline. Gets reset for each new data row extracted from the DB
                 msgList = {}
-                singleReport['groups'][groupIndex]['dataRows'].append([])
+
+                # Add another data row for this output
+                singleReport['dataRows'].append([])
                 dataRowIndex += 1
 
+                # Data rows get a ['dataType', 1] list assignment to start
+                # Then a series of [actualData, bgcolor, markup] lists, one for each column
+                singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], 1])
+
                 # Print column values to dataRows
-                for i in range(len(report['options']['columns'])):
+                # Here's where things get complicated. Buckle up, it's a bumpy ride
+            
+                # Loop through each column in the row
+                for i in range(len(reportStructure['options']['columns'])):
+                
+                    # Figure out the appropriate background. backgrounds. We'll need this in a couple of places
+                    # Default color is white (#FFFFFF)
+                    bground = '#FFFFFF'
+                    if (reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (rowList[singleRow][i] != ''):
+                        msgType = reportStructure['options']['columns'][i][0]
+                        if msgType == 'messages':
+                            bground = reportStructure['options']['jobmessagebg']
+                        elif msgType == 'warnings':
+                            bground = reportStructure['options']['jobwarningbg']
+                        elif msgType == 'errors':
+                            bground = reportStructure['options']['joberrorbg']
+                        elif msgType == 'logdata':
+                            bground = reportStructure['options']['joblogdatabg']
+
                     # See if we need to substitute date, time, or duration fields
-                    if report['options']['columns'][i][0] == 'date':
+                    # All are stored as timestamp data, so they need to be converted to actual dates & times
+                    if reportStructure['options']['columns'][i][0] == 'date':
                         markup = toMarkup(align=fldDefs['date'][0])
-                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([dateStr, '#FFFFFF', markup])
-                    elif report['options']['columns'][i][0] == 'time':
+                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[singleRow][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                        newStr = '{:{fmt}}'.format(dateStr, fmt=fldDefs['date'][2])
+                        singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                    elif reportStructure['options']['columns'][i][0] == 'time':
                         markup = toMarkup(align=fldDefs['time'][0])
-                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[rl][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([timeStr, '#FFFFFF', markup])
-                    elif report['options']['columns'][i][0] == 'duration':
+                        dateStr, timeStr = drdatetime.fromTimestamp(rowList[singleRow][i], dfmt=globs.opts['dateformat'], tfmt=globs.opts['timeformat'])
+                        newStr = '{:{fmt}}'.format(timeStr, fmt=fldDefs['time'][2])
+                        singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                    elif reportStructure['options']['columns'][i][0] == 'duration':
                         markup = toMarkup(align=fldDefs['duration'][0])
-                        tDiff = drdatetime.timeDiff(rowList[rl][i], report['options']['durationzeroes'])
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([tDiff, '#FFFFFF', markup])
-                    elif ((report['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (report['options']['weminline'] is False)):
-                        if rowList[rl][i] != '':
-                            type = report['options']['columns'][i][0]
-                            if type == 'messages':
-                                if report['options']['displaymessages'] == False:
+                        tDiff = drdatetime.timeDiff(rowList[singleRow][i], reportStructure['options']['durationzeroes'])
+                        newStr = '{:{fmt}}'.format(tDiff, fmt=fldDefs['duration'][2])
+                        singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                    elif ((reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (reportStructure['options']['weminline'] is False)):
+                        # For these rows, each will go on a separate line, so put them in their own list for now.
+                        # If weminline == True, we would treat them line any other row
+                        if rowList[singleRow][i] != '': # Not empty. Let's see what kind of message it is. Then see if we want to display those (as per the .rc file options) and what the backgound color is
+                            msgType = reportStructure['options']['columns'][i][0]
+                            if msgType == 'messages':
+                                if reportStructure['options']['displaymessages'] == False:
                                     continue
-                                bground = report['options']['jobmessagebg']
-                            elif type == 'warnings':
-                                if report['options']['displaywarnings'] == False:
+                            elif msgType == 'warnings':
+                                if reportStructure['options']['displaywarnings'] == False:
                                     continue
-                                bground = report['options']['jobwarningbg']
-                            elif type == 'errors':
-                                if report['options']['displayerrors'] == False:
+                            elif msgType == 'errors':
+                                if reportStructure['options']['displayerrors'] == False:
                                     continue
-                                bground = report['options']['joberrorbg']
-                            elif type == 'logdata':
-                                if report['options']['displaylogdata'] == False:
+                            elif msgType == 'logdata':
+                                if reportStructure['options']['displaylogdata'] == False:
                                     continue
-                                bground = report['options']['joblogdatabg']
-                            truncatedMsg = truncateWarnErrMsgs(type, rowList[rl][i], report['options'])
-                            markup = toMarkup(align=fldDefs[type][0])
-                            msgList[report['options']['columns'][i][0]] = [truncatedMsg, bground, markup, report['options']['columns'][i][1]]
-                    elif report['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:  # Right-aligned fields
+                        
+                            # Ared we truncating error messages?    
+                            truncatedMsg = truncateWarnErrMsgs(msgType, rowList[singleRow][i], reportStructure['options'])
+                            markup = toMarkup(align=fldDefs[msgType][0])
+                            # Error message lines get a [message, bground, markup, ColTitle] list assigned to it.
+                            # Do all that stuff and add it to msgList for now.
+                            msgList[reportStructure['options']['columns'][i][0]] = [truncatedMsg, bground, markup, reportStructure['options']['columns'][i][1]]
+                    # See if the field is one of the numeric fields. Need to ass commas, right justify, & possibly reduce scale (mb/gb)
+                    elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:
+                        if reportStructure['options']['columns'][i][0] in ['sizeOfExaminedFiles', 'fileSizeDelta'] and reportStructure['options']['sizedisplay'] != 'none': # Translate to 'mb' or 'gb'
+                            val = rowList[singleRow][i]
+                            if reportStructure['options']['sizedisplay'][:2].lower() == 'mb':
+                                val = val / 1000000.00
+                            else:
+                                val = val / 1000000000.00
+                            rowList[singleRow] = self.updateTuple(rowList[singleRow], i, val)  # Can't directly update a tuple, so need to perform some Python-Fu
                         markup = toMarkup(align='right')
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([rowList[rl][i], '#FFFFFF', markup])
-                    else:
+                        newStr = '{:{fmt}}'.format(rowList[singleRow][i], fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
+                        singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                    else:  # After all that checking, this is just a plain-old data field :-(
+                        # See if we need to truncate WEM messages
+                        msg = rowList[singleRow][i]
+                        msgType = reportStructure['options']['columns'][i][0]
+                        if reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']:
+                            msg = truncatedMsg = truncateWarnErrMsgs(msgType, msg, reportStructure['options'])
                         markup = toMarkup(align='left')
-                        singleReport['groups'][groupIndex]['dataRows'][dataRowIndex].append([rowList[rl][i], '#FFFFFF', markup])
+                        newStr = '{:{fmt}}'.format(msg, fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
+                        singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
 
                 # If there are warnings, errors, messages to output and we don't want them inline, print separate lines after the main columns
-                if len(msgList) != 0 and report['options']['weminline'] is False:       
+                # WEM lines get [wemData, columnCount], [message] lists assigned to them
+                if len(msgList) != 0 and reportStructure['options']['weminline'] is False:       
                     for msg in msgList:
-                        singleReport['groups'][groupIndex]['dataRows'].append([msgList[msg]])
+                        singleReport['dataRows'].append([])
                         dataRowIndex += 1
+                        singleReport['dataRows'][dataRowIndex].append([dataRowTypes['wemData'], singleReport['inlineColumnCount']])
+                        singleReport['dataRows'][dataRowIndex].append(msgList[msg])
 
-        if len(singleReport['groups']) == 0:    # No activity
-            singleReport['groups'].append({})
-            singleReport['groups'][0]['groupHeading'] = ['No Email Activity Today', '#FFFFFF', toMarkup(bold=True, italic=True)] 
-            singleReport['groups'][0]['dataRows'] = []
-            singleReport['groups'][0]['dataRows'].append([])
-            singleReport['groups'][0]['dataRows'][0].append(['No Email Activity', '#FFFFFF', toMarkup(italic=True), 'No Email Activity'])
+            if len(rowList) == 0:    # No activity
+                singleReport['dataRows'].append([])
+                dataRowIndex += 1
+                singleReport['dataRows'][dataRowIndex].append([dataRowTypes['singleLine'], singleReport['inlineColumnCount']])
+                singleReport['dataRows'][dataRowIndex].append(['No Activity', '#FFFFFF', toMarkup(italic=True)])
+
+        if len(groupList) == 0:    # No activity
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], singleReport['inlineColumnCount']])
+            singleReport['dataRows'][dataRowIndex].append(['No Activity', '#FFFFFF', toMarkup(italic=True)])
 
         return singleReport
 
-    def buildNoActivityOutput(self, report):
+    def buildNoActivityOutput(self, reportStructure):
         singleReport = {}
 
         # Copy basic report information from the report definition
-        singleReport['name'] = report['name']
-        singleReport['title'] = report['options']['title']
+        singleReport['name'] = reportStructure['name']
+        singleReport['title'] = reportStructure['options']['title']
         singleReport['columnCount'] = 3
         singleReport['columnNames'] = []
 
         markup = toMarkup(bold=True)
-        singleReport['columnNames'].append(['source', 'Source', '#FFFFFF', markup])
-        singleReport['columnNames'].append(['destination', 'Destination', '#FFFFFF', markup])
-        singleReport['columnNames'].append(['lastseen', 'Last Seen', '#FFFFFF', markup])
+        titleBg = reportStructure['options']['titlebg']
+        singleReport['columnNames'].append(['source', 'Source', titleBg, markup])
+        singleReport['columnNames'].append(['destination', 'Destination', titleBg, markup])
+        singleReport['columnNames'].append(['lastseen', 'Last Seen', titleBg, markup])
         singleReport['inlineColumnCount'] = 3
         singleReport['inlineColumnNames'] = singleReport['columnNames']
 
-        singleReport['groups'] = []
-        singleReport['groups'].append({})
-        singleReport['groups'][0]['dataRows'] = []
+        dataRowIndex = -1
+        singleReport['dataRows'] = []
+
+        # Add the title row to the report
+        singleReport['dataRows'].append([])
+        dataRowIndex += 1
+        # Title rows get a ['rptTitleType',columnCount], ['title', bgcolor, markup] list assignment. 
+        # columCount = inlineColumnCount, because the single title row spans all columns in the report
+        singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rptTitle'], singleReport['inlineColumnCount']])
+        singleReport['dataRows'][dataRowIndex].append([singleReport['title'], reportStructure['options']['titlebg'], toMarkup(bold=True, align="center")])
 
         # Select all source/destination pairs (& last seen timestamp) from the backupset list 
         sqlStmt = "SELECT DISTINCT source, destination, lasttimestamp FROM backupsets"
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         sourceDestList = dbCursor.fetchall()
 
-        dataRowIndex = -1
         for source, destination, lastTimestamp in sourceDestList:
             sqlStmt = "SELECT count(*) FROM report WHERE source='{}' and destination='{}'".format(source, destination)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
@@ -890,71 +1165,85 @@ class Report:
                 pastInterval, interval = pastBackupInterval(srcDest, diff)
 
                 if interval == 0:   # Normal backup times apply
-                    bgColor = report['options']['normalbg']
-                    if diff > report['options']['normaldays']:
-                        bgColor = report['options']['warningbg']
-                    if diff > report['options']['warningdays']:
-                        bgColor = report['options']['errorbg']
+                    bgColor = reportStructure['options']['normalbg']
+                    if diff > reportStructure['options']['normaldays']:
+                        bgColor = reportStructure['options']['warningbg']
+                    if diff > reportStructure['options']['warningdays']:
+                        bgColor = reportStructure['options']['errorbg']
                 else:   # Backup interval in play
-                    bgColor = report['options']['normalbg']
+                    bgColor = reportStructure['options']['normalbg']
                     if diff > interval:
-                        bgColor = report['options']['warningbg']
-                    if diff > (interval + int(report['options']['warningdays'])):
-                        bgColor = report['options']['errorbg']
+                        bgColor = reportStructure['options']['warningbg']
+                    if diff > (interval + int(reportStructure['options']['warningdays'])):
+                        bgColor = reportStructure['options']['errorbg']
 
-                singleReport['groups'][0]['dataRows'].append([])
+                # Add another data row for this output
+                singleReport['dataRows'].append([])
                 dataRowIndex += 1
+
+                # Add row descriptor information
+                singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], 1])
+
                 markupPlain = toMarkup()
                 markupItal = toMarkup(italic=True)
                 # See if we're past the backup interval before reporting
-                singleReport['groups'][0]['dataRows'][dataRowIndex].append([source, '#FFFFFF', markupPlain])
-                singleReport['groups'][0]['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
+                singleReport['dataRows'][dataRowIndex].append([source, '#FFFFFF', markupPlain])
+                singleReport['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
                 if pastInterval is False:
                     globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
-                    singleReport['groups'][0]['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+                    singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
                 else:
                     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                    singleReport['groups'][0]['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+                    singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
 
     
         if dataRowIndex == -1:  # No rows in unseen table
-            singleReport['groups'][0]['dataRows'].append([])
-            markup = toMarkup(italic=True, align='center')
-            singleReport['groups'][0]['dataRows'][0].append(['None', '#FFFFFF', markup, '', '', 3])
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], singleReport['inlineColumnCount']])
+            singleReport['dataRows'][dataRowIndex].append(['No Activity', '#FFFFFF', toMarkup(italic=True)])
 
         return singleReport
 
-    def buildLastSeenOutput(self, report):
+    def buildLastSeenOutput(self, reportStructure):
 
         singleReport = {}
 
         # Copy basic report information from the report definition
-        singleReport['name'] = report['name']
-        singleReport['title'] = report['options']['title']
+        singleReport['name'] = reportStructure['name']
+        singleReport['title'] = reportStructure['options']['title']
         singleReport['columnCount'] = 3
         singleReport['columnNames'] = []
 
         markup = toMarkup(bold=True)
-        singleReport['columnNames'].append(['source', 'Source', '#FFFFFF', markup])
-        singleReport['columnNames'].append(['destination', 'Destination', '#FFFFFF', markup])
-        singleReport['columnNames'].append(['lastseen', 'Last Seen', '#FFFFFF', markup])
-        singleReport['inlineColumnCount'] = 3
+        titleBg = reportStructure['options']['titlebg']
+        singleReport['columnNames'].append(['source', 'Source', titleBg, markup])
+        singleReport['columnNames'].append(['destination', 'Destination', titleBg, markup])
+        singleReport['columnNames'].append(['dupversion', 'Duplicati Version', titleBg, markup])
+        singleReport['columnNames'].append(['lastseen', 'Last Seen', titleBg, markup])
+        singleReport['inlineColumnCount'] = 4
         singleReport['inlineColumnNames'] = singleReport['columnNames']
 
-        singleReport['groups'] = []
-        singleReport['groups'].append({})
-        singleReport['groups'][0]['dataRows'] = []
+        dataRowIndex = -1
+        singleReport['dataRows'] = []
+
+        # Add the title row to the report
+        singleReport['dataRows'].append([])
+        dataRowIndex += 1
+        # Title rows get a ['rptTitleType',columnCount], ['title', bgcolor, markup] list assignment. 
+        # columCount = inlineColumnCount, because the single title row spans all columns in the report
+        singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rptTitle'], singleReport['inlineColumnCount']])
+        singleReport['dataRows'][dataRowIndex].append([singleReport['title'], reportStructure['options']['titlebg'], toMarkup(bold=True, align="center")])
 
         # Select all source/destination pairs (& last seen timestamp) from the backupset list 
-        sqlStmt = "SELECT source, destination, lastTimestamp FROM backupsets ORDER BY source, destination"
+        sqlStmt = "SELECT source, destination, dupversion, lastTimestamp FROM backupsets ORDER BY source, destination"
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         sourceDestList = dbCursor.fetchall()
         globs.log.write(3,'sourceDestList=[{}]'.format(sourceDestList))
 
-        dataRowIndex = -1
-        for source, destination, lastTimestamp in sourceDestList:
+        for source, destination, dupversion, lastTimestamp in sourceDestList:
             # If src/dest is known offline, skip
-            srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+            srcDest = source + globs.opts['srcdestdelimiter'] + destination
             offline = globs.optionManager.getRcOption(srcDest, 'offline')
             if offline != None:  
                 if offline.lower() in ('true'):
@@ -966,252 +1255,142 @@ class Report:
             # Calculate days since last activity & set background accordingly
             pastInterval, interval = pastBackupInterval(srcDest, diff)
 
+            # This section is ripe for optimization
             if interval == 0:   # Normal backup times apply
-                bgColor = report['options']['normalbg']
-                if diff > report['options']['normaldays']:
-                    bgColor = report['options']['warningbg']
-                if diff > report['options']['warningdays']:
-                    bgColor = report['options']['errorbg']
+                bgColor = reportStructure['options']['normalbg']
+                if diff > reportStructure['options']['normaldays']:
+                    bgColor = reportStructure['options']['warningbg']
+                if diff > reportStructure['options']['warningdays']:
+                    bgColor = reportStructure['options']['errorbg']
             else:   # Backup interval in play
-                bgColor = report['options']['normalbg']
+                bgColor = reportStructure['options']['normalbg']
                 if diff > interval:
-                    bgColor = report['options']['warningbg']
-                if diff > (interval + int(report['options']['warningdays'])):
-                    bgColor = report['options']['errorbg']
+                    bgColor = reportStructure['options']['warningbg']
+                if diff > (interval + int(reportStructure['options']['warningdays'])):
+                    bgColor = reportStructure['options']['errorbg']
 
-            singleReport['groups'][0]['dataRows'].append([])
+            
+            # Add another data row for this output
+            singleReport['dataRows'].append([])
             dataRowIndex += 1
+
+            # Add row descriptor information
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], 1])
+
             markupPlain = toMarkup()
             markupItal = toMarkup(italic=True)
             # See if we're past the backup interval before reporting
-            singleReport['groups'][0]['dataRows'][dataRowIndex].append([source, '#FFFFFF', markupPlain])
-            singleReport['groups'][0]['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
+            singleReport['dataRows'][dataRowIndex].append([source, '#FFFFFF', markupPlain])
+            singleReport['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
+            singleReport['dataRows'][dataRowIndex].append([dupversion,'#FFFFFF', markupPlain])
             if pastInterval is False:
                 globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
-                singleReport['groups'][0]['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+                singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
             else:
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                singleReport['groups'][0]['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+                singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
 
         return singleReport
 
-    def createHtmlFormat(self, reportStructure, reportOutput, startTime):
+    def createHtmlFormat(self, reportStructure, reportOutput):
         msgHtml = '<html><head></head><body>\n'
-
-        rptIndex = -1
-        for report in reportOutput['sections']:
-            rptIndex += 1
-            rptName = report['name']
-            rptOptions = reportStructure['sections'][rptIndex]['options']
-
+        sectionIndex = -1
+        for reportSection in reportOutput['sections']:
+            sectionIndex += 1
+            rptName = reportSection['name']
+            rptOptions = reportStructure['sections'][sectionIndex]['options']
+            
             # Start table
             msgHtml += '<table border={} cellpadding="{}">\n'.format(rptOptions['border'], rptOptions['padding'])
 
-            # Add title               
-            msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['titlebg'], rptOptions['title'])
-
-            if reportStructure['sections'][rptIndex]['type'] == 'report':
-                if rptOptions['repeatcolumntitles'] is False:    # Only print headers at the top of the report
-                    # Print column headings
+            for dataRowIndex in range(len(reportSection['dataRows'])):
+                rowType, colspan = reportSection['dataRows'][dataRowIndex][0]
+                if rowType == dataRowTypes['rptTitle']:
+                    start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
+                    msgHtml += '<tr><td align=\"{}\" colspan=\"{}\" bgcolor=\"{}\">{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                elif rowType == dataRowTypes['grpHeading']:
+                    start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
+                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}">{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                elif rowType in [dataRowTypes['rowHead'], dataRowTypes['data']]:
                     msgHtml += '<tr>'
-                    for i in range(len(report['inlineColumnNames'])):
-                        msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
+                    for column in range(1,len(reportSection['dataRows'][dataRowIndex])):
+                        element = reportSection['dataRows'][dataRowIndex][column]
+                        start, end, align = fromMarkup(element[2])
+                        msgHtml += '<td align=\"{}\" colspan=\"{}\" bgcolor=\"{}\" >{}{}{}</td>'.format(align, colspan, element[1], start, element[0], end)
                     msgHtml += '</tr>\n'
-
-                # Loop through each group in the report
-                grpIndex = -1
-                for group in reportOutput['sections'][rptIndex]['groups']:
-                    grpIndex += 1
-            
-                    # Print group heading
-                    msgHtml += '<tr><td align="center" colspan="{}" bgcolor="{}"><b>{}</b></td></tr>\n'.format(report['inlineColumnCount'], rptOptions['groupheadingbg'], report['groups'][grpIndex]['groupHeading'][0])
-
-                    if rptOptions['repeatcolumntitles'] is True:    # Only print headers at the top of the report
-                        # Print column headings
-                        msgHtml += '<tr>'
-                        for i in range(len(report['inlineColumnNames'])):
-                            msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
-                        msgHtml += '</tr>\n'
-
-                    # Print data rows & columns for that group
-                    for row in report['groups'][grpIndex]['dataRows']:
-                        msgHtml += '<tr>'
-                        if len(row) != 1:  # Standard, multicolumn report 
-                            for column in range(len(row)):
-                                msgHtml += printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'html')
-                        else:   # Single column - error, warning, message
-                            msgHtml += printField(row[0], '', '', 'html', row[0][3], report['inlineColumnCount'], summary=True)
-                        msgHtml += '</tr>\n'
-            elif reportStructure['sections'][rptIndex]['type'] in ['noactivity', 'lastseen']:
-                # Loop through each group in the report
-                grpIndex = -1
-                for group in reportOutput['sections'][rptIndex]['groups']:
-                    grpIndex += 1
-            
-                    # Print column headings
-                    for i in range(len(report['inlineColumnNames'])):
-                        msgHtml += printTitle(report['inlineColumnNames'][i], rptOptions, 'html')
-                    msgHtml += '</tr>\n'
-
-                    # Print data rows
-                    msgHtml += '<tr>'
-                    for row in group['dataRows']:
-                        msgHtml += '<tr>'
-                        if len(row) != 1:  # Standard, multicolumn report 
-                            # Print data rows & columns for that group
-                            for column in range(len(row)):
-                                msgHtml += printField(row[column], report['inlineColumnNames'][column][0], '', 'html')
-                        else:   # Single column
-                            msgHtml += printField(row[0], '', '', 'html', row[0][3], report['inlineColumnCount'])
-                        msgHtml += '</tr>\n'
+                elif rowType == dataRowTypes['wemData']:
+                    start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
+                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}"><details><summary>{}</summary><p>{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], reportSection['dataRows'][dataRowIndex][1][3], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                elif rowType == dataRowTypes['singleLine']:
+                    start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
+                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}">{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                else:
+                    pass    # Invalid data row descriptor
 
             msgHtml += '</table><br>'
 
-        msgHtml += '<br>{}'.format(getRunningTime(startTime))
         msgHtml += '<br>Report generated by <a href=\'https://github.com/HandyGuySoftware/dupReport\'>dupReport</a> Version {}.{}.{} ({})<br>'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
         msgHtml += '</body></html>\n'
 
         return msgHtml
 
-    def createTextFormat(self, reportStructure, reportOutput, startTime):
+    def createTextFormat(self, reportStructure, reportOutput):
         msgText = ''
-
-        rptIndex = -1
-        for report in reportOutput['sections']:
-            rptIndex += 1
-            rptName = report['name']
-            rptOptions = reportStructure['sections'][rptIndex]['options']
-
-            # Add title               
-            msgText += rptOptions['title'] + '\n'
-
-            if reportStructure['sections'][rptIndex]['type'] == 'report':
-                if rptOptions['repeatcolumntitles'] is False:    # Only print headers at the top of the report
-                    # Print column headings
-                    for i in range(len(report['inlineColumnNames'])):
-                        msgText += printTitle(report['inlineColumnNames'][i], rptOptions, 'txt')
-                    msgText += '\n'
-
-                # Loop through each group in the report
-                grpIndex = -1
-                for group in reportOutput['sections'][rptIndex]['groups']:
-                    grpIndex += 1
+        SectionIndex = -1
+        for reportSection in reportOutput['sections']:
+            SectionIndex += 1
+            rptName = reportSection['name']
+            rptOptions = reportStructure['sections'][SectionIndex]['options']
             
-                    # Print group heading
-                    msgText += '{}\n'.format(report['groups'][grpIndex]['groupHeading'][0])
-
-                    if rptOptions['repeatcolumntitles'] is True:    # Only print headers at the top of the report
-                        # Print column headings
-                        for i in range(len(report['inlineColumnNames'])):
-                            msgText += printTitle(report['inlineColumnNames'][i], rptOptions, 'txt')
-                        msgText += '\n'
-
-                    # Print data rows & columns for that group
-                    for row in report['groups'][grpIndex]['dataRows']:
-                        if len(row) != 1:  # Standard, multicolumn report 
-                            for column in range(len(row)):
-                                msgText += printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'txt')
-                        else:   # Single column - error, warning, message
-                            msgText += printField(row[0], report['inlineColumnNames'][0][0], '', 'txt', row[0][3], report['inlineColumnCount'], summary=True)
-                        msgText += '\n'
-            elif reportStructure['sections'][rptIndex]['type'] in ['noactivity', 'lastseen']:
-                # Loop through each group in the report
-                grpIndex = -1
-                for group in reportOutput['sections'][rptIndex]['groups']:
-                    grpIndex += 1
-            
-                    # Print column headings
-                    for i in range(len(report['inlineColumnNames'])):
-                        msgText += printTitle(report['inlineColumnNames'][i], rptOptions, 'txt')
+            # Start table
+            for dataRowIndex in range(len(reportSection['dataRows'])):
+                rowType, colspan = reportSection['dataRows'][dataRowIndex][0]
+                if rowType in [dataRowTypes['rptTitle'], dataRowTypes['grpHeading'], dataRowTypes['wemData'], dataRowTypes['singleLine']]:
+                    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
+                #elif rowType == dataRowTypes['grpHeading']:
+                #    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
+                elif rowType in [dataRowTypes['rowHead'], dataRowTypes['data']]:
+                    for column in range(1,len(reportSection['dataRows'][dataRowIndex])):
+                        element = reportSection['dataRows'][dataRowIndex][column]
+                        msgText += '{}'.format(element[0])
                     msgText += '\n'
-
-                    # Print data rows
-                    for row in group['dataRows']:
-                        if len(row) != 1:  # Standard, multicolumn report 
-                            # Print data rows & columns for that group
-                            for column in range(len(row)):
-                                msgText += printField(row[column], report['inlineColumnNames'][column][0], '', 'txt')
-                        else:   # Single column
-                            msgText += printField(row[0], '', '', 'txt', row[0][3], report['inlineColumnCount'])
-                        msgText += '\n'
+                #elif rowType == dataRowTypes['wemData']:
+                #    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
+                #elif rowType == dataRowTypes['singleLine']:
+                #    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
+                else:
+                    pass    # Invalid data row descriptor
 
             msgText += '\n'
 
-        msgText += '\n{}\n'.format(getRunningTime(startTime))
         msgText += 'Report generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})\n'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
-        msgText += '\n'
 
         return msgText
 
-    def createCsvFormat(self, reportStructure, reportOutput, startTime):
+    def createCsvFormat(self, reportStructure, reportOutput):
         msgCsv = ''
-
-        rptIndex = -1
-        for report in reportOutput['sections']:
-            rptIndex += 1
-            rptName = report['name']
-            rptOptions = reportStructure['sections'][rptIndex]['options']
-
-            # Add title               
-            msgCsv += rptOptions['title'] + '\n'
-
-            if reportStructure['sections'][rptIndex]['type'] == 'report':
-                if rptOptions['repeatcolumntitles'] is False:    # Only print headers at the top of the report
-                    # Print column headings
-                    for i in range(len(report['inlineColumnNames'])):
-                        msgCsv += printTitle(report['inlineColumnNames'][i], rptOptions, 'csv')
-                    msgCsv += '\n'
-
-                # Loop through each group in the report
-                grpIndex = -1
-                for group in reportOutput['sections'][rptIndex]['groups']:
-                    grpIndex += 1
+        SectionIndex = -1
+        for reportSection in reportOutput['sections']:
+            SectionIndex += 1
+            rptName = reportSection['name']
+            rptOptions = reportStructure['sections'][SectionIndex]['options']
             
-                    # Print group heading
-                    msgCsv += '\"{}\"\n'.format(report['groups'][grpIndex]['groupHeading'][0])
-
-                    if rptOptions['repeatcolumntitles'] is True:    # Only print headers at the top of the report
-                        # Print column headings
-                        for i in range(len(report['inlineColumnNames'])):
-                            msgCsv += printTitle(report['inlineColumnNames'][i], rptOptions, 'csv')
-                        msgCsv += '\n'
-
-                    # Print data rows & columns for that group
-                    for row in report['groups'][grpIndex]['dataRows']:
-                        if len(row) != 1:  # Standard, multicolumn report 
-                            for column in range(len(row)):
-                                msgCsv += printField(row[column], report['inlineColumnNames'][column][0], reportStructure['sections'][rptIndex]['options']['sizedisplay'], 'csv')
-                        else:   # Single column - error, warning, message
-                            msgCsv += printField(row[0], report['inlineColumnNames'][0][0], '', 'csv', row[0][3], report['inlineColumnCount'], summary=True)
-                        msgCsv += '\n'
-            elif reportStructure['sections'][rptIndex]['type'] in ['noactivity', 'lastseen']:
-                # Loop through each group in the report
-                grpIndex = -1
-                for group in reportOutput['sections'][rptIndex]['groups']:
-                    grpIndex += 1
-            
-                    # Print column headings
-                    for i in range(len(report['inlineColumnNames'])):
-                        msgCsv += printTitle(report['inlineColumnNames'][i], rptOptions, 'csv')
+            # Start table
+            for dataRowIndex in range(len(reportSection['dataRows'])):
+                rowType, colspan = reportSection['dataRows'][dataRowIndex][0]
+                if rowType in [dataRowTypes['rptTitle'], dataRowTypes['grpHeading'], dataRowTypes['wemData'], dataRowTypes['singleLine']]:
+                    msgCsv += '\"{}\"\n'.format(reportSection['dataRows'][dataRowIndex][1][0].strip())
+                elif rowType in [dataRowTypes['rowHead'], dataRowTypes['data']]:
+                    for column in range(1,len(reportSection['dataRows'][dataRowIndex])):
+                        element = reportSection['dataRows'][dataRowIndex][column]
+                        msgCsv += '\"{}\",'.format(element[0].strip())
                     msgCsv += '\n'
-
-                    # Print data rows
-                    for row in group['dataRows']:
-                        if len(row) != 1:  # Standard, multicolumn report 
-                            # Print data rows & columns for that group
-                            for column in range(len(row)):
-                                msgCsv += printField(row[column], report['inlineColumnNames'][column][0], '', 'csv')
-                        else:   # Single column
-                            msgCsv += printField(row[0], '', '', 'csv', row[0][3], report['inlineColumnCount'])
-                        msgCsv += '\n'
-
-            msgCsv += '\n'
-
-        msgCsv += '\"{}\"\n'.format(getRunningTime(startTime))
+                else:
+                    pass    # Invalid data row descriptor
         msgCsv += '\"Report generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})\"\n'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
 
         return msgCsv
 
-    def createJsonFormat(self, reportStructure, reportOutput, startTime):
+    def createJsonFormat(self, reportStructure, reportOutput):
         return reportOutput
 

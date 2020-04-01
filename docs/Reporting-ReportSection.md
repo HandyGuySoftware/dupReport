@@ -159,7 +159,7 @@ padding=5
 Specifies the size of cell padding in the report table. This option only works in the HTML layout.
 
 ```
-sizedisplay = none
+![runtime_line](runtime_line.jpg)sizedisplay = none
 ```
 
 This tells dupReport to display any file size information as bytes (sizedisplay = none), megabytes (sizedisplay = mb), or gigabytes (sizedisplay = gb) This option can be overridden by using the the -s option on the command  line.
@@ -171,10 +171,24 @@ repeatcolumntitles = true
 Indicates whether to repeat the column title headers for each report section (*repeatcolumntitles = true*) or only at the beginning of the report (*repeatcolumntitles= false*). The default is 'false'
 
 ```
+suppresscolumntitles = false
+```
+
+If *suppresscolumntitles = true*, no column titles will be printed in the report. If *suppresscolumntitles = false* (the default) column titles will be printed in the report. 
+
+```
 durationzeroes = true
 ```
 
 This modifies the display of the backup job "Duration" column in the report. If *durationzeroes = true* , the time units in the job duration field will be displayed with leading zeroes, for example "0d 13h 0m 32s." If *durationzeroes = false* , any unit that equals zero (0) will not be displayed, so the previous example will be displayed as "13h 32s."
+
+```
+includeruntime = true
+```
+
+Setting this to "true" places an indication of the report's running time at the bottom of the report. The running time will look like this:
+
+![](D:\Users\parents\Documents\Development\dupReport\docs\images\runtime_line.jpg)
 
 ------
 

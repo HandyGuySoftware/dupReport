@@ -341,6 +341,8 @@ def doConvertDb(fromVersion):
         # Add date & time fields to reports table
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN date real")
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN time real")
+        globs.db.execSqlStmt("ALTER TABLE backupsets ADD COLUMN dupversion varchar(100)")
+        # Add logic to insert last dupversion for all existing backupset rows
         doConvertDb(300)
         pass
     else:

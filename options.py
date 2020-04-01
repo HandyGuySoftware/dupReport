@@ -76,7 +76,8 @@ rcParts= [
     ('report',      'border',           '1',                                                                        True),
     ('report',      'padding',          '5',                                                                        True),
     ('report',      'sizedisplay',      'byte',                                                                     True),
-    ('report',      'repeatcolumntitles',    'true',                                                                True),
+    ('report',      'repeatcolumntitles', 'true',                                                                   True),
+    ('report',      'suppresscolumntitles', 'true',                                                                 True),
     ('report',      'durationzeroes',   'true',                                                                     True),
     ('report',      'displaymessages',  'false',                                                                    True),
     ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
@@ -99,6 +100,7 @@ rcParts= [
     ('report',      'warningbg',        '#FFFF00',                                                                  True),
     ('report',      'errorbg',          '#FF0000',                                                                  True),
     ('report',      'weminline',        'false',                                                                    True),
+    ('report',      'includeruntime',   'true',                                                                    True),
 
     # [srcdest] sample specification
     ('srcdest',     'type',             'report',                                                                   True),
@@ -120,7 +122,7 @@ rcParts= [
     ('bydest',     'type',             'report',                                                                    True),
     ('bydest',     'title',            'Duplicati Backup Summary Report - By Destination',                          True),
     ('bydest',     'groupby',          'destination:ascending',                                                     True),
-    ('bydest',     'groupheading',     'Destination: #SOURCE#',                                                     True),
+    ('bydest',     'groupheading',     'Destination: #DESTINATION#',                                                     True),
     ('bydest',     'columns',          'source:Source, date:Date, time:Time, dupversion:Version, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
     ('bydest',     'columnsort',       'source:ascending, date:ascending, time:ascending',                          True),
 
@@ -305,6 +307,7 @@ class OptionManager:
         self.options['remove'] = self.cmdLineArgs.remove
         self.options['stopbackupwarn'] = self.cmdLineArgs.stopbackupwarn
         self.options['validatereport'] = self.cmdLineArgs.validatereport
+        self.options['layout'] = self.cmdLineArgs.layout
 
         # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
@@ -392,6 +395,7 @@ class OptionManager:
         argParser.add_argument("-V","--Version", help="dupReport version and program info.", action="store_true")
         argParser.add_argument("-w", "--stopbackupwarn", help="Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in rc file.", action="store_true")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
+        argParser.add_argument("-y", "--layout", help="Run the specified reports during the program run.", action="store")
 
         # Parse the arguments based on the argument definitions above.
         # Store results in 'args'
@@ -423,6 +427,7 @@ class OptionManager:
         globs.log.write(3, '- masksensitive = [{}]'.format(self.cmdLineArgs.masksensitive))
         globs.log.write(3, '- nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
         globs.log.write(3, '- validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
+        globs.log.write(3, '- layout = [{}]'.format(self.cmdLineArgs.layout))
     
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
