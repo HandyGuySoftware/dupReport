@@ -117,7 +117,7 @@ class dupApprise:
             if  bLen!= 0:
                 newBody = (newBody[:bLen]) if len(newBody) > bLen else newBody  
 
-            globs.log.write(3, 'Sending notification: title=[[]] body=[{}]'.format(newTitle, newBody))
+            globs.log.write(3, 'Sending notification: title=[{}] body=[{}]'.format(newTitle, newBody))
             result = self.appriseConn.notify(title=newTitle, body=newBody)
             globs.log.write(3, "Apprise send() result={}.".format(result))
 

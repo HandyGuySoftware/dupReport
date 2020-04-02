@@ -427,10 +427,18 @@ class Report:
                 # Get default options
                 self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
 
-                # Get report-specific options
+                # Get report-specific options - There must be a better way to do this
                 optionTmp = globs.optionManager.getRcSection(section[0])
                 for optTmp in optionTmp:
-                    self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
+                    # Check for type
+                    if optionTmp[optTmp].lower() in ['true', 'false']: # Boolean
+                        self.rStruct['sections'][rIndex]['options'][optTmp] = True if optionTmp[optTmp].lower() == 'true' else False
+                    else: # Integer or string
+                        result = re.findall(r"\d+",optionTmp[optTmp])
+                        if len(result) != 0: #Integer
+                            self.rStruct['sections'][rIndex]['options'][optTmp] = int(optionTmp[optTmp])
+                        else:
+                            self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
                 # Fix some of the data field types - integers
                 for item in ('border', 'padding', 'normaldays', 'warningdays'):
