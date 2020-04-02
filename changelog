@@ -1,10 +1,13 @@
 3.0.0
 ------
 - Re-built reporting engine to allow for user-created reporting formats (Issue #130)
+	- Added logic to validate custom reports before they are run
+	- Added option (-o) to validate the report configuration in the .rc file and exit the program. Useful for developing custom reports.
+	- Added -y commandline option to secify which reports to run at runtime. This enables more dynamic report running
 - Database, .rc file, and log file specification can now be either directory names or full path specifications (Issue #136)
 - Can now send output to JSON file (Issue #135)
-- Added logic to validate reports before they are run
-- Added option (-o) to validate the report configuration in the .rc file and exit the program. Useful for developing custom reports.
+- Changed displaysize option in .rc file from (mega/giga) to (none/mb/gb), deprecated the showdisplaysize option, and changed the -s option to -s none|mb|gb
+
 
 2.2.11
 ------
