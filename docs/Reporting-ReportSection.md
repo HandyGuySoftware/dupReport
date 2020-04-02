@@ -1,6 +1,12 @@
+## dupReport Reporting
+
+dupReport contains an advanced reporting engine that allows the user to define the data included in reports and arrange the layout of report sections. This is all handled by managing the configuration of .rc file options. No programming is required.
+
+------
+
 ## [report] section
 
-The [report] section contains the information on how reports are laid out and the default settings for reports. 
+The [report] section contains the information on how reports are laid out and the default settings for reports. The following sections describe the various options that can be set in the [report] section.
 
 ------
 
@@ -28,7 +34,7 @@ dupReport comes with several pre-defined report formats:
 
 **srcdest**: This prints email results grouped by Source-Destination pairs. Here is an example of the srcdest report:
 
-![](D:\Users\parents\Documents\Development\dupReport\docs\images\report_srcdest.jpg)
+![](images\report_srcdest.jpg)
 
 
 
@@ -52,7 +58,7 @@ dupReport comes with several pre-defined report formats:
 
 **noactivity**: This prints a report of all the Source-Destination pairs that were not seen during the run of the program. This can be helpful for seeing which systems may be down or otherwise not reporting in properly. Here is an example of the noactivity report:
 
-![]() **[NEED GRAPHIC]**
+![](images\report_noactivity.jpg)
 
 
 
@@ -83,6 +89,14 @@ title = Report by Destination
 ```
 
 dupReport comes with pre-defined report sections in the .rc file for each of the pre-defined reports (srcdest, bysrc, bydest, bydate, noactivity, and lastseen). See "Creating Custom Reports" for more information in definition report sections in the .rc file.
+
+You can also specify which reports you want to run on the dupReport command line using the -y option:
+
+```
+$ dupReport -y srcdest,noactivity
+```
+
+Specification for the reports to run are the same as in the *layout=* option in the .rc file. However, **there can not be any spaces between the report names and and commas** used on the command line.
 
 ------
 
@@ -135,6 +149,10 @@ columns = source:Source, destination:Destination, date:Run Date, time:Run Time, 
 The above specification will produce a report that looks like the following:
 
 ![](images\SampleColumnSpec.jpg)
+
+
+
+The *columns=* option in the [report] section of the .rc file is the default column set used for all reports and contains all the possible columns you can specify in a report. If you wish to create a customized report, copy this line to a new [source-destination] section of the  .rc file and remove any \<colname>:\<title> pairs you do not want in the new report.
 
 ------
 
@@ -192,7 +210,7 @@ Setting this to "true" places an indication of the report's running time at the 
 
 ------
 
-**Specifying How to Print Backup Job Messages**
+**Specifying How to Display Backup Job Messages**
 
 Duplicati emails may include a variety of output messages in addition to the status fields. These include:
 
@@ -302,8 +320,30 @@ The following table clarifies how the time frames and colors are used.
 
 NOTE: This formula and color definition is used for all similar time-based calculations in all reports.
 
+------
+
+## Special Report Sections
+
+There are some pre-defined sections in the dupReport.rc file that are used by built-in reports users can run. 
+
+| Section      | Purpose                                                      |
+| ------------ | ------------------------------------------------------------ |
+| [noactivity] | Specifies layout and format options for reporting on which backup jobs were not seen during the program's last run. |
+| [lastseen]   | Specifies layout and format options for reporting on when all backup jobs were last seen during the program's last run. |
+
+These reports can be added to the *layout=* option in the [report] section:
+
+```
+[report]
+layout = bydest,noactivity,lastseen
+```
+
+They can also be specified as part of the -y option on the command line:
+
+```
+$ dupReport.py -y bydest,noactivity,lastseen
+```
 
 
 
-
-Return to [Main Page](readme.md)
+(Return to [Main Page](readme.md))

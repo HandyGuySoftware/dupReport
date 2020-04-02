@@ -202,7 +202,7 @@ class EmailServer:
         return None
 
     # Check if there are new messages waiting on the server
-    # Return number of messages if there
+    # Return number of messages if there (or 0 if none)
     # Return None if empty
     def checkForMessages(self):
         self.connect()
@@ -213,7 +213,7 @@ class EmailServer:
             if self.numEmails == 0:     # No new emails
                 self.newEmails = None 
                 self.nextEmail = 0      
-                return None
+                return 0
             self.newEmails = list(range(self.numEmails))
             self.nextEmail = -1     # processNextMessage() pre-increments message index. Initializing to -1 ensures the pre-increment start at 0
             return self.numEmails
@@ -221,23 +221,20 @@ class EmailServer:
             globs.log.write(1,'checkForMessages(IMAP)')
 
             # Issue #124 - only read unseen/unread messages. Speed up input processing.
-            if globs.opts['unreadonly'] == True:
-                retVal, data = self.server.search(None, "(UNSEEN)")
-            else:
-                retVal, data = self.server.search(None, "ALL")
+            scope = '(UNSEEN)' if globs.opts['unreadonly'] == True else 'ALL'
+            retVal, data = self.server.search(None, scope)
             globs.log.write(3,'Searching folder. retVal={} data={}'.format(retVal, data))
             if retVal != 'OK':          # No new emails
                 self.newEmails = None
                 self.numEmails = 0
                 self.nextEmail = 0
-                return None
+                return 0
             self.newEmails = list(data[0].split())   # Get list of new emails
             self.numEmails = len(self.newEmails)          
             self.nextEmail = -1     # processNextMessage() pre-increments message index. Initializing to -1 ensures the pre-increment start at 0
             return self.numEmails
         else:  # Invalid protocol
-            return None
-
+            return 0
 
     # Extract a (parentheses) field or raw data from the result
     # Some fields (sizes, date, time) can be presented in text or numeric values (Starting with Canary builds in Jan 2018)
@@ -267,12 +264,12 @@ class EmailServer:
     # POP3 manages headers different than IMAP
     # Need to transform POP3 headers into IMAP style so the rest of the program
     # Can process them properly
+    # Please, in the name of all that is holy, stop using POP3!!!
     def mergePop3Headers(self, hdrBody):
         globs.log.write(1,'dremail.mergePop3Headers({})'.format(hdrBody))
         hdrLine = ""
         for nxtHdr in hdrBody:
             hdrLine += nxtHdr.decode('utf-8') + "\r\n"
-
         return hdrLine
 
     # Extract specific fields from an email header

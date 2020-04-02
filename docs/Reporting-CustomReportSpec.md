@@ -14,6 +14,8 @@ columnsort = <column2>:ascending
 
 ------
 
+**Custom Report Options**
+
 ```
 type = report
 ```
@@ -41,6 +43,8 @@ This tells dupReport how to group the data in the report. Reports can be grouped
 
 The example above use the specification: *groupby = destination:ascending*
 
+If you do not want to use groupings in your report you can omit the *groupby=* option in your custom report specification.
+
 ```
 groupheading = This is the Next Group
 ```
@@ -55,6 +59,8 @@ This specifies the title that will be used for each group. The above example use
 | \#DESTINATION# | Inserts the appropriate destination name in the subheading |
 | \#DATE#        | Inserts the appropriate date in the subheading             |
 
+If you do not specify a *groupby=* option in your specification you do not need to specify a *groupheading=* option.
+
 ```
 columns = column2:Column 2, column3:Column 3
 ```
@@ -66,3 +72,27 @@ columnsort = column2:ascending
 ```
 
 This specifies the way information in the report is sorted. The format and options are similar to the *groupby =* option above. Multiple sorting columns can be specified, each separated by a comma (',')
+
+------
+
+**Overriding Standard Report Options**
+
+Any custom report specification can change the default option in the [report] section simply by including that option in the custom report section. For example, the [report] section defaults the background color of the title line to white:
+
+```
+[report]
+titlebg = #FFFFFF
+```
+
+If you want the title background to be green, you can specify that for just your custom report:
+
+```
+[myreport]
+titlebg = #00CC00
+```
+
+Most of the options found in the [report] section can be changed by including them as an option in the custom report section.
+
+
+
+(Return to [Main Page](readme.md))

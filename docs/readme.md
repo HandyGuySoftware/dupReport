@@ -51,7 +51,7 @@ Enjoy!
 
 Understanding dupReport
 
-- [Source-Destination Pairs](SrcDestPairs.md)
+- [Source-Destination Pairs](Config-SrcDestPairs.md)
 - [Identifying Emails of Interest](Config-EmailsofInterest.md)
 
 Running dupReport
@@ -67,7 +67,7 @@ Running dupReport
 - Handling Specific Backup Jobs: The [[\<source-destination>] Sections](RcFileConfig-SourceDestination.md)
 - Push Notifications Using Apprise: The [[apprise] Section](RcFileConfig-Apprise.md)
 
-[Reporting](Reporting.md)
+Reporting
 
-- [The [report] Section](RcFileConfig-ReportSection.md)
+- [The [report] Section](Reporting-ReportSection.md)
 - [Custom Report Formats](Reporting-CustomReportSpec.md)

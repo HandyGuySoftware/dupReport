@@ -172,4 +172,4 @@ is specified, there will be one '.' for every 5 emails that are read.
 
 
 
-Return to [Main Page](readme.md)
+(Return to [Main Page](readme.md))

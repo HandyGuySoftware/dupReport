@@ -141,6 +141,4 @@ Large inboxes may take a long time to scan and parse, and on some systems this c
 
 
 
-
-
-Return to [Main Page](readme.md)
+(Return to [Main Page](readme.md))

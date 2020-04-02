@@ -15,7 +15,7 @@ where \<source> is the name of the computer where the files are located and \<de
 Shenjhou-Discovery
 ```
 
-For more interesting information on naming backup jobs see the section on ["Source-Destination Pairs."](SrcDestPairs.md) 
+For more interesting information on naming backup jobs see the section on ["Source-Destination Pairs."](Config-SrcDestPairs.md) 
 
 3. Configure a Duplicati job to send its output report to an email account. See the [Duplicati documentation for the "send-mail" advanced email options](https://duplicati.readthedocs.io/en/latest/06-advanced-options/#send-mail-to) to learn how to do this.
 4. Run at least one backup with the newly-named backup job so that you have an email that dupReport can find on your email server. 
@@ -53,5 +53,5 @@ That's the quick way to do it! Now that you've seen how it works, please read th
 
 
 
-Return to [Main Page](readme.md)
+(Return to [Main Page](readme.md))
 

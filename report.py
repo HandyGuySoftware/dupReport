@@ -1142,6 +1142,21 @@ class Report:
         singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rptTitle'], singleReport['inlineColumnCount']])
         singleReport['dataRows'][dataRowIndex].append([singleReport['title'], reportStructure['options']['titlebg'], toMarkup(bold=True, align="center")])
 
+        # Add column headings
+        # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
+        # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
+        if reportStructure['options']['suppresscolumntitles'] == False:
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rowHead'], 1])
+            for i in range(singleReport['inlineColumnCount']):
+                # Get the formatting for the title.
+                # The text of the heading comes from the inlineColumNames list
+                # The formatting coms from the fldDefs{} dictionary
+                markup = toMarkup(bold=True, align = fldDefs[singleReport['inlineColumnNames'][i][0]][0])
+                newStr = '{:{fmt}}'.format(singleReport['inlineColumnNames'][i][1], fmt=fldDefs[singleReport['inlineColumnNames'][i][0]][1])
+                singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
+
         # Select all source/destination pairs (& last seen timestamp) from the backupset list 
         sqlStmt = "SELECT DISTINCT source, destination, lasttimestamp FROM backupsets"
         dbCursor = globs.db.execSqlStmt(sqlStmt)
@@ -1234,6 +1249,21 @@ class Report:
         # columCount = inlineColumnCount, because the single title row spans all columns in the report
         singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rptTitle'], singleReport['inlineColumnCount']])
         singleReport['dataRows'][dataRowIndex].append([singleReport['title'], reportStructure['options']['titlebg'], toMarkup(bold=True, align="center")])
+
+        # Add column headings
+        # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
+        # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
+        if reportStructure['options']['suppresscolumntitles'] == False:
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rowHead'], 1])
+            for i in range(singleReport['inlineColumnCount']):
+                # Get the formatting for the title.
+                # The text of the heading comes from the inlineColumNames list
+                # The formatting coms from the fldDefs{} dictionary
+                markup = toMarkup(bold=True, align = fldDefs[singleReport['inlineColumnNames'][i][0]][0])
+                newStr = '{:{fmt}}'.format(singleReport['inlineColumnNames'][i][1], fmt=fldDefs[singleReport['inlineColumnNames'][i][0]][1])
+                singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
 
         # Select all source/destination pairs (& last seen timestamp) from the backupset list 
         sqlStmt = "SELECT source, destination, dupversion, lastTimestamp FROM backupsets ORDER BY source, destination"

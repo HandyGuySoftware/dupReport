@@ -18,10 +18,10 @@ option3 = value3
 | [[main]](RcFileConfig-Main.md)                               | Sets the main program configuration                          |
 | [[incoming]](RcFileConfig-IncomingOutgoing.md)               | Sets the configuration for the incoming POP3/IMAP email server |
 | [[outgoing]](RcFileConfig-IncomingOutgoing.md)               | Sets the configuration for the outgoing SMPT email server    |
-| [report]                                                     | Sets the default configuration for the reporting system      |
-| [\<report_name>]                                             | Sets specific configuration options for the \<report_name> report |
 | [[\<source-destination>]](RcFileConfig-SourceDestination.md) | Sets specific operating configuration options for the backup job named "\<source-destination>" |
 | [[apprise]](RcFileConfig-Apprise.md)                         | Set configuration options for the Apprise notification service |
+| [[report]](Reporting-ReportSection.md)                       | Sets the default configuration for the reporting system      |
+| [[\<report_name>]](Reporting-CustomReportSpec.md)            | Sets specific configuration options for user-defined custom reports |
 
 Click the section name in the table above to see more information on how to configure that section.
 
@@ -29,4 +29,4 @@ Click the section name in the table above to see more information on how to conf
 
 
 
-Return to [Main Page](readme.md)
+(Return to [Main Page](readme.md))

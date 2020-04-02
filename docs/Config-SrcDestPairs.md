@@ -2,7 +2,7 @@
 
 # Source-Destination Pairs
 
-dupReport identifies backup jobs as a series of "Source-Destination" pairs. dupReport uses Source-Destination Pairs to identify the source and destination systems for each backup job. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
+dupReport uses "Source-Destination Pairs" to identify the source and destination systems for each backup job. The default dupReport configuration requires that jobs be named in a way that indicates what is being backed up and where it is going. For instance, a job named: “Fred_Home_Desktop-Homers_Minio would show up in the dupReport as:
 
 > **Source:** Fred_Home_Desktop   **Destination:** Homers_Minio
 
@@ -43,4 +43,6 @@ You can modify the specification of these elements by replacing each with a regu
 
 
 
-Return to [Main Page](readme.md)
+
+
+(Return to [Main Page](readme.md))

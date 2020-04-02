@@ -8,4 +8,4 @@ In addition to the dupReport program files, the only other software dupReport ne
 
 
 
-Return to [Main Page](readme.md)
+(Return to [Main Page](readme.md))

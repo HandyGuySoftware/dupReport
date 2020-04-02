@@ -19,11 +19,11 @@ dateformat=
 timeformat=
 ```
 
-These values overrise any *dateformat* and *timeformat* values specified in the [main] section. Specifying date and time formats on a per-job basis allows the program to properly parse and sort date and time results from backups that may be running in different locales and using different date/time display formats. 
+These values override any *dateformat=* and *timeformat=* values specified in the [main] section. Specifying date and time formats on a per-job basis allows the program to properly parse and sort date and time results from backups that may be running in different locales and using different date/time display formats. 
 
-The allowable values for these options are the same as the dateformat= and timeformat= options in the [[main] section](RcFileConfig-Main.md). If either of these options are not specified in a [source-destination] section the equivalent option from the [main] section will be used. 
+The allowable values for these options are the same as the *dateformat=* and *timeformat=* options in the [[main] section](RcFileConfig-Main.md). If either of these options are not specified in a [source-destination] section the equivalent option from the [main] section will be used. 
 
-**NOTE:** dateformat= and timeformat= in a [source-destination] section are only applied to the parsing of *incoming* emails. Dates and times produced in the final report are always formatted according to the default dateformat= and timeformat= options in the [main] section.
+**NOTE:** *dateformat=* and *timeformat=* in a [source-destination] section are only applied to the parsing of *incoming* emails. Dates and times produced in the final report are always formatted according to the default *dateformat=* and *timeformat=* options in the [main] section.
 
 ------
 
@@ -63,14 +63,14 @@ backupinterval = 1
 
 This option can be used if a back up is scheduled to run less often than dupReport is run. For example, if your "Shenjhou-Discovery" backup runs every seven days but dupReport runs daily, for 6 days in the week you will get a warning notice that "Shenjhou-Discovery" wasn't seen. Setting this option to the number of days between backups for this particular job tells dupReport that it's OK if it doesn't see a backup from that job within that time period. 
 
-If a backup from a source/destination pair is not seen while scanning the emails but the number of days since the last backup is less than the backupinterval= value, the program will simply print a notification message rather than the standard warning message. For example:
+If a backup from a source/destination pair is not seen while scanning the emails but the number of days since the last backup is less than the *backupinterval*= value, the program will simply print a notification message rather than the standard warning message. For example:
 
-![interval_example](interval_example.jpg)
+![](images\interval_example.jpg)
 
-The first line represents a backup that missed its daily execution. The second line represents a backup that only runs every 5 days. If no backupinterval= value is specified in a [source-destination] section, the default is 0.
-
-
+The first line represents a backup that missed its daily execution. The second line represents a backup that only runs every 10 days. If no *backupinterval=* value is specified in a [source-destination] section, the default is 0.
 
 
 
-Return to [Main Page](readme.md)
+
+
+(Return to [Main Page](readme.md))
