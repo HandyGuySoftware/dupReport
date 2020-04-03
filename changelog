@@ -2,11 +2,14 @@
 ------
 - Re-built reporting engine to allow for user-created reporting formats (Issue #130)
 	- Added logic to validate custom reports before they are run
-	- Added option (-o) to validate the report configuration in the .rc file and exit the program. Useful for developing custom reports.
-	- Added -y commandline option to secify which reports to run at runtime. This enables more dynamic report running
+	- Added -o commandline option to validate the report configuration in the .rc file and exit the program. Useful when developing custom reports.
+	- Added -y commandline option to specify which reports to run at runtime. This enables more dynamic report running
+	- Created separate "no activity" report instead of including that in the standard report output. This can now be added or left off the report run at will
+	- Created separate "lastseen" report to display the last seen backup date & time for each backupset. Replaces the [report]lastseen= option in the .rc file
 - Database, .rc file, and log file specification can now be either directory names or full path specifications (Issue #136)
 - Can now send output to JSON file (Issue #135)
 - Changed displaysize option in .rc file from (mega/giga) to (none/mb/gb), deprecated the showdisplaysize option, and changed the -s option to -s none|mb|gb
+- Re-structured the documentation for better readibility and made it easier to find specific settings. (Issue #140)
 
 
 2.2.11
