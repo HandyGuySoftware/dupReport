@@ -652,8 +652,6 @@ class Report:
                 reportOutput['sections'].append(self.buildNoActivityOutput(reportSection))
             elif reportSection['type'] == 'lastseen':
                 reportOutput['sections'].append(self.buildLastSeenOutput(reportSection))
-            elif reportSection['type'] == 'lastseen':
-                reportOutput['sections'].append(self.buildLastSeenOutput(reportSection))
             elif reportSection['type'] == 'runtime':
                 reportOutput['sections'].append(self.buildRuntimeOutput(reportSection, startTime))
         
@@ -1060,7 +1058,6 @@ class Report:
 
     def buildNoActivityOutput(self, reportStructure):
 
-        dataRowIndex, singleReport = self.buildReport_Initialize(reportStructure)
         singleReport = {}
 
         # Copy basic report information from the report definition
