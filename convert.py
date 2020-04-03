@@ -342,7 +342,9 @@ def doConvertDb(fromVersion):
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN date real")
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN time real")
         globs.db.execSqlStmt("ALTER TABLE backupsets ADD COLUMN dupversion varchar(100)")
-        # Add logic to insert last dupversion for all existing backupset rows
+        
+        # Insert last dupversion for all existing backupset rows
+        globs.db.execSqlStmt("UPDATE backupsets SET dupversion = (SELECT emails.dupversion FROM emails WHERE backupsets.source = emails.sourceComp and backupsets.destination = emails.destComp)")
         doConvertDb(300)
         pass
     else:
