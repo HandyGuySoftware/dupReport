@@ -16,6 +16,14 @@ Here is a list of some of dupReport's most important features:
 - No limit to  the number of different backup jobs it can track
 - Support for Apprise push notification service (<https://github.com/caronc/apprise>)
 
+------
+
+# Notes for Beta Testers
+
+If you are beta testing dupReport 3.0.0, please read the [Beta Test Notes](BetaTestNotes.md)
+
+------
+
 # Available Code Branches
 
 Beginning with release 2.1, the branch structure of the dupReport repository has changed. We have moved to a more organized structure based on [this article by Vincent Driessen](http://nvie.com/posts/a-successful-git-branching-model/) (with some modifications). (Thanks to @DocFraggle for suggesting this structure.)
