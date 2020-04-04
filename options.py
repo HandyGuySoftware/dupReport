@@ -166,7 +166,7 @@ class OptionManager:
             return False
 
         try:
-            self.parser = configparser.SafeConfigParser()
+            self.parser = configparser.SafeConfigParser(interpolation=None)
             self.parser.read(rcFileSpec)
         except configparser.ParsingError as err:
             globs.log.err('RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))

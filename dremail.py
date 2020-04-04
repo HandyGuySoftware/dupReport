@@ -69,6 +69,18 @@ lineParts = [
     ('failed',              'Failed: .*',                   re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ]
 
+
+class EmailCluster:
+    def __init__(self):
+
+        incoming = []
+        outgoing = []
+
+        return None
+
+    def addServer(self, server):
+        self.servers.add(server)
+
 class EmailServer:
     def __init__(self, prot, add, prt, acct, pwd, crypt, kalive, fold = None):
         self.protocol = prot
@@ -84,17 +96,16 @@ class EmailServer:
         self.numEmails = 0      # Number of emails in list
         self.nextEmail = 0      # index into list of next email to be retrieved
 
-    def dump(self):
-        return 'protocol=[{}] address=[{}] port=[{}] account=[{}] passwd=[{}] encryption=[{}] keepalive=[{}] folder=[{}]'.format(self.protocol, self.address, self.port, self.accountname, self.passwd, self.encryption, self.keepalive, self.folder)
+        return None
 
     def connect(self):
         globs.log.write(1, 'EmailServer.Connect()')
         globs.log.write(3, 'server={} keepalive={}'.format(self.server, self.keepalive))
 
-        # See if a server connection is already established
+        # See if a server connection is already established (self.server != None)
         # This is the most common case, so check this first
         if self.server != None:
-            if self.keepalive is False: # Do we care about keepalives?
+            if not self.keepalive: # Do we care about keepalives?
                 return None
 
             globs.log.write(3,'Checking server connection')
@@ -128,7 +139,7 @@ class EmailServer:
                     globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
                     self.server = None
                     self.connect()
-        else:     # Need to establish server connection
+        else:     # self.server == None. Never connected, need to establish server connection
             if self.protocol == 'imap':
                 globs.log.write(1,'Initial connect using  IMAP')
                 try:
@@ -142,8 +153,10 @@ class EmailServer:
                     globs.log.write(3,'IMAP Setting folder. retVal={} data={}'.format(retVal, data))
                     return retVal
                 except imaplib.IMAP4.error:
+                    # Better log messages here
                     return None
                 except imaplib.socket.gaierror:
+                    # Better log messages here
                     return None
             elif self.protocol == 'pop3':
                 globs.log.write(1,'Initial connect using POP3')
@@ -158,7 +171,8 @@ class EmailServer:
                     globs.log.write(3,'Entered password. retVal={}'.format(retVal))
                     return retVal.decode()
                 except Exception:
-                    return None
+                   # Better log messages here
+                   return None
             elif self.protocol == 'smtp':
                 globs.log.write(1,'Initial connect using  SMTP')
                 try:
@@ -187,18 +201,17 @@ class EmailServer:
                 return None
         return None
 
-
     # Close email server connection
     def close(self):
-        if self.server == None:
-            return None
-
-        if self.protocol == 'pop3':
-            self.server.quit()
-        elif self.protocol == 'imap':
-            self.server.close()
-        elif self.protocol == 'smtp':
-            self.server.quit()
+        
+        # If self.server == None, nothing left to close
+        if self.server != None:
+            if self.protocol == 'pop3':
+                self.server.quit()
+            elif self.protocol == 'imap':
+                self.server.close()
+            elif self.protocol == 'smtp':
+                self.server.quit()
         return None
 
     # Check if there are new messages waiting on the server
@@ -305,9 +318,10 @@ class EmailServer:
         # Skip for message #0 because we haven't read any messages yet
         self.nextEmail += 1
 
-        msgParts = {}       # msgParts contains extracts of message elements
-        statusParts = {}    # statusParts contains the individual lines from the Duplicati status emails
-        dateParts = {}      # dateParts contains the date & time strings for the SQL Query
+        emailParts = {
+            'header': {},
+            'body': {}
+            }
 
         # Check no-more-mail conditions. Either no new emails to get or gone past the last email on list
         if (self.newEmails == None) or (self.nextEmail == self.numEmails):  
@@ -323,7 +337,7 @@ class EmailServer:
 
             # Get date, subject, and message ID from headers
             hdrLine = self.mergePop3Headers(body)       # Convert to IMAP format
-            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(hdrLine)
+            emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'] = self.extractHeaders(hdrLine)
         elif self.protocol == 'imap':
             # Get message header
             retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
@@ -332,57 +346,57 @@ class EmailServer:
                 return '<INVALID>'
             globs.log.write(3,'Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
 
-            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
+            emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
         else:   # Invalid protocol spec
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
             return None
             
         # Log message basics
-        globs.log.write(1,'\n*****\nNext Message: Date=[{}] Subject=[{}] Message-Id=[{}]'.format(msgParts['date'], msgParts['subject'], msgParts['messageId']))
+        globs.log.write(1,'\n*****\nNext Message: Date=[{}] Subject=[{}] Message-Id=[{}]'.format(emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId']))
         
         # Check if any of the vital parts are missing
-        if msgParts['messageId'] is None or msgParts['messageId'] == '':
+        if emailParts['header']['messageId'] is None or emailParts['header']['messageId'] == '':
             globs.log.write(1,'No message-Id. Abandoning processNextMessage()')
             return '<INVALID>'
-        if msgParts['date'] is None or msgParts['date'] == '':
+        if emailParts['header']['date'] is None or emailParts['header']['date'] == '':
             globs.log.write(1,'No Date. Abandoning processNextMessage()')
-            return msgParts['messageId']
-        if msgParts['subject'] is None or msgParts['subject'] == '':
+            return emailParts['header']['messageId']
+        if emailParts['header']['subject'] is None or emailParts['header']['subject'] == '':
             globs.log.write(1,'No Subject. Abandoning processNextMessage()')
-            return msgParts['messageId']
+            return emailParts['header']['messageId']
 
         # See if it's a message of interest
         # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...')
-        if re.search(globs.opts['subjectregex'], msgParts['subject']) == None:
-            globs.log.write(1, 'Message [{}] is not a Message of Interest. Can\'t match subjectregex from .rc file. Skipping message.'.format(msgParts['messageId']))
-            return msgParts['messageId']    # Not a message of Interest
+        if re.search(globs.opts['subjectregex'], emailParts['header']['subject']) == None:
+            globs.log.write(1, 'Message [{}] is not a Message of Interest. Can\'t match subjectregex from .rc file. Skipping message.'.format(emailParts['header']['messageId']))
+            return emailParts['header']['messageId']    # Not a message of Interest
 
         # Get source & desination computers from email subject
         srcRegex = '{}{}'.format(globs.opts['srcregex'], re.escape(globs.opts['srcdestdelimiter']))
         destRegex = '{}{}'.format(re.escape(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
         globs.log.write(3,'srcregex=[{}]  destRegex=[{}]'.format(srcRegex, destRegex))
-        partsSrc = re.search(srcRegex, msgParts['subject'])
-        partsDest = re.search(destRegex, msgParts['subject'])
+        partsSrc = re.search(srcRegex, emailParts['header']['subject'])
+        partsDest = re.search(destRegex, emailParts['header']['subject'])
         if (partsSrc is None) or (partsDest is None):    # Correct subject but delimeter not found. Something is wrong.
             globs.log.write(2,'SrcDestDelimeter [{}] not found in subject line. Skipping message.'.format(globs.opts['srcdestdelimiter']))
-            return msgParts['messageId']
+            return emailParts['header']['messageId']
 
         # See if the record is already in the database, meaning we've seen it before
-        if globs.db.searchForMessage(msgParts['messageId']):    # Is message is already in database?
+        if globs.db.searchForMessage(emailParts['header']['messageId']):    # Is message is already in database?
             # Mark the email as being seen in the database
-            globs.db.execSqlStmt('UPDATE emails SET dbSeen = 1 WHERE messageId = \"{}\"'.format(msgParts['messageId']))
+            globs.db.execSqlStmt('UPDATE emails SET dbSeen = 1 WHERE messageId = \"{}\"'.format(emailParts['header']['messageId']))
             globs.db.dbCommit()
-            return msgParts['messageId']
+            return emailParts['header']['messageId']
         # Message not yet in database. Proceed.
-        globs.log.write(1, 'Message ID [{}] does not yet exist in DB.'.format(msgParts['messageId']))
+        globs.log.write(1, 'Message ID [{}] does not yet exist in DB.'.format(emailParts['header']['messageId']))
 
-        dTup = email.utils.parsedate_tz(msgParts['date'])
+        dTup = email.utils.parsedate_tz(emailParts['header']['date'])
         if dTup:
             # See if there's timezone info in the email header data. May be 'None' if no TZ info in the date line
             # TZ info is represented by seconds offset from UTC
             # We don't need to adjust the email date for TimeZone info now, since date line in email already accounts for TZ.
             # All other calls to toTimestamp() should include timezone info
-            msgParts['timezone'] = dTup[9]
+            emailParts['header']['timezone'] = dTup[9]
 
             # Set date into a parseable string
             # It doesn't matter what date/time format we pass in (as long as it's valid)
@@ -390,16 +404,16 @@ class EmailServer:
             # For now, we'll use YYYY/MM/DD HH:MM:SS
             xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])  
             dtTimStmp = drdatetime.toTimestamp(xDate, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
-            msgParts['emailTimestamp'] = dtTimStmp
+            emailParts['header']['emailTimestamp'] = dtTimStmp
             globs.log.write(3, 'emailDate=[{}]-[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
 
-        msgParts['sourceComp'] = re.search(srcRegex, msgParts['subject']).group().split(globs.opts['srcdestdelimiter'])[0]
-        msgParts['destComp'] = re.search(destRegex, msgParts['subject']).group().split(globs.opts['srcdestdelimiter'])[1]
-        globs.log.write(3, 'sourceComp=[{}] destComp=[{}] emailTimestamp=[{}] subject=[{}]'.format(msgParts['sourceComp'], \
-            msgParts['destComp'], msgParts['emailTimestamp'], msgParts['subject']))
+        emailParts['header']['sourceComp'] = re.search(srcRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[0]
+        emailParts['header']['destComp'] = re.search(destRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[1]
+        globs.log.write(3, 'sourceComp=[{}] destComp=[{}] emailTimestamp=[{}] subject=[{}]'.format(emailParts['header']['sourceComp'], \
+            emailParts['header']['destComp'], emailParts['header']['emailTimestamp'], emailParts['header']['subject']))
 
         # Search for source/destination pair in database. Add if not already there
-        retVal = globs.db.searchSrcDestPair(msgParts['sourceComp'], msgParts['destComp'])
+        retVal = globs.db.searchSrcDestPair(emailParts['header']['sourceComp'], emailParts['header']['destComp'])
 
         # Extract the body (payload) from the email
         if self.protocol == 'pop3':
@@ -411,7 +425,7 @@ class EmailServer:
             msgTmp=''
             for j in body:
                 msgTmp += '{}\n'.format(j.decode("utf-8"))
-            msgBody = email.message_from_string(msgTmp)._payload  # Get message body
+            emailParts['body']['fullbody'] = email.message_from_string(msgTmp)._payload  # Get message body
         elif self.protocol == 'imap':
             # Retrieve just the body text of the message.
             retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[TEXT])')
@@ -423,48 +437,48 @@ class EmailServer:
             # Need to check if len(data)==2 (normally unread) or ==3 (manually set unread)
             globs.log.write(3,'dataLen={}'.format(len(data)))
             if len(data) == 2:
-                msgBody = data[0][1].decode('utf-8')  # Get message body
+                emailParts['body']['fullbody'] = data[0][1].decode('utf-8')  # Get message body
             else:
-                msgBody = data[1][1].decode('utf-8')  # Get message body
+                emailParts['body']['fullbody'] = data[1][1].decode('utf-8')  # Get message body
         
-        globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
+        globs.log.write(3, 'Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
         # See if email is text or JSON. JSON messages begin with '{"Data":'
-        isJson = True if msgBody[:8] == '{\"Data\":' else False
+        isJson = True if emailParts['body']['fullbody'][:8] == '{\"Data\":' else False
 
         if isJson:
-            jsonStatus = json.loads(msgBody.replace("=\r\n","").replace("=\n",""), strict = False)    # Top-level JSON data
+            jsonStatus = json.loads(emailParts['body']['fullbody'].replace("=\r\n","").replace("=\n",""), strict = False)    # Top-level JSON data
             jsonData = jsonStatus['Data']                                           # 'Data' branch under main data
 
             # Get message fields from JSON column in lineParts list
             for section,regex,flag,typ,jsonSection in lineParts:
-                statusParts[section] = self.searchMessagePartJson(jsonData, jsonSection, typ)
+                emailParts['body'][section] = self.searchMessagePartJson(jsonData, jsonSection, typ)
             # See if there are log lines to display
             if len(jsonStatus['LogLines']) > 0:
-                statusParts['logdata'] = jsonStatus['LogLines'][0]
+                emailParts['body']['logdata'] = jsonStatus['LogLines'][0]
             else:
-               statusParts['logdata'] = ''
+                emailParts['body']['logdata'] = ''
 
-            if statusParts['parsedResult'] != 'Success': # Error during backup
+            if emailParts['body']['parsedResult'] != 'Success': # Error during backup
                 # Set appropriate fail/message fields to relevant values
                 # The JSON report has somewhat different fields than the "classic" report, so we have to fudge this a little bit
                 #   so we can use common code to process both types later.
-                statusParts['failed'] = 'Failure'   
-                if statusParts['parsedResult'] == '':
-                    statusParts['parsedResult'] = 'Failure'   
-                statusParts['errors'] = jsonData['Message'] if 'Message' in jsonData else ''
+                emailParts['body']['failed'] = 'Failure'   
+                if emailParts['body']['parsedResult'] == '':
+                    emailParts['body']['parsedResult'] = 'Failure'   
+                emailParts['body']['errors'] = jsonData['Message'] if 'Message' in jsonData else ''
         else: # Not JSON - standard message format
-            # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in statusParts{}
+            # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in emailParts['body']{}
             for section,regex,flag,typ, jsonSection in lineParts:
-                statusParts[section] = self.searchMessagePart(msgBody, regex, flag, typ) # Get the field parts
+                emailParts['body'][section] = self.searchMessagePart(emailParts['body']['fullbody'], regex, flag, typ) # Get the field parts
 
         # Adjust fields if not a clean run
-        globs.log.write(3, "statusParts['failed']=[{}]".format(statusParts['failed']))
-        if statusParts['failed'] == '':  # Looks like a good run
+        globs.log.write(3, "emailParts['body']['failed']=[{}]".format(emailParts['body']['failed']))
+        if emailParts['body']['failed'] == '':  # Looks like a good run
             # Get the start and end times of the backup
             if  isJson:
-                dateParts['endTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['endTimeStr'], utcOffset = msgParts['timezone'])
-                dateParts['beginTimestamp'] = drdatetime.toTimestampRfc3339(statusParts['beginTimeStr'], utcOffset = msgParts['timezone'])
+                emailParts['body']['endTimestamp'] = drdatetime.toTimestampRfc3339(emailParts['body']['endTimeStr'], utcOffset = emailParts['header']['timezone'])
+                emailParts['body']['beginTimestamp'] = drdatetime.toTimestampRfc3339(emailParts['body']['beginTimeStr'], utcOffset = emailParts['header']['timezone'])
             else:
                 # Some fields in "classic" Duplicati report output are displayed in standard format or detailed format (in parentheses)
                 # For example:
@@ -475,53 +489,53 @@ class EmailServer:
                 # JSON output format does not use parenthesized format (see https://forum.duplicati.com/t/difference-in-json-vs-text-output/7092 for more explanation)
 
                 # Extract the parenthesized value (if present) or the raw value (if not)
-                dt, tm = globs.optionManager.getRcSectionDateTimeFmt(msgParts['sourceComp'], msgParts['destComp'])
-                dateParts['endTimestamp'] = self.parenOrRaw(statusParts['endTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
-                dateParts['beginTimestamp'] = self.parenOrRaw(statusParts['beginTimeStr'], df = dt, tf = tm, tz = msgParts['timezone'])
-                statusParts['sizeOfModifiedFiles'] = self.parenOrRaw(statusParts['sizeOfModifiedFiles'])
-                statusParts['sizeOfAddedFiles'] = self.parenOrRaw(statusParts['sizeOfAddedFiles'])
-                statusParts['sizeOfExaminedFiles'] = self.parenOrRaw(statusParts['sizeOfExaminedFiles'])
-                statusParts['sizeOfOpenedFiles'] = self.parenOrRaw(statusParts['sizeOfOpenedFiles'])
+                dt, tm = globs.optionManager.getRcSectionDateTimeFmt(emailParts['header']['sourceComp'], emailParts['header']['destComp'])
+                emailParts['body']['endTimestamp'] = self.parenOrRaw(emailParts['body']['endTimeStr'], df = dt, tf = tm, tz = emailParts['header']['timezone'])
+                emailParts['body']['beginTimestamp'] = self.parenOrRaw(emailParts['body']['beginTimeStr'], df = dt, tf = tm, tz = emailParts['header']['timezone'])
+                emailParts['body']['sizeOfModifiedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfModifiedFiles'])
+                emailParts['body']['sizeOfAddedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfAddedFiles'])
+                emailParts['body']['sizeOfExaminedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfExaminedFiles'])
+                emailParts['body']['sizeOfOpenedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfOpenedFiles'])
 
-            globs.log.write(3, 'Email indicates a successful backup. Date/time is: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
+            globs.log.write(3, 'Email indicates a successful backup. Date/time is: end=[{}]  begin=[{}]'.format(emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'])), 
         else:  # Something went wrong. Let's gather the details.
             if not isJson:
-                statusParts['errors'] = statusParts['failed']
-                statusParts['parsedResult'] = 'Failure'
-                statusParts['warnings'] = statusParts['details']
+                emailParts['body']['errors'] = emailParts['body']['failed']
+                emailParts['body']['parsedResult'] = 'Failure'
+                emailParts['body']['warnings'] = emailParts['body']['details']
 
-            globs.log.write(2, 'Errors=[{}]'.format(statusParts['errors']))
-            globs.log.write(2, 'Warnings=[{}]'.format(statusParts['warnings']))
-            globs.log.write(2, 'Log Data=[{}]'.format(statusParts['logdata']))
+            globs.log.write(2, 'Errors=[{}]'.format(emailParts['body']['errors']))
+            globs.log.write(2, 'Warnings=[{}]'.format(emailParts['body']['warnings']))
+            globs.log.write(2, 'Log Data=[{}]'.format(emailParts['body']['logdata']))
 
             # Since the backup job report never ran, we'll use the email date/time as the report date/time
-            dateParts['endTimestamp'] = msgParts['emailTimestamp']
-            dateParts['beginTimestamp'] = msgParts['emailTimestamp']
-            globs.log.write(3, 'Email indicates a failed backup. Replacing date/time with: end=[{}]  begin=[{}]'.format(dateParts['endTimestamp'], dateParts['beginTimestamp'])), 
+            emailParts['body']['endTimestamp'] = emailParts['header']['emailTimestamp']
+            emailParts['body']['beginTimestamp'] = emailParts['header']['emailTimestamp']
+            globs.log.write(3, 'Email indicates a failed backup. Replacing date/time with: end=[{}]  begin=[{}]'.format(emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'])), 
 
         # Replace commas (,) with newlines (\n) in message fields. Sqlite really doesn't like commas in SQL statements!
         for part in ['messages', 'warnings', 'errors', 'logdata']:
-            if statusParts[part] != '':
-                statusParts[part] = statusParts[part].replace(',','\n')
+            if emailParts['body'][part] != '':
+                emailParts['body'][part] = emailParts['body'][part].replace(',','\n')
 
         # If we're just collecting and get a warning/error, we may need to send an email to the admin
-        if (globs.opts['collect'] is True) and (globs.opts['warnoncollect'] is True) and ((statusParts['warnings'] != '') or (statusParts['errors'] != '')):
+        if (globs.opts['collect'] is True) and (globs.opts['warnoncollect'] is True) and ((emailParts['body']['warnings'] != '') or (emailParts['body']['errors'] != '')):
             errMsg = 'Duplicati error(s) on backup job\n'
-            errMsg += 'Message ID {} on {}\n'.format(msgParts['messageId'], msgParts['date'])
-            errMsg += 'Subject: {}\n\n'.format(msgParts['subject'])
-            if statusParts['warnings'] != '':
-                errMsg += 'Warnings:' + statusParts['warnings'] + '\n\n'
-            if statusParts['errors'] != '':
-                errMsg += 'Errors:' + statusParts['errors'] + '\n\n'
-            if statusParts['logdata'] != '':
-                errMsg += 'Log Data:' + statusParts['logdata'] + '\n\n'
+            errMsg += 'Message ID {} on {}\n'.format(emailParts['header']['messageId'], emailParts['header']['date'])
+            errMsg += 'Subject: {}\n\n'.format(emailParts['header']['subject'])
+            if emailParts['body']['warnings'] != '':
+                errMsg += 'Warnings:' + emailParts['body']['warnings'] + '\n\n'
+            if emailParts['body']['errors'] != '':
+                errMsg += 'Errors:' + emailParts['body']['errors'] + '\n\n'
+            if emailParts['body']['logdata'] != '':
+                errMsg += 'Log Data:' + emailParts['body']['logdata'] + '\n\n'
 
             globs.outServer.sendErrorEmail(errMsg)
 
-        globs.log.write(3, 'Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(dateParts['endTimestamp']), drdatetime.fromTimestamp(dateParts['beginTimestamp'])))
+        globs.log.write(3, 'Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(emailParts['body']['endTimestamp']), drdatetime.fromTimestamp(emailParts['body']['beginTimestamp'])))
 
-        globs.db.execEmailInsertSql(msgParts, statusParts, dateParts)
-        return msgParts['messageId']
+        globs.db.execEmailInsertSql(emailParts)
+        return emailParts['header']['messageId']
 
 
     # Issue #111 feature request
