@@ -123,7 +123,9 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     # Convert to datetime object, then get timestamp
     try:
         ts = datetime.datetime(year, month, day, hour, minute, second).timestamp()
-    except ValueError:
+    except ValueError as err:
+        globs.log.err('toTimeStamp() Error: {}\n'.format(err.args[0]))
+        globs.log.write(1, 'toTimeStamp() Error: {}\n'.format(err.args[0]))
         timeStampCrash('Error creating timestamp: DateString={} DateFormat={} year={} month={} day={} hour={} minute={} second={}'.format(dtStr, dfmt, year, month, day, hour, minute, second))   # Write error message, close program
  
     # Apply email's UTC offset to date/time

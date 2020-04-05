@@ -266,6 +266,30 @@ def pastBackupWarningThreshold(src, dest, nDays, nbWarnDefault):
     globs.log.write(3,'pastBackupWarningThreshold returning {}'.format(retVal))
     return retVal
 
+def sendNoBackupWarnings():
+    globs.log.write(1, 'sendNoBackupWarnings()')
+
+    # Get all source/destination pairs
+    sqlStmt = "SELECT source, destination FROM backupsets ORDER BY source, destination"
+    dbCursor = globs.db.execSqlStmt(sqlStmt)
+    srcDestRows = dbCursor.fetchall()
+    if len(srcDestRows) != 0:
+        for source, destination in srcDestRows:
+			# First, see if SrcDest is listed as offline. If so, skip.
+            srcDest = source + globs.opts['srcdestdelimiter'] + destination
+            offline = globs.optionManager.getRcOption(srcDest, 'offline')
+            if offline != None:
+                if offline.lower() in ('true'):
+                    continue
+
+            latestTimeStamp = getLatestTimestamp(source, destination)
+            diff = drdatetime.daysSince(latestTimeStamp)
+            if pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['defaults']['nobackupwarn']) is True:
+                globs.log.write(2,'{}-{} is past backup warning threshold @ {} days. Sending warning email'.format(source, destination, diff))
+                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.rStruct['defaults'])
+                globs.emailManager.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
+    return None
+
 def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     globs.log.write(1,'buildWarningMessage({}, {}, {}, {})'.format(source, destination, nDays, lastTimestamp))
     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
@@ -293,10 +317,10 @@ def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     warnText += 'Your backups will resume the next time {} is brought back online.\n'.format(source)
     warnText += 'Otherwise, please make sure your Duplicati service is running and/or manually run a backup as soon as possible!\n'
     
-    sender = globs.opts['outsender']
+    sender = globs.emailManager.getSmtpServer().options['sender']
     receiver = globs.optionManager.getRcOption(srcDest, 'receiver')
     if receiver is None:
-        receiver = globs.opts['outreceiver']
+        receiver = globs.emailManager.getSmtpServer().options['receiver']
 
     globs.log.write(3, 'Sending message to {}'.format(receiver))
     return warnHtml, warnText, subj, sender, receiver

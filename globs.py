@@ -9,7 +9,7 @@ import os
 
 # Define version info
 version=[3,0,0]     # Program Version
-status='Beta 0 - Unstable'
+status='Beta 1 - Unstable'
 dbVersion=[3,0,0]   # Required DB version
 rcVersion=[3,1,0]   # Required RC version
 copyright='Copyright (c) 2020 Stephen Fried for Handy Guy Software.'
@@ -24,7 +24,8 @@ dateFormat = None                   # Global date format - can be overridden per
 timeFormat = None                   # Global time format - can be overridden per backup set
 report = None                       # Global report object
 ofileList = None                    # List of output files
-optionManager = None                # Option Manager
+optionManager = None                # Global Option Manager
+emailManager = None                 # Global email server management
 opts = None                         # Global program options
 progPath = None                     # Path to script files
 appriseObj = None                   # dupApprise instance

@@ -69,29 +69,119 @@ lineParts = [
     ('failed',              'Failed: .*',                   re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ]
 
+serverRcParts = {
+    'imap': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive', 'folder', 'unreadonly', 'markread'],
+    'pop3': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive'],
+    'smtp': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive', 'sender', 'sendername', 'receiver']
+    }
 
-class EmailCluster:
+class EmailManager:
     def __init__(self):
 
-        incoming = []
-        outgoing = []
+        self.incoming = {}
+        self.outgoing = {}
+
+        serverlist = [x.strip() for x in globs.opts['emailservers'].split(',')]
+        for server in serverlist:
+            isValid, options = self.validateServerOptions(server)
+            if isValid:
+                if options['protocol'] in ['imap', 'pop3']:
+                    self.incoming[server] =  EmailServer(server, options)
+                else: # Smtp
+                    # Slow down there, Slim!
+                    # We don't need to open an output (smtp) email server if we're not sending email
+                    # BUt... we would need one for Apprise support if you're using Apprise to notify you through email. 
+                    # Thus, you may not want to also send redundant emails through dupReport.
+                    # However, if you haven't supressed backup warnings (i.e., -w), you'll still need an outgoing server connection
+                    # So, basically, if you've suppressed BOTH backup warnings AND outgoing email, skip opening the outgoing server
+                    # If EITHER of these is false (i.e., you want either of these to work), open the server connection
+                    if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
+                        self.outgoing[server] =  EmailServer(server, options)
+            else:
+                globs.closeEverythingAndExit(1)
 
         return None
 
-    def addServer(self, server):
-        self.servers.add(server)
+    # Quick function to return the default outgoing SMTP server
+    # For now, we will only be using the first entry in the outgoing dictionary as the smtp server
+    # In the future, the user might be able to specify multiple smtp servers and select one based on some criteria
+    # or if the first one is unavailable. 
+    # But not now.
+    def getSmtpServer(self):
+        outserver = next(iter(self.outgoing)) # get the first server in the 'outgoing' dictionary
+        return self.outgoing[outserver]
+
+    def checkForNewMessages(self):
+        for server in self.incoming:
+            # Get new messages on server
+            progCount = 0   # Count for progress indicator
+            newMessages = self.incoming[server].checkForMessages()
+            if newMessages > 0:
+                nxtMsg = self.incoming[server].processNextMessage()
+                while nxtMsg is not None:
+                    if globs.opts['showprogress'] > 0:
+                        progCount += 1
+                        if (progCount % globs.opts['showprogress']) == 0:
+                            globs.log.out('.', newline = False)
+                    nxtMsg = self.incoming[server].processNextMessage()
+                if globs.opts['showprogress'] > 0:
+                    globs.log.out(' ')   # Add newline at end.
+
+                # Do we want to mark messages as 'read/seen'? (Only works for IMAP)
+                if self.incoming[server].options['protocol'] == 'imap':
+                    if self.incoming[server].options['markread'] is True:
+                        self.incoming[server].markMessagesRead()
+        return
+
+    def sendEmail(self, **kwargs):
+        self.getSmtpServer().sendEmail(**kwargs)
+
+    def validateServerOptions(self, server):
+        options = {}
+        isValid = True
+
+        rcOptions = globs.optionManager.getRcSection(server)
+        
+        # Make sure there is a valid protocol field in the spec. Without this, all else is useless
+        if rcOptions is None:
+            globs.log.err('No specification found for server \'{}\''.format(server))
+            globs.log.write(1, 'No specification found for server \'{}\''.format(server))
+            isValid = False
+        elif 'protocol' not in rcOptions:
+            globs.log.err('No protocol specified for server \'{}\''.format(server))
+            globs.log.write(1, 'No protocol specified for server \'{}\''.format(server))
+            isValid = False
+        elif rcOptions['protocol'] not in ['imap', 'pop3', 'smtp']:
+            globs.log.err('Invalid protocol \'{}\' specified for server \'{}\''.format(rcOptions['protocol'], server))
+            globs.log.write(1, 'Invalid protocol \'{}\' specified for server \'{}\''.format(rcOptions['protocol'], server))
+            isValid = False
+
+        if not isValid:
+            return isValid, None
+
+
+        # Looking good. Now loop through required options to see if any are missing
+        for option in serverRcParts[rcOptions['protocol']]:
+            if option not in rcOptions:
+                globs.log.err('Required option \'{}\' not found in defintion of server \'{}\''.format(option, server))
+                isValid = False
+            else:
+                if option in ['port']: # Int conversion
+                    options[option] = int(rcOptions[option])
+                elif option in ['keepalive', 'unreadonly', 'markread']: # Bool conversion
+                    options[option] = rcOptions[option].lower() in ('true')
+                else: # String value
+                    options[option] = rcOptions[option]
+
+        return isValid, options
+
 
 class EmailServer:
-    def __init__(self, prot, add, prt, acct, pwd, crypt, kalive, fold = None):
-        self.protocol = prot
-        self.address = add
-        self.port = prt
-        self.accountname = acct
-        self.passwd = pwd
-        self.encryption = crypt
-        self.keepalive = kalive
-        self.folder = fold
-        self.server = None
+    #def __init__(self, prot, add, prt, acct, pwd, crypt, kalive, mkread = False, unread = False, fold = None):
+    def __init__(self, serverName, optionList):
+        
+        self.options = optionList
+        self.serverconnect = None
         self.newEmails = 0      # List[] of new emails on server. Activated by connect()
         self.numEmails = 0      # Number of emails in list
         self.nextEmail = 0      # index into list of next email to be retrieved
@@ -100,56 +190,56 @@ class EmailServer:
 
     def connect(self):
         globs.log.write(1, 'EmailServer.Connect()')
-        globs.log.write(3, 'server={} keepalive={}'.format(self.server, self.keepalive))
+        globs.log.write(3, 'server={} keepalive={}'.format(self.serverconnect, self.options['keepalive']))
 
-        # See if a server connection is already established (self.server != None)
+        # See if a server connection is already established (self.serverconnect != None)
         # This is the most common case, so check this first
-        if self.server != None:
-            if not self.keepalive: # Do we care about keepalives?
+        if self.serverconnect != None:
+            if not self.options['keepalive']: # Do we care about keepalives?
                 return None
 
             globs.log.write(3,'Checking server connection')
-            if self.protocol == 'imap':
+            if self.options['protocol'] == 'imap':
                 try:
-                    status = self.server.noop()[0]
+                    status = self.serverconnect.noop()[0]
                 except:
                     status = 'NO'
 
                 if status != 'OK':
-                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
-                    self.server = None
+                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.options['server']))
+                    self.serverconnect = None
                     self.connect()
-            elif self.protocol == 'pop3':
+            elif self.options['protocol'] == 'pop3':
                 try:
-                    status = self.server.noop()
+                    status = self.serverconnect.noop()
                 except:
                     status = '+NO'
 
                 if status.decode() != '+OK':        # Stats from POP3 returned as byte string. Need to decode before compare (Issue #107)
-                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
-                    self.server = None
+                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.options['server']))
+                    self.serverconnect = None
                     self.connect()
-            elif self.protocol == 'smtp':
+            elif self.options['protocol'] == 'smtp':
                 try:
-                    status = self.server.noop()[0]
+                    status = self.serverconnect.noop()[0]
                 except:  # smtplib.SMTPServerDisconnected
                     status = -1
 
                 if status != 250: # Disconnected. Need to reconnect to server
-                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.address))
-                    self.server = None
+                    globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.options['server']))
+                    self.serverconnect = None
                     self.connect()
-        else:     # self.server == None. Never connected, need to establish server connection
-            if self.protocol == 'imap':
+        else:     # self.serverconnect == None. Never connected, need to establish server connection
+            if self.options['protocol'] == 'imap':
                 globs.log.write(1,'Initial connect using  IMAP')
                 try:
-                    if self.encryption is not None:
-                        self.server = imaplib.IMAP4_SSL(self.address,self.port)
+                    if self.options['encryption'] != 'none':
+                        self.serverconnect = imaplib.IMAP4_SSL(self.options['server'],self.options['port'])
                     else:
-                        self.server = imaplib.IMAP4(self.address,self.port)
-                    retVal, data = self.server.login(self.accountname, self.passwd)
+                        self.serverconnect = imaplib.IMAP4(self.options['server'],self.options['port'])
+                    retVal, data = self.serverconnect.login(self.options['account'], self.options['password'])
                     globs.log.write(3,'IMAP Logged in. retVal={} data={}'.format(retVal, globs.maskData(data)))
-                    retVal, data = self.server.select(self.folder)
+                    retVal, data = self.serverconnect.select(self.options['folder'])
                     globs.log.write(3,'IMAP Setting folder. retVal={} data={}'.format(retVal, data))
                     return retVal
                 except imaplib.IMAP4.error:
@@ -158,37 +248,37 @@ class EmailServer:
                 except imaplib.socket.gaierror:
                     # Better log messages here
                     return None
-            elif self.protocol == 'pop3':
+            elif self.options['protocol'] == 'pop3':
                 globs.log.write(1,'Initial connect using POP3')
                 try:
-                    if self.encryption is not None:
-                        self.server = poplib.POP3_SSL(self.address,self.port)
+                    if self.options['encryption'] != 'none':
+                        self.serverconnect = poplib.POP3_SSL(self.options['server'],self.options['port'])
                     else:
-                        self.server = poplib.POP3(self.address,self.port)
-                    retVal = self.server.user(self.accountname)
+                        self.serverconnect = poplib.POP3(self.options['server'],self.options['port'])
+                    retVal = self.serverconnect.user(self.options['account'])
                     globs.log.write(3,'Logged in. retVal={}'.format(globs.maskData(retVal)))
-                    retVal = self.server.pass_(self.passwd)
+                    retVal = self.serverconnect.pass_(self.options['password'])
                     globs.log.write(3,'Entered password. retVal={}'.format(retVal))
                     return retVal.decode()
                 except Exception:
                    # Better log messages here
                    return None
-            elif self.protocol == 'smtp':
+            elif self.options['protocol'] == 'smtp':
                 globs.log.write(1,'Initial connect using  SMTP')
                 try:
-                    globs.log.write(3,'Initializing SMPT Object. Address=[{}]  port=[{}]'.format(self.address,self.port))
-                    self.server = smtplib.SMTP(self.address,self.port)
-                    globs.log.write(3,'self.server=[{}]'.format(self.server))
-                    if self.encryption is not None:   # Do we need to use SSL/TLS?
+                    globs.log.write(3,'Initializing SMPT Object. Address=[{}]  port=[{}]'.format(self.options['server'],self.options['port']))
+                    self.serverconnect = smtplib.SMTP(self.options['server'],self.options['port'])
+                    globs.log.write(3,'self.serverconnect=[{}]'.format(self.options['server']))
+                    if self.options['encryption'] != 'none':   # Do we need to use SSL/TLS?
                         globs.log.write(3,'Starting TLS')
                         try:
                             tlsContext = ssl.create_default_context()
-                            self.server.starttls(context=tlsContext)
+                            self.serverconnect.starttls(context=tlsContext)
                         except Exception as e:
                             globs.log.write(3,'TLS Exception: [{}]'.format(e))
-                    globs.log.write(3,'Logging into server. Account=[{}] pwd=[{}]'.format(self.accountname, self.passwd))
+                    globs.log.write(3,'Logging into server. Account=[{}] pwd=[{}]'.format(self.options['account'], self.options['password']))
                     try:
-                        retVal, retMsg = self.server.login(self.accountname, self.passwd)
+                        retVal, retMsg = self.serverconnect.login(self.options['account'], self.options['password'])
                         globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
                         return retMsg.decode()
                     except Exception as e:
@@ -196,7 +286,7 @@ class EmailServer:
                 except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
                     return None
             else:   # Bad protocol specification
-                globs.log.err('Invalid protocol specification: {}. Aborting program.'.format(self.protocol))
+                globs.log.err('Invalid protocol specification: {}. Aborting program.'.format(self.options['protocol']))
                 globs.closeEverythingAndExit(1)
                 return None
         return None
@@ -204,14 +294,12 @@ class EmailServer:
     # Close email server connection
     def close(self):
         
-        # If self.server == None, nothing left to close
-        if self.server != None:
-            if self.protocol == 'pop3':
-                self.server.quit()
-            elif self.protocol == 'imap':
-                self.server.close()
-            elif self.protocol == 'smtp':
-                self.server.quit()
+        # If self.serverconnect == None, nothing left to close
+        if self.serverconnect != None:
+            if self.options['protocol'] in ['pop3', 'smtp']:
+                self.serverconnect.quit()
+            else: #IMAP
+                self.serverconnect.close()
         return None
 
     # Check if there are new messages waiting on the server
@@ -219,9 +307,9 @@ class EmailServer:
     # Return None if empty
     def checkForMessages(self):
         self.connect()
-        if self.protocol == 'pop3':
+        if self.options['protocol'] == 'pop3':
             globs.log.write(1,'checkForMessages(POP3)')
-            self.numEmails = len(self.server.list()[1])  # Get list of new emails
+            self.numEmails = len(self.serverconnect.list()[1])  # Get list of new emails
             globs.log.write(3,'Number of new emails: {}'.format(self.numEmails))
             if self.numEmails == 0:     # No new emails
                 self.newEmails = None 
@@ -230,12 +318,12 @@ class EmailServer:
             self.newEmails = list(range(self.numEmails))
             self.nextEmail = -1     # processNextMessage() pre-increments message index. Initializing to -1 ensures the pre-increment start at 0
             return self.numEmails
-        elif self.protocol == 'imap':
+        elif self.options['protocol'] == 'imap':
             globs.log.write(1,'checkForMessages(IMAP)')
 
             # Issue #124 - only read unseen/unread messages. Speed up input processing.
-            scope = '(UNSEEN)' if globs.opts['unreadonly'] == True else 'ALL'
-            retVal, data = self.server.search(None, scope)
+            scope = '(UNSEEN)' if self.options['unreadonly'] == True else 'ALL'
+            retVal, data = self.serverconnect.search(None, scope)
             globs.log.write(3,'Searching folder. retVal={} data={}'.format(retVal, data))
             if retVal != 'OK':          # No new emails
                 self.newEmails = None
@@ -327,9 +415,9 @@ class EmailServer:
         if (self.newEmails == None) or (self.nextEmail == self.numEmails):  
             return None
 
-        if self.protocol == 'pop3':
+        if self.options['protocol'] == 'pop3':
             # Get message header
-            server_msg, body, octets = self.server.top((self.newEmails[self.nextEmail])+1,0)
+            server_msg, body, octets = self.serverconnect.top((self.newEmails[self.nextEmail])+1,0)
             globs.log.write(3, 'server_msg=[{}]  body=[{}]  octets=[{}]'.format(server_msg,body,octets))
             if server_msg[:3].decode() != '+OK':
                 globs.log.write(1, 'ERROR getting message: {}'.format(self.nextEmail))
@@ -338,9 +426,9 @@ class EmailServer:
             # Get date, subject, and message ID from headers
             hdrLine = self.mergePop3Headers(body)       # Convert to IMAP format
             emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'] = self.extractHeaders(hdrLine)
-        elif self.protocol == 'imap':
+        elif self.options['protocol'] == 'imap':
             # Get message header
-            retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
+            retVal, data = self.serverconnect.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
             if retVal != 'OK':
                 globs.log.write(1, 'ERROR getting message: {}'.format(self.nextEmail))
                 return '<INVALID>'
@@ -348,7 +436,7 @@ class EmailServer:
 
             emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
         else:   # Invalid protocol spec
-            globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
+            globs.log.err('Invalid protocol specification: {}.'.format(self.options['protocol']))
             return None
             
         # Log message basics
@@ -416,19 +504,19 @@ class EmailServer:
         retVal = globs.db.searchSrcDestPair(emailParts['header']['sourceComp'], emailParts['header']['destComp'])
 
         # Extract the body (payload) from the email
-        if self.protocol == 'pop3':
+        if self.options['protocol'] == 'pop3':
             # Retrieve the whole messsage. This is redundant with previous .top() call and results in extra data downloads
             # In cases where there is a mix of Duplicati and non-Duplicati emails to read, this actually saves time in the large scale.
             # In cases where all the emails on the server are Duplicati emails, this does, in fact, slow things down a bit
             # POP3 is a stupid protocol. Use IMAP if at all possible.
-            server_msg, body, octets = self.server.retr((self.newEmails[self.nextEmail])+1)
+            server_msg, body, octets = self.serverconnect.retr((self.newEmails[self.nextEmail])+1)
             msgTmp=''
             for j in body:
                 msgTmp += '{}\n'.format(j.decode("utf-8"))
             emailParts['body']['fullbody'] = email.message_from_string(msgTmp)._payload  # Get message body
-        elif self.protocol == 'imap':
+        elif self.options['protocol'] == 'imap':
             # Retrieve just the body text of the message.
-            retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[TEXT])')
+            retVal, data = self.serverconnect.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[TEXT])')
         
             # Fix issue #71
             # From https://stackoverflow.com/questions/2230037/how-to-fetch-an-email-body-using-imaplib-in-python
@@ -530,7 +618,7 @@ class EmailServer:
             if emailParts['body']['logdata'] != '':
                 errMsg += 'Log Data:' + emailParts['body']['logdata'] + '\n\n'
 
-            globs.outServer.sendErrorEmail(errMsg)
+            globs.emailManager.sendEmail(msgText=errMsg, subject='Duplicati Job Status Error')
 
         globs.log.write(3, 'Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(emailParts['body']['endTimestamp']), drdatetime.fromTimestamp(emailParts['body']['beginTimestamp'])))
 
@@ -542,11 +630,11 @@ class EmailServer:
     # Provide ability to mark messages as read/seen if [main]optread is true in the .rc file.
     # This function is only works for IMAP. POP3 doesn't have this capability.
     def markMessagesRead(self):
-        globs.log.write(1, 'dremail.markmessagesRead(protocol={})'.format(self.protocol))
+        globs.log.write(1, 'dremail.markmessagesRead(protocol={})'.format(self.options['protocol']))
     
         globs.log.write(2, 'Marking {} messages as read'.format(self.numEmails))
         for msg in range(self.numEmails):
-            self.server.store(self.newEmails[msg],'+FLAGS','\Seen')
+            self.serverconnect.store(self.newEmails[msg],'+FLAGS','\Seen')
 
         globs.log.write(1, 'dremail.markmessagesRead(): complete')
         return;
@@ -581,7 +669,6 @@ class EmailServer:
 
         return retData
 
-    
     # Search for field in JSON message
     def searchMessagePartJson(self, jsonParts, key, typ):
         if key in jsonParts:
@@ -594,7 +681,7 @@ class EmailServer:
             return ''
 
     # Send final email result
-    def sendEmail(self,rptOutput = None, strtTime = None, msgHtml = None, msgText = None, subject = None, sender = None, receiver = None):
+    def sendEmail(self, msgHtml = None, msgText = None, subject = None, sender = None, receiver = None, fileattach = False):
         #globs.log.write(2, 'sendEmail(msgHtml={}, msgText={}, subject={}, sender={}, receiver={})'.format(msgHtml, msgText, subject, globs.maskData(sender), globs.maskData(receiver)))
         self.connect()
 
@@ -604,10 +691,10 @@ class EmailServer:
             subject = globs.report.rStruct['defaults']['title']
         msg['Subject'] = subject
         if sender is None:
-            sender = globs.opts['outsender']
+            sender = self.options['sender']
         msg['From'] = sender
         if receiver is None:
-            receiver = globs.opts['outreceiver']
+            receiver = self.options['receiver']
         msg['To'] = receiver
  
         # Add 'Date' header for RFC compliance - See issue #77
@@ -617,22 +704,18 @@ class EmailServer:
         # Attach parts into message container.
         # According to RFC 2046, the last part of a multipart message is best and preferred.
         # So attach text first, then HTML
-        txtContent = msgText
-        if txtContent == None:     # Take content from rptOutput
-            txtContent = globs.report.createFormattedOutput(rptOutput, 'txt')
-        msgPart = MIMEText(txtContent, 'plain')
-        msg.attach(msgPart)
+        if msgText != None:
+            msgPart = MIMEText(msgText, 'plain')
+            msg.attach(msgPart)
 
-        htmlContent = msgHtml
-        if htmlContent == None:     # Take content from reportOutput
-            htmlContent = globs.report.createFormattedOutput(rptOutput, 'html')
-        msgPart = MIMEText(htmlContent, 'html')
-        msg.attach(msgPart)
+        if msgHtml != None:
+            msgPart = MIMEText(msgHtml, 'html')
+            msg.attach(msgPart)
 
         # See which files need to be emailed
         # ofileList consists of tuples of (<filespec>,<emailSpec>)
         # Filespec is "<filename,type>". <emailSpec> is True (attach file as email) or False (dont).
-        if globs.ofileList:
+        if fileattach and globs.ofileList:
             for ofile in globs.ofileList:
                 if ofile[1]: # True - need to email
                     fname = ofile[0].split(',')[0]
@@ -649,29 +732,5 @@ class EmailServer:
         # Send the message via SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
         globs.log.write(2,'Sending email to [{}]'.format(globs.maskData(receiver.split(','))))
-        self.server.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
+        self.serverconnect.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
         return None
-
-    # Send email for errors
-    def sendErrorEmail(self, errText):
-        globs.log.write(2, 'sendErrorEmail()')
-        self.connect()
-
-        # Build email message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = 'Duplicati Job Status Error'
-        msg['From'] = globs.opts['outsender']
-        msg['To'] = globs.opts['outreceiver']
-        msg['Date'] = email.utils.formatdate(time.time(), localtime=True)   # Add 'Date' header for RFC compliance - See issue #77
-
-        # Record the MIME type. Only need text type
-        msgPart = MIMEText(errText, 'plain')
-        msg.attach(msgPart)
-
-        # Send the message via local SMTP server.
-        # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        globs.log.write(2,'Sending error email to [{}]'.format(globs.maskData(globs.opts['outreceiver'].split(','))))
-        self.server.sendmail(globs.opts['outsender'], globs.opts['outreceiver'].split(','), msg.as_string().encode('utf-8'))
-
-        return None
-
