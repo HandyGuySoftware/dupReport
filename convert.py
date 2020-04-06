@@ -198,6 +198,35 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.setRcOption(mainReport, 'columns', columns)
         oMgr.clearRcSection('headings')
 
+        # Change to new email server format
+        # Set [main]emailservers= option
+        oMgr.setRcOption('main', 'emailservers', 'incoming, outgoing')
+
+        # Move 'in*' to just '*'
+        protocol = oMgr.getRcOption('incoming', 'intransport')
+        oMgr.setRcOption('incoming', 'protocol', protocol)
+        oMgr.clearRcOption('incoming', 'intransport')        
+        oMgr.setRcOption('outgoing', 'protocol', 'smtp')
+
+        for option in ['inserver', 'inport', 'inencryption', 'inaccount', 'inpassword', 'infolder', 'inkeepalive']:
+            optVal = oMgr.getRcOption('incoming', option)
+            oMgr.setRcOption('incoming', option[2:], optVal)
+            oMgr.clearRcOption('incoming', option)
+        for option in ['outserver', 'outport', 'outencryption', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver', 'outkeepalive']:
+            optVal = oMgr.getRcOption('outgoing', option)
+            oMgr.setRcOption('outgoing', option[3:], optVal)
+            oMgr.clearRcOption('outgoing', option)
+
+        # Move 'markread' to incoming
+        markread = oMgr.getRcOption('main', 'markread')
+        oMgr.setRcOption('incoming', 'markread', markread)
+        oMgr.clearRcOption('main', 'markread')
+
+        # Add authentication methods
+        oMgr.setRcOption('incoming', 'authentication', 'basic')
+        oMgr.setRcOption('outgoing', 'authentication', 'basic')
+
+
         oMgr.updateRc()
         doConvertRc(oMgr, 310)
     else:

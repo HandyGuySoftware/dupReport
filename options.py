@@ -46,8 +46,34 @@ rcParts= [
     ('main',        'purgedb',          'false',                                                                    True),
     ('main',        'showprogress',     '0',                                                                        True),
     ('main',        'masksensitive',    'true',                                                                     True),
-    ('main',        'emailservers',     '<Add_Your_Servers_Here>',                                                  False),
+    ('main',        'emailservers',     'incoming, outgoing',                                                       True),
     
+    # [incoming] section defaults
+    ('incoming',    'protocol',       'imap',                                                                       False),
+    ('incoming',    'server',         'localhost',                                                                  False),
+    ('incoming',    'port',           '993',                                                                        False),
+    ('incoming',    'encryption',     'tls',                                                                        False),
+    ('incoming',    'account',        'someacct@hostmail.com',                                                      False),
+    ('incoming',    'password',       '********',                                                                   False),
+    ('incoming',    'folder',         'INBOX',                                                                      False),
+    ('incoming',    'keepalive',      'false',                                                                      True),
+    ('incoming',    'unreadonly',     'false',                                                                      True),
+    ('incoming',    'markread',       'false',                                                                      True),
+    ('incoming',    'authentication', 'basic',                                                                      True),
+
+    # [outgoing] section defaults
+    ('incoming',    'protocol',      'smtp',                                                                        False),
+    ('outgoing',    'server',        'localhost',                                                                   False),
+    ('outgoing',    'port',          '587',                                                                         False),
+    ('outgoing',    'encryption',    'tls',                                                                         False),
+    ('outgoing',    'account',       'someacct@hostmail.com',                                                       False),
+    ('outgoing',    'password',      '********',                                                                    False),
+    ('outgoing',    'keepalive',     'false',                                                                       True),
+    ('outgoing',    'sender',        'sender@hostmail.com',                                                         False),
+    ('outgoing',    'sendername',    'Email Sender',                                                                False),
+    ('outgoing',    'receiver',      'receiver@hostmail.com',                                                       False),
+    ('outgoing',    'authentication','basic',                                                                       True),
+
     # [report] section defaults
     ('report',      'layout',           'srcdest, noactivity, lastseen',                                            True),
     ('report',      'columns',           'source:Source, destination:Destination, date:Date, time:Time, duration:Duration, dupversion:Version, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, filesWithError:File Errors, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data', True),
@@ -205,7 +231,13 @@ class OptionManager:
         needUpdate = False      # Do we need to update/refresh the file
 
         # Loop through all the required parts of the RC file. If not there, add them
+        # First, check the emailserver option to see if it is there. If so, do not set [incoming] and [outgoing] sections
+        hasEmailServers = self.parser.has_option('main','emailservers')
+
         for section, option, default, canCont in rcParts:
+            if section in ['incoming', 'outgoing'] and hasEmailServers == True:   # No need to default email servers
+                continue
+            
             if not self.parser.has_section(section): # Whole section is missing.
                 globs.log.write(2, 'Adding RC section: [{}]'.format(section))
                 self.parser.add_section(section)
@@ -318,6 +350,8 @@ class OptionManager:
             self.options['purgedb'] = self.cmdLineArgs.purgedb
         if self.cmdLineArgs.append == True: # ONly override logappend if specified on the command line, else take whatever's in the rc file
             self.options['logappend'] = self.cmdLineArgs.append
+        if self.cmdLineArgs.emailservers != None:
+            self.options['emailservers'] = self.cmdLineArgs.emailservers
         self.options['initdb'] = self.cmdLineArgs.initdb
         
         # Store output files for later use
@@ -368,6 +402,7 @@ class OptionManager:
         opGroup1.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
 #
         argParser.add_argument("-d","--dbpath", help="Path to dupReport database file.", action="store")
+        argParser.add_argument("-e","--emailservers", help="List of incoming (IMAP & POP3) and outgoing (SMTP) servers to use.", action="store")
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
         argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
@@ -395,6 +430,8 @@ class OptionManager:
         try:
             self.cmdLineArgs = argParser.parse_args()
         except:
+            e = sys.exc_info()[0]
+            globs.log.write(1, 'Argument parser error: {}'.format(e))
             globs.closeEverythingAndExit(1)
 
 
@@ -421,6 +458,7 @@ class OptionManager:
         globs.log.write(3, '- nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
         globs.log.write(3, '- validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
         globs.log.write(3, '- layout = [{}]'.format(self.cmdLineArgs.layout))
+        globs.log.write(3, '- emailservers = [{}]'.format(self.cmdLineArgs.emailservers))
     
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line

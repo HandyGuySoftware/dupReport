@@ -234,7 +234,9 @@ def sendReportToFiles(reportOutput):
             try:
                 outfile = open(fileName,'w')
             except (OSError, IOError):
-                sys.stderr.write('Error opening output file: {}\n'.format(fileName))
+                e = sys.exc_info()[0]
+                globs.log.write(1, 'Error opening output file {}: {}\n'.format(fileName, e))
+                sys.stderr.write(1, 'Error opening output file {}: {}\n'.format(fileName, e))
                 return
             if format in ['html', 'txt', 'csv']:
                 outfile.write(msgContent)

@@ -70,9 +70,9 @@ lineParts = [
     ]
 
 serverRcParts = {
-    'imap': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive', 'folder', 'unreadonly', 'markread'],
-    'pop3': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive'],
-    'smtp': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive', 'sender', 'sendername', 'receiver']
+    'imap': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive', 'folder', 'unreadonly', 'markread', 'authentication'],
+    'pop3': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive', 'authentication'],
+    'smtp': ['protocol', 'server', 'port', 'encryption', 'account', 'password', 'keepalive', 'sender', 'sendername', 'receiver', 'authentication']
     }
 
 class EmailManager:
@@ -81,6 +81,13 @@ class EmailManager:
         self.incoming = {}
         self.outgoing = {}
 
+        ## Get reports that need to run as defined in [report]layout option
+        ##if globs.opts['layout'] != None:
+         #   self.rStruct['defaults']['layout'] = globs.opts['layout']
+        #layoutSections = splitRcIntoList(self.rStruct['defaults']['layout'])
+        #self.rStruct['sections'] = []
+
+        validList = True
         serverlist = [x.strip() for x in globs.opts['emailservers'].split(',')]
         for server in serverlist:
             isValid, options = self.validateServerOptions(server)
@@ -88,9 +95,9 @@ class EmailManager:
                 if options['protocol'] in ['imap', 'pop3']:
                     self.incoming[server] =  EmailServer(server, options)
                 else: # Smtp
-                    # Slow down there, Slim!
-                    # We don't need to open an output (smtp) email server if we're not sending email
-                    # BUt... we would need one for Apprise support if you're using Apprise to notify you through email. 
+                    # Before you go blindly opening up an outgoing connection....
+                    # We don't need to open an outbound (smtp) email server if we're not sending email
+                    # But... we would need one for Apprise support if you're using Apprise to notify you through email. 
                     # Thus, you may not want to also send redundant emails through dupReport.
                     # However, if you haven't supressed backup warnings (i.e., -w), you'll still need an outgoing server connection
                     # So, basically, if you've suppressed BOTH backup warnings AND outgoing email, skip opening the outgoing server
@@ -98,7 +105,19 @@ class EmailManager:
                     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
                         self.outgoing[server] =  EmailServer(server, options)
             else:
-                globs.closeEverythingAndExit(1)
+                isValid = False
+
+        if len(self.incoming) == 0:
+            globs.log.err('No incoming email server(s) specified.')
+            globs.log.write(1,'No incoming email server(s) specified.')
+            isValid = False
+        if len(self.outgoing) == 0:
+            globs.log.err('No outgoing email server(s) specified.')
+            globs.log.write(1,'No outgoing email server(s) specified.')
+            isValid = False
+
+        if not isValid:
+            globs.closeEverythingAndExit(1)
 
         return None
 
@@ -144,26 +163,25 @@ class EmailManager:
         
         # Make sure there is a valid protocol field in the spec. Without this, all else is useless
         if rcOptions is None:
-            globs.log.err('No specification found for server \'{}\''.format(server))
-            globs.log.write(1, 'No specification found for server \'{}\''.format(server))
+            globs.log.err('No specification found for email server \'{}\''.format(server))
+            globs.log.write(1, 'No specification found for email server \'{}\''.format(server))
             isValid = False
         elif 'protocol' not in rcOptions:
             globs.log.err('No protocol specified for server \'{}\''.format(server))
             globs.log.write(1, 'No protocol specified for server \'{}\''.format(server))
             isValid = False
         elif rcOptions['protocol'] not in ['imap', 'pop3', 'smtp']:
-            globs.log.err('Invalid protocol \'{}\' specified for server \'{}\''.format(rcOptions['protocol'], server))
-            globs.log.write(1, 'Invalid protocol \'{}\' specified for server \'{}\''.format(rcOptions['protocol'], server))
+            globs.log.err('Invalid protocol \'{}\' specified for email server \'{}\''.format(rcOptions['protocol'], server))
+            globs.log.write(1, 'Invalid protocol \'{}\' specified for email server \'{}\''.format(rcOptions['protocol'], server))
             isValid = False
 
         if not isValid:
             return isValid, None
 
-
         # Looking good. Now loop through required options to see if any are missing
         for option in serverRcParts[rcOptions['protocol']]:
             if option not in rcOptions:
-                globs.log.err('Required option \'{}\' not found in defintion of server \'{}\''.format(option, server))
+                globs.log.err('Required option \'{}\' not found in defintion of email server \'{}\''.format(option, server))
                 isValid = False
             else:
                 if option in ['port']: # Int conversion
@@ -175,9 +193,7 @@ class EmailManager:
 
         return isValid, options
 
-
 class EmailServer:
-    #def __init__(self, prot, add, prt, acct, pwd, crypt, kalive, mkread = False, unread = False, fold = None):
     def __init__(self, serverName, optionList):
         
         self.options = optionList
@@ -203,6 +219,8 @@ class EmailServer:
                 try:
                     status = self.serverconnect.noop()[0]
                 except:
+                    e = sys.exc_info()[0]
+                    globs.log.write(1, 'IMAP noop() Error: {}'.format(e))
                     status = 'NO'
 
                 if status != 'OK':
@@ -213,6 +231,8 @@ class EmailServer:
                 try:
                     status = self.serverconnect.noop()
                 except:
+                    e = sys.exc_info()[0]
+                    globs.log.write(1, 'POP3 noop() Error: {}'.format(e))
                     status = '+NO'
 
                 if status.decode() != '+OK':        # Stats from POP3 returned as byte string. Need to decode before compare (Issue #107)
@@ -223,6 +243,8 @@ class EmailServer:
                 try:
                     status = self.serverconnect.noop()[0]
                 except:  # smtplib.SMTPServerDisconnected
+                    e = sys.exc_info()[0]
+                    globs.log.write(1, 'SMTP noop() Error: {}'.format(e))
                     status = -1
 
                 if status != 250: # Disconnected. Need to reconnect to server
@@ -242,11 +264,9 @@ class EmailServer:
                     retVal, data = self.serverconnect.select(self.options['folder'])
                     globs.log.write(3,'IMAP Setting folder. retVal={} data={}'.format(retVal, data))
                     return retVal
-                except imaplib.IMAP4.error:
-                    # Better log messages here
-                    return None
-                except imaplib.socket.gaierror:
-                    # Better log messages here
+                except:
+                    e = sys.exc_info()[0]
+                    globs.log.write(1, 'IMAP connection Error: {}'.format(e))
                     return None
             elif self.options['protocol'] == 'pop3':
                 globs.log.write(1,'Initial connect using POP3')
@@ -260,9 +280,10 @@ class EmailServer:
                     retVal = self.serverconnect.pass_(self.options['password'])
                     globs.log.write(3,'Entered password. retVal={}'.format(retVal))
                     return retVal.decode()
-                except Exception:
-                   # Better log messages here
-                   return None
+                except:
+                    e = sys.exc_info()[0]
+                    globs.log.write(1, 'POP3 connection Error: {}'.format(e))
+                    return None
             elif self.options['protocol'] == 'smtp':
                 globs.log.write(1,'Initial connect using  SMTP')
                 try:
@@ -275,15 +296,18 @@ class EmailServer:
                             tlsContext = ssl.create_default_context()
                             self.serverconnect.starttls(context=tlsContext)
                         except Exception as e:
-                            globs.log.write(3,'TLS Exception: [{}]'.format(e))
+                            globs.log.write(3,'SMTP TLS Exception: [{}]'.format(e))
                     globs.log.write(3,'Logging into server. Account=[{}] pwd=[{}]'.format(self.options['account'], self.options['password']))
                     try:
                         retVal, retMsg = self.serverconnect.login(self.options['account'], self.options['password'])
                         globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
                         return retMsg.decode()
-                    except Exception as e:
-                        globs.log.write(3,'SMTP Login Exception: [{}]'.format(e))
+                    except:
+                        e = sys.exc_info()[0]
+                        globs.log.write(1, 'SMTP login Error: {}'.format(e))
                 except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
+                    e = sys.exc_info()[0]
+                    globs.log.write(1, 'SMTP connection Error: {}'.format(e))
                     return None
             else:   # Bad protocol specification
                 globs.log.err('Invalid protocol specification: {}. Aborting program.'.format(self.options['protocol']))

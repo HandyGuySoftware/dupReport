@@ -85,6 +85,7 @@ if __name__ == "__main__":
     #globs.log.suppress()
 
     # Start Program Timer
+
     startTime = time.time()
 
     # Initialize program options
@@ -112,7 +113,6 @@ if __name__ == "__main__":
         globs.closeEverythingAndExit(0)
     if globs.opts['validatereport'] == True:  # We just want to validate the report. Exit from here without doing anyting else.
         globs.closeEverythingAndExit(0)
-
 
     # see if [apprise] section exists in .rc file. If so, initialize Apprise options
     if globs.optionManager.parser.has_section('apprise'):
