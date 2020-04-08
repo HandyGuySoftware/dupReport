@@ -9,7 +9,7 @@ import os
 
 # Define version info
 version=[2,2,11]     # Program Version
-status='Release'
+status='Issue #141 Test 1'
 dbVersion=[1,0,3]   # Required DB version
 rcVersion=[3,0,0]   # Required RC version
 copyright='Copyright (c) 2020 Stephen Fried for HandyGuy Software.'
