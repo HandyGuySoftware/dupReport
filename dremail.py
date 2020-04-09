@@ -434,10 +434,11 @@ class EmailServer:
         globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
 
         if msgParts['content-transfer-encoding'].lower() == 'quoted-printable':
-            msgBody = quopri.decodestring(msgBody.replace('=0D=0A','\n'))
+            msgBody = quopri.decodestring(msgBody.replace('=0D=0A','\n')).decode("utf-8")
             globs.log.write(3, 'New (quopri) Message Body=[{}]'.format(msgBody))
 
         # See if email is text or JSON. JSON messages begin with '{"Data":'
+        globs.log.write(3, "msgBody[:8] = [{}]".format(msgBody[:8]))
         isJson = True if msgBody[:8] == '{\"Data\":' else False
 
         if isJson:
