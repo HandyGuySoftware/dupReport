@@ -22,6 +22,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import json
 import ssl
+import sys
 
 # Import dupReport modules
 import globs
@@ -79,7 +80,7 @@ class EmailManager:
     def __init__(self):
 
         self.incoming = {}
-        self.outgoing = {}
+        self.outgoing = []
 
         ## Get reports that need to run as defined in [report]layout option
         ##if globs.opts['layout'] != None:
@@ -103,7 +104,7 @@ class EmailManager:
                     # So, basically, if you've suppressed BOTH backup warnings AND outgoing email, skip opening the outgoing server
                     # If EITHER of these is false (i.e., you want either of these to work), open the server connection
                     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
-                        self.outgoing[server] =  EmailServer(server, options)
+                        self.outgoing.append(EmailServer(server, options))
             else:
                 isValid = False
 
@@ -121,14 +122,15 @@ class EmailManager:
 
         return None
 
-    # Quick function to return the default outgoing SMTP server
-    # For now, we will only be using the first entry in the outgoing dictionary as the smtp server
-    # In the future, the user might be able to specify multiple smtp servers and select one based on some criteria
-    # or if the first one is unavailable. 
-    # But not now.
+    # Return the first available outgoing SMTP server
     def getSmtpServer(self):
-        outserver = next(iter(self.outgoing)) # get the first server in the 'outgoing' dictionary
-        return self.outgoing[outserver]
+        for i in range(len(self.outgoing)):
+            self.outgoing[i].connect()
+            if self.outgoing[i].available == True:
+                return self.outgoing[i]
+
+        globs.log.write(1,"Unable to find available outgoing SMTP Server");
+        return None
 
     def checkForNewMessages(self):
         for server in self.incoming:
@@ -197,10 +199,12 @@ class EmailServer:
     def __init__(self, serverName, optionList):
         
         self.options = optionList
+        self.name = serverName
         self.serverconnect = None
         self.newEmails = 0      # List[] of new emails on server. Activated by connect()
         self.numEmails = 0      # Number of emails in list
         self.nextEmail = 0      # index into list of next email to be retrieved
+        self.available = False  # Set to True if able to make a connection
 
         return None
 
@@ -226,6 +230,7 @@ class EmailServer:
                 if status != 'OK':
                     globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.options['server']))
                     self.serverconnect = None
+                    self.available = False
                     self.connect()
             elif self.options['protocol'] == 'pop3':
                 try:
@@ -238,6 +243,7 @@ class EmailServer:
                 if status.decode() != '+OK':        # Stats from POP3 returned as byte string. Need to decode before compare (Issue #107)
                     globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.options['server']))
                     self.serverconnect = None
+                    self.available = False
                     self.connect()
             elif self.options['protocol'] == 'smtp':
                 try:
@@ -250,6 +256,7 @@ class EmailServer:
                 if status != 250: # Disconnected. Need to reconnect to server
                     globs.log.write(1,'Server {} timed out. Reconnecting.'.format(self.options['server']))
                     self.serverconnect = None
+                    self.available = False
                     self.connect()
         else:     # self.serverconnect == None. Never connected, need to establish server connection
             if self.options['protocol'] == 'imap':
@@ -263,10 +270,12 @@ class EmailServer:
                     globs.log.write(3,'IMAP Logged in. retVal={} data={}'.format(retVal, globs.maskData(data)))
                     retVal, data = self.serverconnect.select(self.options['folder'])
                     globs.log.write(3,'IMAP Setting folder. retVal={} data={}'.format(retVal, data))
+                    self.available = True
                     return retVal
                 except:
                     e = sys.exc_info()[0]
                     globs.log.write(1, 'IMAP connection Error: {}'.format(e))
+                    self.available = False
                     return None
             elif self.options['protocol'] == 'pop3':
                 globs.log.write(1,'Initial connect using POP3')
@@ -279,10 +288,12 @@ class EmailServer:
                     globs.log.write(3,'Logged in. retVal={}'.format(globs.maskData(retVal)))
                     retVal = self.serverconnect.pass_(self.options['password'])
                     globs.log.write(3,'Entered password. retVal={}'.format(retVal))
+                    self.available = True
                     return retVal.decode()
                 except:
                     e = sys.exc_info()[0]
                     globs.log.write(1, 'POP3 connection Error: {}'.format(e))
+                    self.available = False
                     return None
             elif self.options['protocol'] == 'smtp':
                 globs.log.write(1,'Initial connect using  SMTP')
@@ -301,13 +312,16 @@ class EmailServer:
                     try:
                         retVal, retMsg = self.serverconnect.login(self.options['account'], self.options['password'])
                         globs.log.write(3,'Logged in. retVal={} retMsg={}'.format(retVal, retMsg))
+                        self.available = True
                         return retMsg.decode()
                     except:
                         e = sys.exc_info()[0]
                         globs.log.write(1, 'SMTP login Error: {}'.format(e))
+                        self.available = False
                 except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
                     e = sys.exc_info()[0]
                     globs.log.write(1, 'SMTP connection Error: {}'.format(e))
+                    self.available = False
                     return None
             else:   # Bad protocol specification
                 globs.log.err('Invalid protocol specification: {}. Aborting program.'.format(self.options['protocol']))
@@ -747,9 +761,7 @@ class EmailServer:
                     file_name = os.path.basename(fname)
                     part = MIMEBase('application','octet-stream')
                     part.set_payload(attachment.read())
-                    part.add_header('Content-Disposition',
-                                    'attachment',
-                                    filename=file_name)
+                    part.add_header('Content-Disposition', 'attachment', filename=file_name)
                     encoders.encode_base64(part)
                     msg.attach(part)
 
