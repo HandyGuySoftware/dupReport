@@ -72,11 +72,11 @@ class Database:
             self.dbConn.commit()
         return None
 
-    def execEmailInsertSql(self, mParts, sParts, dParts):  
+    def execEmailInsertSql(self, emailParts):  
         globs.log.write(1, 'db.execEmailInsertSql(()')
-        globs.log.write(2, 'messageId={}  sourceComp={}  destComp={}'.format(mParts['messageId'], mParts['sourceComp'], mParts['destComp']))
+        globs.log.write(2, 'messageId={}  sourceComp={}  destComp={}'.format(emailParts['header']['messageId'], emailParts['header']['sourceComp'], emailParts['header']['destComp']))
 
-        durVal = float(dParts['endTimestamp']) - float(dParts['beginTimestamp'])
+        durVal = float(emailParts['body']['endTimestamp']) - float(emailParts['body']['beginTimestamp'])
         sqlStmt = "INSERT INTO emails(messageId, sourceComp, destComp, emailTimestamp, \
             deletedFiles, deletedFolders, modifiedFiles, examinedFiles, \
             openedFiles, addedFiles, sizeOfModifiedFiles, sizeOfAddedFiles, sizeOfExaminedFiles, \
@@ -86,14 +86,14 @@ class Database:
             beginTimestamp, duration, messages, warnings, errors, dbSeen, dupversion, logdata) \
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
 
-        data  = (mParts['messageId'], mParts['sourceComp'], mParts['destComp'], mParts['emailTimestamp'], sParts['deletedFiles'], \
-                sParts['deletedFolders'], sParts['modifiedFiles'], sParts['examinedFiles'], sParts['openedFiles'], \
-                sParts['addedFiles'], sParts['sizeOfModifiedFiles'], sParts['sizeOfAddedFiles'], sParts['sizeOfExaminedFiles'], sParts['sizeOfOpenedFiles'], \
-                sParts['notProcessedFiles'], sParts['addedFolders'], sParts['tooLargeFiles'], sParts['filesWithError'], \
-                sParts['modifiedFolders'], sParts['modifiedSymlinks'], sParts['addedSymlinks'], sParts['deletedSymlinks'], \
-                sParts['partialBackup'], sParts['dryRun'], sParts['mainOperation'], sParts['parsedResult'], sParts['verboseOutput'], \
-                sParts['verboseErrors'], dParts['endTimestamp'], dParts['beginTimestamp'], \
-                durVal, sParts['messages'], sParts['warnings'], sParts['errors'], sParts['dupversion'], sParts['logdata'])
+        data  = (emailParts['header']['messageId'], emailParts['header']['sourceComp'], emailParts['header']['destComp'], emailParts['header']['emailTimestamp'], emailParts['body']['deletedFiles'], \
+                emailParts['body']['deletedFolders'], emailParts['body']['modifiedFiles'], emailParts['body']['examinedFiles'], emailParts['body']['openedFiles'], \
+                emailParts['body']['addedFiles'], emailParts['body']['sizeOfModifiedFiles'], emailParts['body']['sizeOfAddedFiles'], emailParts['body']['sizeOfExaminedFiles'], emailParts['body']['sizeOfOpenedFiles'], \
+                emailParts['body']['notProcessedFiles'], emailParts['body']['addedFolders'], emailParts['body']['tooLargeFiles'], emailParts['body']['filesWithError'], \
+                emailParts['body']['modifiedFolders'], emailParts['body']['modifiedSymlinks'], emailParts['body']['addedSymlinks'], emailParts['body']['deletedSymlinks'], \
+                emailParts['body']['partialBackup'], emailParts['body']['dryRun'], emailParts['body']['mainOperation'], emailParts['body']['parsedResult'], emailParts['body']['verboseOutput'], \
+                emailParts['body']['verboseErrors'], emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'], \
+                durVal, emailParts['body']['messages'], emailParts['body']['warnings'], emailParts['body']['errors'], emailParts['body']['dupversion'], emailParts['body']['logdata'])
 
         globs.log.write(3, 'sqlStmt=[{}]'.format(sqlStmt))
         globs.log.write(3, 'data=[{}]'.format(data))

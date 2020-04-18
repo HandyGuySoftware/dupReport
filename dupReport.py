@@ -37,30 +37,6 @@ def versionInfo():
     globs.log.out('\nFollow dupReport on Twitter @dupreport\n-----\n')
     return None
 
-def sendNoBackupWarnings():
-    globs.log.write(1, 'sendNoBackupWarnings()')
-
-    # Get all source/destination pairs
-    sqlStmt = "SELECT source, destination FROM backupsets ORDER BY source, destination"
-    dbCursor = globs.db.execSqlStmt(sqlStmt)
-    srcDestRows = dbCursor.fetchall()
-    if len(srcDestRows) != 0:
-        for source, destination in srcDestRows:
-			# First, see if SrcDest is listed as offline. If so, skip.
-            srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
-            offline = globs.optionManager.getRcOption(srcDest, 'offline')
-            if offline != None:
-                if offline.lower() in ('true'):
-                    continue
-
-            latestTimeStamp = report.getLatestTimestamp(source, destination)
-            diff = drdatetime.daysSince(latestTimeStamp)
-            if report.pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['defaults']['nobackupwarn']) is True:
-                globs.log.write(2,'{}-{} is past backup warning threshold @ {} days. Sending warning email'.format(source, destination, diff))
-                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.rStruct['defaults'])
-                globs.outServer.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
-    return None
-
 if __name__ == "__main__":
     # Get program home directory
     globs.progPath = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -84,6 +60,7 @@ if __name__ == "__main__":
     #globs.log.suppress()
 
     # Start Program Timer
+
     startTime = time.time()
 
     # Initialize program options
@@ -111,7 +88,6 @@ if __name__ == "__main__":
         globs.closeEverythingAndExit(0)
     if globs.opts['validatereport'] == True:  # We just want to validate the report. Exit from here without doing anyting else.
         globs.closeEverythingAndExit(0)
-
 
     # see if [apprise] section exists in .rc file. If so, initialize Apprise options
     if globs.optionManager.parser.has_section('apprise'):
@@ -151,17 +127,7 @@ if __name__ == "__main__":
     # Open email servers
     if globs.opts['showprogress'] > 0:
         globs.log.out('Connecting to email servers.')
-    globs.inServer = dremail.EmailServer(globs.opts['intransport'], globs.opts['inserver'], globs.opts['inport'], globs.opts['inaccount'], \
-        globs.opts['inpassword'], globs.opts['inencryption'], globs.opts['inkeepalive'], globs.opts['infolder'], )
-
-    # Don't need to open output email server if we're not sending email
-    # This is used for Apprise support, especially if you're using Apprise to notify you through email. Thus, you may not want to also send redundant emails through dupReport.
-    # However, if you haven't supressed backup warnings (i.e., -w), you'll still need an outgoing server connection
-    # So, basically, if you've suppressed BOTH backup warnings AND outgoing email, skip opening the outgoing server
-    # If EITHER of these is false (i.e., you want either of these to work), open the server connection
-    if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
-        globs.outServer = dremail.EmailServer('smtp', globs.opts['outserver'], globs.opts['outport'], globs.opts['outaccount'], \
-            globs.opts['outpassword'], globs.opts['outencryption'], globs.opts['outkeepalive'])
+    globs.emailManager = dremail.EmailManager()
 
     # Are we just collecting or not just reporting?
     if (globs.opts['collect'] or not globs.opts['report']):
@@ -173,23 +139,7 @@ if __name__ == "__main__":
         if globs.opts['showprogress'] > 0:
             globs.log.out('Analyzing email messages.')
 
-        # Get new messages on server
-        progCount = 0   # Count for progress indicator
-        newMessages = globs.inServer.checkForMessages()
-        if newMessages > 0:
-            nxtMsg = globs.inServer.processNextMessage()
-            while nxtMsg is not None:
-                if globs.opts['showprogress'] > 0:
-                    progCount += 1
-                    if (progCount % globs.opts['showprogress']) == 0:
-                        globs.log.out('.', newline = False)
-                nxtMsg = globs.inServer.processNextMessage()
-            if globs.opts['showprogress'] > 0:
-                globs.log.out(' ')   # Add newline at end.
-
-            # Do we want to mark messages as 'read/seen'? (Only works for IMAP)
-            if globs.opts['markread'] is True and globs.inServer.protocol == 'imap':
-                globs.inServer.markMessagesRead()
+        globs.emailManager.checkForNewMessages()
 
     # Are we just reporting or not just collecting?
     if (globs.opts['report'] or not globs.opts['collect']):
@@ -204,7 +154,7 @@ if __name__ == "__main__":
 
     # Do we need to send any "backup not seen" warning messages?
     if not globs.opts['stopbackupwarn'] or not globs.opts['nomail']:
-        sendNoBackupWarnings()
+        report.sendNoBackupWarnings()
 
     if globs.appriseObj is not None:
         globs.appriseObj.sendNotifications()
@@ -223,7 +173,7 @@ if __name__ == "__main__":
             globs.log.out('Sending report emails.')
 
         # Send email to SMTP server
-        globs.outServer.sendEmail(rptOutput = reportOutput, strtTime = startTime)
+        globs.emailManager.sendEmail(msgHtml=globs.report.createFormattedOutput(reportOutput, 'html'), msgText=globs.report.createFormattedOutput(reportOutput, 'txt'), fileattach=True)
 
     # Do we need to purge the database?
     if globs.opts['purgedb'] == True:

@@ -42,7 +42,9 @@ class LogHandler:
                     os.remove(self.tmpLogPath)
                     self.tmpFile = None
             except (OSError, IOError):
-                sys.stderr.write('Error opening log file: {}\n'.format(path))
+                e = sys.exc_info()[0]
+                globs.log.write(1, 'Error opening log file {}: {}\n'.format(path, e))
+                sys.stderr.write('Error opening log file {}: {}\n'.format(path, e))
 
         return None
 

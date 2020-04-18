@@ -10,7 +10,7 @@
 - Can now send output to JSON file (Issue #135)
 - Changed displaysize option in .rc file from (mega/giga) to (none/mb/gb), deprecated the showdisplaysize option, and changed the -s option to -s none|mb|gb
 - Re-structured the documentation for better readibility and made it easier to find specific settings. (Issue #140)
-
+- Ability to specify multiple inbound (IMAP/POP3) and outbound (SMTP) email servers. Specified by [main]emailservers= option or -e commandline option.
 
 2.2.11
 ------

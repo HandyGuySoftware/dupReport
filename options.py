@@ -25,7 +25,8 @@ import globs
 # 3 - default value
 # 4 - is the default value acceptable if not already present in .rc file (true/false)?
 rcParts= [
-    # [0] Section   [1] Option          [2] Default                                                                 [3]is the default value acceptable if not already present in .rc file (true/false)?
+    # [0] Section   [1] Option          [2] Default                                                                 [3]is the default value acceptable                  [4] Message to print on what went wrong
+    #                                                                                                               if not already present in .rc file (true/false)?
 
     # [main] section defaults
     ('main',        'rcversion',        '{}.{}.{}'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]),True),
@@ -45,28 +46,33 @@ rcParts= [
     ('main',        'purgedb',          'false',                                                                    True),
     ('main',        'showprogress',     '0',                                                                        True),
     ('main',        'masksensitive',    'true',                                                                     True),
-    ('main',        'markread',         'false',                                                                    True),
+    ('main',        'emailservers',     'incoming, outgoing',                                                       True),
     
     # [incoming] section defaults
-    ('incoming',    'intransport',      'imap',                                                                     False),
-    ('incoming',    'inserver',         'localhost',                                                                False),
-    ('incoming',    'inport',           '993',                                                                      False),
-    ('incoming',    'inencryption',     'tls',                                                                      False),
-    ('incoming',    'inaccount',        'someacct@hostmail.com',                                                    False),
-    ('incoming',    'inpassword',       '********',                                                                 False),
-    ('incoming',    'infolder',         'INBOX',                                                                    False),
-    ('incoming',    'inkeepalive',      'false',                                                                    True),
-    ('incoming',    'unreadonly',       'false',                                                                    True),
+    ('incoming',    'protocol',       'imap',                                                                       False),
+    ('incoming',    'server',         'localhost',                                                                  False),
+    ('incoming',    'port',           '993',                                                                        False),
+    ('incoming',    'encryption',     'tls',                                                                        False),
+    ('incoming',    'account',        'someacct@hostmail.com',                                                      False),
+    ('incoming',    'password',       '********',                                                                   False),
+    ('incoming',    'folder',         'INBOX',                                                                      False),
+    ('incoming',    'keepalive',      'false',                                                                      True),
+    ('incoming',    'unreadonly',     'false',                                                                      True),
+    ('incoming',    'markread',       'false',                                                                      True),
+    ('incoming',    'authentication', 'basic',                                                                      True),
 
     # [outgoing] section defaults
-    ('outgoing',    'outserver',        'localhost',                                                                False),
-    ('outgoing',    'outport',          '587',                                                                      False),
-    ('outgoing',    'outencryption',    'tls',                                                                      False),
-    ('outgoing',    'outaccount',       'someacct@hostmail.com',                                                    False),
-    ('outgoing',    'outpassword',      '********',                                                                 False),
-    ('outgoing',    'outsender',        'sender@hostmail.com',                                                      False),
-    ('outgoing',    'outreceiver',      'receiver@hostmail.com',                                                    False),
-    ('outgoing',    'outkeepalive',     'false',                                                                    True),
+    ('incoming',    'protocol',      'smtp',                                                                        False),
+    ('outgoing',    'server',        'localhost',                                                                   False),
+    ('outgoing',    'port',          '587',                                                                         False),
+    ('outgoing',    'encryption',    'tls',                                                                         False),
+    ('outgoing',    'account',       'someacct@hostmail.com',                                                       False),
+    ('outgoing',    'password',      '********',                                                                    False),
+    ('outgoing',    'keepalive',     'false',                                                                       True),
+    ('outgoing',    'sender',        'sender@hostmail.com',                                                         False),
+    ('outgoing',    'sendername',    'Email Sender',                                                                False),
+    ('outgoing',    'receiver',      'receiver@hostmail.com',                                                       False),
+    ('outgoing',    'authentication','basic',                                                                       True),
 
     # [report] section defaults
     ('report',      'layout',           'srcdest, noactivity, lastseen',                                            True),
@@ -100,7 +106,7 @@ rcParts= [
     ('report',      'warningbg',        '#FFFF00',                                                                  True),
     ('report',      'errorbg',          '#FF0000',                                                                  True),
     ('report',      'weminline',        'false',                                                                    True),
-    ('report',      'includeruntime',   'true',                                                                    True),
+    ('report',      'includeruntime',   'true',                                                                     True),
 
     # [srcdest] sample specification
     ('srcdest',     'type',             'report',                                                                   True),
@@ -139,7 +145,7 @@ rcParts= [
     ('noactivity', 'title',             'Non-Activity Report',                                                      True),
     ('lastseen',   'type',              'lastseen',                                                                 True),
     ('lastseen',   'title',             'Backup Sets Last Seen',                                                    True)
-   ]
+    ]
 
 # Class to manage all program options
 class OptionManager:
@@ -166,7 +172,7 @@ class OptionManager:
             return False
 
         try:
-            self.parser = configparser.SafeConfigParser()
+            self.parser = configparser.SafeConfigParser(interpolation=None)
             self.parser.read(rcFileSpec)
         except configparser.ParsingError as err:
             globs.log.err('RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))
@@ -211,9 +217,12 @@ class OptionManager:
     # <newRC> = True if enough RC info has changed to require user config & restart
     # <newRC> = False if program can continue without restart
     def setRcDefaults(self):
+        errlist = []
+
         globs.log.write(1,'options.setRcDefaults()')
         if not self.parser:
-            globs.log.err('RC file not yet opened. Can not set defaults.\n')
+            globs.log.err('RC file not yet opened. Can not set defaults.')
+            globs.log.write(1, 'RC file not yet opened. Can not set defaults.')
             return False
 
         globs.log.write(1, 'rc.setDefaults({})'.format(globs.maskData(self.rcFileName, self.maskPath())))
@@ -222,7 +231,13 @@ class OptionManager:
         needUpdate = False      # Do we need to update/refresh the file
 
         # Loop through all the required parts of the RC file. If not there, add them
+        # First, check the emailserver option to see if it is there. If so, do not set [incoming] and [outgoing] sections
+        hasEmailServers = self.parser.has_option('main','emailservers')
+
         for section, option, default, canCont in rcParts:
+            if section in ['incoming', 'outgoing'] and hasEmailServers == True:   # No need to default email servers
+                continue
+            
             if not self.parser.has_section(section): # Whole section is missing.
                 globs.log.write(2, 'Adding RC section: [{}]'.format(section))
                 self.parser.add_section(section)
@@ -233,11 +248,16 @@ class OptionManager:
                 self.parser.set(section, option, default)
                 needUpdate = True
                 if canCont == False:
+                    errlist.append('[{}]{}={} option added. Please update with valid information.\n'.format(section, option, default))
                     defaultsOK = False
 
         globs.log.write(3,'needUpdate = {} defaultsOK={}'.format(needUpdate, defaultsOK))
         if needUpdate:
             self.updateRc()
+        if not defaultsOK:
+            for i in range(len(errlist)):
+                globs.log.err(errlist[i])
+                globs.log.write(1, errlist[i])
         return defaultsOK
 
     # Read .rc file options
@@ -252,27 +272,31 @@ class OptionManager:
         globs.log.write(1, 'options.readRcOptions({})'.format(globs.maskData(self.rcFileName, self.maskPath())))
     
         # Extract sections and options from .rc file
-        # Only need [main], [incoming], and [outgoing] sections
-        # [report] and associated] sections will be parsed when report object is initiated (report.py)
-        for section in ('main', 'incoming', 'outgoing'):
-            for name, value in self.parser.items(section):
-                self.options[name] = value
+        # Only need [main] section
+        # [<email], [report] and associated sections will be parsed when email & report objects are initiated
+        #for section in ('main', 'incoming', 'outgoing'):
+        for name, value in self.parser.items('main'):
+            self.options[name] = value
 
         # Fix some of the datatypes
-        for item in ('verbose', 'inport', 'outport', 'showprogress'):  # integers
+        #for item in ('verbose', 'inport', 'outport', 'showprogress'):  # integers
+        for item in ('verbose', 'showprogress'):  # integers
             self.options[item] = int(self.options[item])
 
-        for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'inkeepalive', 'outkeepalive', 'masksensitive', 'markread', 'unreadonly'):  # boolean
+        #for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'inkeepalive', 'outkeepalive', 'masksensitive', 'markread', 'unreadonly'):  # boolean
+        for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'masksensitive'):  # boolean
             self.options[item] = self.options[item].lower() in ('true')
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
             globs.log.err('RC file error: Invalid date format: [{}]\n'.format(self.options['dateformat']))
+            globs.log.write(1, 'RC file error: Invalid date format: [{}]\n'.format(self.options['dateformat']))
             restart = True
 
         # Check for valid time format
         if self.options['timeformat'] not in drdatetime.dtFmtDefs:
             globs.log.err('RC file error: Invalid time format [{}]\n'.format(self.options['timeformat']))
+            globs.log.write(1, 'RC file error: Invalid time format [{}]\n'.format(self.options['timeformat']))
             restart = True
 
         # Set default path for RC file. Command line may override this.
@@ -326,6 +350,8 @@ class OptionManager:
             self.options['purgedb'] = self.cmdLineArgs.purgedb
         if self.cmdLineArgs.append == True: # ONly override logappend if specified on the command line, else take whatever's in the rc file
             self.options['logappend'] = self.cmdLineArgs.append
+        if self.cmdLineArgs.emailservers != None:
+            self.options['emailservers'] = self.cmdLineArgs.emailservers
         self.options['initdb'] = self.cmdLineArgs.initdb
         
         # Store output files for later use
@@ -340,6 +366,7 @@ class OptionManager:
             for spec in self.cmdLineArgs.fileattach:
                 globs.ofileList.append((spec, True))
 
+        # Print config to log. Mask out appropriate data
         for opName in self.options:
             if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'): # Mask sensitive data fields
                 globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, globs.maskData(self.options[opName], self.options['masksensitive'])))
@@ -375,6 +402,7 @@ class OptionManager:
         opGroup1.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
 #
         argParser.add_argument("-d","--dbpath", help="Path to dupReport database file.", action="store")
+        argParser.add_argument("-e","--emailservers", help="List of incoming (IMAP & POP3) and outgoing (SMTP) servers to use.", action="store")
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
         argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
@@ -402,6 +430,8 @@ class OptionManager:
         try:
             self.cmdLineArgs = argParser.parse_args()
         except:
+            e = sys.exc_info()[0]
+            globs.log.write(1, 'Argument parser error: {}'.format(e))
             globs.closeEverythingAndExit(1)
 
 
@@ -428,6 +458,7 @@ class OptionManager:
         globs.log.write(3, '- nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
         globs.log.write(3, '- validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
         globs.log.write(3, '- layout = [{}]'.format(self.cmdLineArgs.layout))
+        globs.log.write(3, '- emailservers = [{}]'.format(self.cmdLineArgs.emailservers))
     
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
