@@ -72,15 +72,6 @@ keyWordList = {
     'time':         '#TIME#'
     }
 
-markupDefs = {
-    'bold':         0x01,
-    'italic':       0x02,
-    'underline':    0x04,
-    'left':         0x08,
-    'center':       0x10,
-    'right':        0x20
-    }
-
 # Build an SQL query statement based on a given report's options ('groupby', 'columns', and 'columsort')
 # If (whereOpts != None) whereOpts will be a list of columns and values those columns have to match
 # If (groupBy is True), you're trying to group query results, so need to add a 'DISTINCT' clause to the SQL statement
@@ -98,6 +89,7 @@ def buildQuery(options, whereOpts = None, groupby=False):
     elif 'columnsort' in options:
         sqlStmt += ' ORDER BY ' + buildOrderList(options['columnsort']) 
 
+    globs.log.write(3, function='Report', action='buildQuery', msg='Created SQL stmt: {}'.format(sqlStmt))
     return sqlStmt
 
 # Build a list of fields to select based on 'list' 
@@ -110,6 +102,7 @@ def buildSelectList(list):
         if  i != (len(list)-1):
             selectString += ', '
 
+    globs.log.write(3, function='Report', action='buildSelectList', msg='Created SQL SELECT stmt: {}'.format(selectString))
     return selectString
 
 # Build the WHERE clause of the SQL query.
@@ -124,6 +117,7 @@ def buildWhereClause(grpList, vals):
         if i != (len(grpList) - 1):
             whereString += ' AND '
 
+    globs.log.write(3, function='Report', action='buildWhereClause', msg='Created SQL WHERE stmt: {}'.format(whereString))
     return whereString
 
 # Build the ORDER BY clause of the SQL query.
@@ -140,6 +134,7 @@ def buildOrderList(list):
         if  i != (len(list)-1):
             sortString += ', '
 
+    globs.log.write(3, function='Report', action='buildOrderList', msg='Created SQL ORDER BY stmt: {}'.format(sortString))
     return sortString
 
 # Take .rc file option and split into a list structure
@@ -163,7 +158,17 @@ def splitRcIntoList(inputString):
         else:
             iniList.append([splitVal[0].strip(), splitVal[1].strip()])
 
+    globs.log.write(3, function='Report', action='splitRcIntoList', msg='.rc entry \'{}\' split into list: {}'.format(inputString, iniList))
     return iniList
+
+markupDefs = {
+    'bold':         0x01,
+    'italic':       0x02,
+    'underline':    0x04,
+    'left':         0x08,
+    'center':       0x10,
+    'right':        0x20
+    }
 
 # Create a markup value based on what's specified in markupDefs
 def toMarkup(bold=False, italic=False, underline=False, align='left'):
@@ -214,16 +219,18 @@ def adjustColumnCountInfo(count, colNames, wemInLine):
                 newColNames.pop(i)
                 newColCount -= 1
     
+    globs.log.write(3, function='Report', action='adjustColumnCountInfo', msg='WEMInline={}. Column count adusted from {} columns to {} columns'.format(wemInLine, count, newColCount))
     return newColCount, newColNames
 
 def sendReportToFiles(reportOutput):
-    
+    globs.log.write(1, function='Report', action='sendReportToFiles', msg='Sending report to output files.')
     # Loop through filespec list provided on command line
     # Split into file names and formats
     for fspec in globs.ofileList:
         fsplit = fspec[0].split(',')
         fileName = fsplit[0]
         format = fsplit[1]
+        globs.log.write(3, function='Report', action='sendReportToFiles', msg='Output file:{}  Format:{}'.format(fileName, format))
 
         msgContent = globs.report.createFormattedOutput(reportOutput, format) 
         if fileName == 'stdout':
@@ -235,8 +242,7 @@ def sendReportToFiles(reportOutput):
                 outfile = open(fileName,'w')
             except (OSError, IOError):
                 e = sys.exc_info()[0]
-                globs.log.write(1, 'Error opening output file {}: {}\n'.format(fileName, e))
-                sys.stderr.write(1, 'Error opening output file {}: {}\n'.format(fileName, e))
+                globs.log.write(1, function='Report', action='sendReportToFiles', msg='Error: problem opening output file {}: {}'.format(fileName, e))
                 return
             if format in ['html', 'txt', 'csv']:
                 outfile.write(msgContent)
@@ -249,9 +255,8 @@ def sendReportToFiles(reportOutput):
 # Default to value in [eport] section
 # Override if found in pair-specific section
 def pastBackupWarningThreshold(src, dest, nDays, nbWarnDefault):
-    globs.log.write(1,'report.pastBackupWarningThreshold({}, {}, {})'.format(src, dest, nDays))
-
     srcDest = src + globs.opts['srcdestdelimiter'] + dest
+    globs.log.write(1, function='Report', action='pastBackupWarningThreshold', msg='{} last reported {} days ago'.format(srcDest, nDays))
 
     nbwVal = globs.optionManager.getRcOption(srcDest, 'nobackupwarn')
     if nbwVal is not None:
@@ -259,18 +264,16 @@ def pastBackupWarningThreshold(src, dest, nDays, nbWarnDefault):
     else:
         nbwVal = nbWarnDefault
 
-    globs.log.write(3,'Nobackup warning threshold is {} days.'.format(nbwVal))
+    globs.log.write(3, function='Report', action='pastBackupWarningThreshold', msg='Nobackup warning threshold is {} days.'.format(nbwVal))
 
     retVal = False
     if (nbwVal != 0) and (nDays >= nbwVal):     # Past threshold - need to warn
         retVal = True
 
-    globs.log.write(3,'pastBackupWarningThreshold returning {}'.format(retVal))
+    globs.log.write(1, function='Report', action='pastBackupWarningThreshold', msg='Need to warn? {}'.format(retVal))
     return retVal
 
 def sendNoBackupWarnings():
-    globs.log.write(1, 'sendNoBackupWarnings()')
-
     # Get all source/destination pairs
     sqlStmt = "SELECT source, destination FROM backupsets ORDER BY source, destination"
     dbCursor = globs.db.execSqlStmt(sqlStmt)
@@ -282,27 +285,28 @@ def sendNoBackupWarnings():
             offline = globs.optionManager.getRcOption(srcDest, 'offline')
             if offline != None:
                 if offline.lower() in ('true'):
+                    globs.log.write(3, function='Report', action='sendNoBackupWarnings', msg='{} is offline.'.format(srcDest))
                     continue
 
             latestTimeStamp = getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
             if pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['defaults']['nobackupwarn']) is True:
-                globs.log.write(2,'{}-{} is past backup warning threshold @ {} days. Sending warning email'.format(source, destination, diff))
+                globs.log.write(1, function='Report', action='sendNoBackupWarnings', msg='{} is past backup warning threshold @ {} days. Sending warning email.'.format(srcDest, diff))
                 warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.rStruct['defaults'])
                 globs.emailManager.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
     return None
 
 def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
-    globs.log.write(1,'buildWarningMessage({}, {}, {}, {})'.format(source, destination, nDays, lastTimestamp))
     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
     srcDest = source + globs.opts['srcdestdelimiter'] + destination
+    globs.log.write(1, function='Report', action='buildWarningMessage', msg='Building warning message for {}.'.format(srcDest))
+    globs.log.write(3, function='Report', action='buildWarningMessage', msg='{} last reported in {} at {}.'.format(srcDest, lastDateStr, lastTimeStr))
 
     subj = globs.optionManager.getRcOption(srcDest, 'nbwsubject')
     if subj is None:
         subj = opts['nbwsubject']
-    globs.log.write(3,'subj(original)={}'.format(subj))
     subj = subj.replace('#SOURCE#',source).replace('#DESTINATION#', destination).replace('#DELIMITER#', globs.opts['srcdestdelimiter']).replace('#DAYS#', str(nDays)).replace('#DATE#', lastDateStr).replace('#TIME#', lastTimeStr)
-    globs.log.write(3,'subj(modified)={}'.format(subj))
+    globs.log.write(3, function='Report', action='buildWarningMessage', msg='Warning message subject: \'{}\''.format(subj))
 
     warnHtml='<html><head></head><body><table border=\"{}\" cellpadding=\"{}\">\n'.format(opts['border'],opts['padding'])
     warnHtml += '<tr><td bgcolor="#FF0000" align="center"><b>Backup Warning for {}{}{}</b></td></tr>\n'.format(source, globs.opts['srcdestdelimiter'], destination)
@@ -324,11 +328,11 @@ def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     if receiver is None:
         receiver = globs.emailManager.getSmtpServer().options['receiver']
 
-    globs.log.write(3, 'Sending message to {}'.format(receiver))
+    globs.log.write(1, function='Report', action='buildWarningMessage', msg='Sending message to {}'.format(receiver))
     return warnHtml, warnText, subj, sender, receiver
 
 def getLatestTimestamp(src, dest):
-    globs.log.write(1, 'getLatestTimestamp({}, {})'.format(src, dest))
+    globs.log.write(1, function='Report', action='getLatestTimestamp', msg='Getting latest time stamp for {}{}{})'.format(src, globs.opts['srcdestdelimiter'], dest))
 
     # Get last timestamp from backupsets
     sqlStmt = 'SELECT lastTimestamp FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"'.format(src, dest)
@@ -341,15 +345,15 @@ def getLatestTimestamp(src, dest):
             lastEmailStamp = dbCursor.fetchone()
             if lastEmailStamp[0]:
                 # Found one - this is the latest timestamp for that srcDest pair
-                globs.log.write(2, 'Returning email timestamp: {}'.format(lastEmailStamp[0]))
+                globs.log.write(3, function='Report', action='getLatestTimestamp', msg='Found an email. Returning latest timestamp from email: {}'.format(lastEmailStamp[0]))
                 return lastEmailStamp[0]
             else:
                 # Nothing newer in database - return latest time from backupsets
-                globs.log.write(2, 'Returning backupsets timestamp: {}'.format(lastTimestamp[0]))
+                globs.log.write(3, function='Report', action='getLatestTimestamp', msg='No emails found. Returning latest timestamp from backupsets: {}'.format(lastTimestamp[0]))
                 return lastTimestamp[0]
     else:
         # This should never happen
-        globs.log.write(2, 'Didn\'t find any timestamp for {}-{}: something is wrong!'.format(src, dest))
+        globs.log.write(1, function='Report', action='getLatestTimestamp', msg='Didn\'t find any timestamp for {}{}{}: something is wrong!'.format(src, globs.opts['srcdestdelimiter'], dest))
         return None
 
 def pastBackupInterval(srcDest, days):
@@ -361,29 +365,30 @@ def pastBackupInterval(srcDest, days):
         backupInterval = int(backupInterval)    # Change value to an int type
 
     # If we're not past the backup interval, skip reporting this src/dest as missing
+    retval = False                      # Not yet past the backup interval
     if days >= backupInterval:
-        return True, backupInterval     # At or past the backup interval
-    else:
-        return False, backupInterval    # Not yet past the backup interval
+        retval = True                     # At or past the backup interval
+
+    globs.log.write(1, function='Report', action='pastBackupInterval', msg='Is {} past its backup interval of {} days? {}'.format(srcDest, backupInterval, retval))
+    return retval, backupInterval
 
 # Truncate warning & error messages
 def truncateWarnErrMsgs(field, msg, options):
-
     msgFldDefs = {'errors': 'truncateerror', 'messages': 'truncatemessage', 'warnings':'truncatewarning', 'logdata': 'truncatelogdata'}
     
     msgRet = msg
     msgLen = options[msgFldDefs[field]]
 
     if msgLen != 0:
+        globs.log.write(1, function='Report', action='truncateWarnErrMsgs', msg='Truncating {} message to {} characters.'.format(field, msgLen))
         msgRet = msg[:msgLen] if len(msg) > msgLen else msg  
     
     return msgRet
 
-
 # Class for report management
 class Report:
     def __init__(self):
-        globs.log.write(1,'Report:__init__()')
+        globs.log.write(1, function='Report', action='Init', msg='Initializing report object.')
 
         # Initialize fomatted report list
         self.formattedReports = {'html': None, 'txt': None, 'csv': None, 'json': None}
@@ -414,6 +419,8 @@ class Report:
 
         # Now, loop through each report and get the specific configurations
         for section in layoutSections:
+            globs.log.write(1, function='Report', action='Init', msg='Getting configuration for {} report.'.format(section))
+
             rIndex = len(self.rStruct['sections'])   # This will be the index number of the next element we add
             self.rStruct['sections'].append({})
  
@@ -487,6 +494,7 @@ class Report:
 
         # Add a section for runtime, if necessary
         if self.rStruct['defaults']['includeruntime'] == True:
+            globs.log.write(1, function='Report', action='Init', msg='Adding runtime report.')
             rIndex = len(self.rStruct['sections'])   # This will be the index number of the next element we add
             self.rStruct['sections'].append({})
  
@@ -499,8 +507,9 @@ class Report:
 
     # Determine if a column specified in the .rc file is a valid column name
     def validateColumns(self, section, colSpec):
-        errRate = 0
+        globs.log.write(1, function='Report', action='validateColumns', msg='Validating columns for [{}] report section.'.format(section))
 
+        errRate = 0
         colList = colSpec
         # The first time around (checking the default colums) colList comes in as a string
         # By the time the individual report columns come in for checking, they have been converted to lists
@@ -510,16 +519,16 @@ class Report:
 
         for i in range(len(colList)):
             if colList[i][0] not in colNames:
-                globs.log.err('ERROR: [{}] section: Column \'{}\' is an undefined field.\n'.format(section, colList[i][0]))
-                globs.log.write(1, 'ERROR: [{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
+                globs.log.write(1, function='Report', action='validateColumns', msg='ERROR: [{}] section: Column \'{}\' is an undefined field.'.format(section, colList[i][0]))
                 errRate += 1
             if len(colList[i]) != 2:
-                globs.log.write(1, 'WARNING: [{}] section: Column \'{}\' does not have a title definition. Defaulting to column name as title.'.format(section, colList[i][0]))
+                globs.log.write(1, function='Report', action='validateColumns', msg='WARNING: [{}] section: Column \'{}\' does not have a title definition. Defaulting to column name as title.'.format(section, colList[i][0]))
             elif colList[i][1] =='':
-                globs.log.write(1, 'WARNING: [{}] section: Title field for column \'{}\' is empty. This is not an error, but that column will not have a title when printed.'.format(section, colList[i][0]))
+                globs.log.write(1, function='Report', action='validateColumns', msg='WARNING: [{}] section: Title field for column \'{}\' is empty. This is not an error, but that column will not have a title when printed.'.format(section, colList[i][0]))
 
         return errRate
 
+    # Is the field valid for the specified report?
     def isValidReportField(self, fname):
         for i in range(len(options.rcParts)):
             if options.rcParts[i][0] != 'report':
@@ -532,7 +541,7 @@ class Report:
     # Beginning with dupReport 3.0, the .report sections got much more complicated.
     # This function tries to find the most common problems at the strat of the program, rather than waiting until the end when thge reports are run
     def validateReportFields(self):
-        globs.log.write(1,'Validating report specifications in .rc file.')
+        globs.log.write(1, function='Report', action='validateReportFields', msg='Validating report specifications in .rc file.')
         anyProblems = 0
         
         # First, check the default [report]columns section for validity
@@ -544,18 +553,15 @@ class Report:
             sect = globs.optionManager.getRcSection(sectionList[i][0])
             #Section does not exist
             if sect == None: 
-                globs.log.err('ERROR: [report] section or command line specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
-                globs.log.write(1, 'ERROR: [report] section or command line specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
+                globs.log.write(1, function='Report', action='validateReportFields', msg='ERROR: [report] section or command line specifies a report named \'{}\' but there is no corresponding \'[{}]\' section defined in the .rc file.'.format(sectionList[i][0], sectionList[i][0]))
                 anyProblems += 1
             # Section doesn't have a 'type' field
             elif 'type' not in sect:
-                globs.log.err('ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
-                globs.log.write(1,'ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
+                globs.log.write(1,function='Report', action='validateReportFields', msg='ERROR: No \'type\' option in [{}] section. Valid types are \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0]))
                 anyProblems += 1
             # Section has an invalid type field
             elif sect['type'] not in ['report', 'noactivity', 'lastseen']:
-                globs.log.write(1,'ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
-                globs.log.err('ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
+                globs.log.write(1,function='Report', action='validateReportFields', msg='ERROR: [{}] section: invalid section type: \'{}\'. Must be \'report\', \'noactivity\', or \'lastseen\''.format(sectionList[i][0], sect['type']))
                 anyProblems += 1
             # OK so far, check the section for correctness
             else:
@@ -571,21 +577,18 @@ class Report:
                         oList = splitRcIntoList(sect[optName])
                         for j in range(len(oList)):
                             if oList[j][0] not in colNames:
-                                globs.log.err('ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[j][0]))
-                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[j][0]))
+                                globs.log.write(1, function='Report', action='validateReportFields', msg='ERROR: [{}] section, \'{}\' option: invalid field name: \'{}\'. Must use a valid field name for this.'.format(sectionList[i][0], optName, oList[j][0]))
                                 anyProblems += 1
                             if oList[j][1] not in ['ascending', 'descending']:
-                                globs.log.err('ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[j][0], oList[j][1]))
-                                globs.log.write(1,'ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[j][0], oList[j][1]))
+                                globs.log.write(1, function='Report', action='validateReportFields', msg='ERROR: [{}] section, \'{}\' option, \'{}\' field: invalid sort order: \'{}\'. Must be \'ascending\' or \'descending\'.'.format(sectionList[i][0], optName, oList[j][0], oList[j][1]))
                                 anyProblems += 1
                     # Something else (weird) is happening
                     else:
                         if not self.isValidReportField(optName):
-                            globs.log.write(1,'ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
-                            globs.log.err('ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
+                            globs.log.write(1, function='Report', action='validateReportFields', msg='ERROR: [{}] section: invalid option: \'{}\'.'.format(sectionList[i][0], optName))
                             anyProblems += 1
 
-        globs.log.write(1, 'Found {} report validation errors.'.format(anyProblems))
+        globs.log.write(1, function='Report', action='validateReportFields', msg='Found {} report validation errors.'.format(anyProblems))
         if globs.opts['validatereport'] == True:
             globs.log.out('Found {} report validation errors. See log file for details'.format(anyProblems))
         if anyProblems > 0:
@@ -597,12 +600,11 @@ class Report:
     # Extract the data needed for the report and move it to the report table in the database
     # This data will be picked up later by the specific report module
     def extractReportData(self):
-        globs.log.write(1, 'extractReportData()')
+        globs.log.write(1, function='Report', action='extractReportData', msg='Extracting report data.')
 
         # Initialize report table. Delete all existing rows
         dbCursor = globs.db.execSqlStmt("DELETE FROM report")
         globs.db.dbCommit()
-
 
         # Select source/destination pairs from database
         sqlStmt = "SELECT source, destination, lastTimestamp, lastFileCount, lastFileSize, dupversion FROM backupsets ORDER BY source, destination"
@@ -610,9 +612,9 @@ class Report:
         # Loop through backupsets table and then get latest activity for each src/dest pair
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         bkSetRows = dbCursor.fetchall()
-        globs.log.write(2, 'bkSetRows=[{}]'.format(bkSetRows))
+        globs.log.write(3, function='Report', action='extractReportData', msg='Backup set rows=[{}]'.format(bkSetRows))
         for source, destination, lastTimestamp, lastFileCount, lastFileSize, lastdupversion in bkSetRows:
-            globs.log.write(3, 'Src=[{}] Dest=[{}] lastTimestamp=[{}] lastFileCount=[{}] lastFileSize=[{}]  dupversion=[{}]'.format(source, 
+            globs.log.write(3, function='Report', action='extractReportData', msg='Next email record: Src={} Dest={} lastTimestamp={} lastFileCount={} lastFileSize={}  dupversion={}'.format(source, 
                 destination, lastTimestamp, lastFileCount, lastFileSize, lastdupversion))
 
             # Select all activity for src/dest pair since last report run
@@ -622,7 +624,7 @@ class Report:
             dbCursor = globs.db.execSqlStmt(sqlStmt)
 
             emailRows = dbCursor.fetchall()
-            globs.log.write(3, 'emailRows=[{}]'.format(emailRows))
+            globs.log.write(3, function='Report', action='extractReportData', msg='Email rows=[{}]'.format(emailRows))
             if emailRows: 
                 # Loop through each new activity and report
                 for dupversion, endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
@@ -630,9 +632,9 @@ class Report:
             
                     # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount
-                    globs.log.write(3, 'examinedFilesDelta = {} - {} = {}'.format(examinedFiles, lastFileCount, examinedFilesDelta))
+                    globs.log.write(3, function='Report', action='extractReportData', msg='Calculating examined files difference: {} - {} = {}'.format(examinedFiles, lastFileCount, examinedFilesDelta))
                     fileSizeDelta = sizeOfExaminedFiles - lastFileSize
-                    globs.log.write(3, 'fileSizeDelta = {} - {} = {}'.format(sizeOfExaminedFiles, lastFileSize, fileSizeDelta))
+                    globs.log.write(3, function='Report', action='extractReportData', msg='Calculating examined file size difference: {} - {} = {}'.format(sizeOfExaminedFiles, lastFileSize, fileSizeDelta))
 
                     # Create date & time fields from timestamp field.
                     # This makes it much easier to extract & sort later on rather than trying to manipulate the timestamp at runtime
@@ -659,16 +661,18 @@ class Report:
                     # Set last file count & size the latest information
                     lastFileCount = examinedFiles
                     lastFileSize = sizeOfExaminedFiles
-
         return None
 
+    # Create report by looping through report sections
     def createReport(self, reportStructure, startTime):
+        globs.log.write(1, function='Report', action='createReport', msg='Beginning report creation.')
 
         reportOutput = {}
         reportOutput['sections'] = []
 
         # Loop through report configurations
         for reportSection in reportStructure['sections']:
+            globs.log.write(1, function='Report', action='createReport', msg='Creating report for {}.'.format(reportSection))
             if reportSection['type'] == 'report':
                 if 'groupby' in reportSection['options']:
                     reportOutput['sections'].append(self.buildReportOutputYesGroups(reportSection))
@@ -680,13 +684,14 @@ class Report:
                 reportOutput['sections'].append(self.buildLastSeenOutput(reportSection))
             elif reportSection['type'] == 'runtime':
                 reportOutput['sections'].append(self.buildRuntimeOutput(reportSection, startTime))
-        
         return reportOutput
 
-    # Manage the formattedReport dictionary in the class
+    # Manage the formatted Report storage in the class
     # Basically, if a report in a given format has already been generated, just return it. 
     # Otherwise, generate it, store it, and return it.
     def createFormattedOutput(self, reportOutput, type):
+        globs.log.write(1, function='Report', action='createFormattedOutput', msg='Creating formatted output for {} format'.format(type))
+
         # Has report already been created?
         if self.formattedReports[type] == None:
             # No. generate the report
@@ -698,6 +703,8 @@ class Report:
                 self.formattedReports[type] = self.createCsvFormat(globs.report.rStruct, reportOutput) 
             elif type == 'json':
                 self.formattedReports[type] = self.createJsonFormat(globs.report.rStruct, reportOutput) 
+        else:
+            globs.log.write(1, function='Report', action='createFormattedOutput', msg='{} report format already exists'.format(type))
 
         # Return what you got
         return self.formattedReports[type]
@@ -711,9 +718,9 @@ class Report:
     
     # Build "Program Running Time" report
     def buildRuntimeOutput(self, reportStructure, startTime):
+        globs.log.write(1, function='Report', action='buildRuntimeOutput', msg='Calculating running time.')
 
         runTime = time.time() - startTime
-
         singleReport = {}
         singleReport['name'] = 'runtime'
         singleReport['inlineColumnCount'] = 1
@@ -727,6 +734,7 @@ class Report:
         singleReport['dataRows'][0].append([dataRowTypes['singleLine'], 1])
         singleReport['dataRows'][0].append(['Running Time: {:.3f} seconds.'.format(runTime), '#FFFFFF', toMarkup()])
 
+        globs.log.write(3, function='Report', action='buildRuntimeOutput', msg='Running time was {} seconds.'.format(runTime))
         return singleReport
 
     
@@ -740,6 +748,7 @@ class Report:
         singleReport['name'] = reportStructure['name']
         singleReport['columnCount'] = len(reportStructure['options']['columns'])
         singleReport['columnNames'] = []
+        globs.log.write(1, function='Report', action='buildReport_Initialize', msg='Building single report: {}.'.format(singleReport['name']))
         
         # Each column gets a ['name', 'title', 'bgcolor', markup] list assigned to it
         for i in range(len(reportStructure['options']['columns'])):
@@ -772,6 +781,7 @@ class Report:
         return dataRowIndex, singleReport
 
     def buildReport_PrintTitles(self, reportStructure, singleReport, dataRowIndex):
+        globs.log.write(1, function='Report', action='buildReport_PrintTitles', msg='Printing column title row.')
         # Add column headings
         # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
         # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
@@ -790,6 +800,7 @@ class Report:
         return dataRowIndex, singleReport
 
     def buildReport_PrintGroup(self, groupName, reportStructure, singleReport, dataRowIndex):
+        globs.log.write(1, function='Report', action='buildReport_PrintGroup', msg='Printing group heading row.')
         # Build the subheading (title) for the group
         if 'groupheading' in reportStructure['options']:                    # Group heading already defined
             grpHeading = reportStructure['options']['groupheading']
@@ -900,6 +911,7 @@ class Report:
     # See docs/DataStructures/ConfigFormat for schema of reportStructure
     # See docs/DataStructures/ReportFormat for schema of reportOutput
     def buildReportOutputNoGroups(self, reportStructure):
+        globs.log.write(1, function='Report', action='buildReportOutputNoGroups', msg='Printing \'no group\' report output.')
 
         dataRowIndex, singleReport = self.buildReport_Initialize(reportStructure)
         dataRowIndex, singleReport = self.buildReport_PrintTitles(reportStructure, singleReport, dataRowIndex)
@@ -987,6 +999,7 @@ class Report:
     # See docs/DataStructures/ConfigFormat for schema of reportStructure
     # See docs/DataStructures/ReportFormat for schema of reportOutput
     def buildReportOutputYesGroups(self, reportStructure):
+        globs.log.write(1, function='Report', action='buildReportOutputYesGroups', msg='Printing \'grouped\' report output.')
 
         dataRowIndex, singleReport = self.buildReport_Initialize(reportStructure)
 
@@ -1083,6 +1096,7 @@ class Report:
         return singleReport
 
     def buildNoActivityOutput(self, reportStructure):
+        globs.log.write(1, function='Report', action='buildNoActivityOutput', msg='Printing \'No Activity\' report output.')
 
         singleReport = {}
 
@@ -1174,7 +1188,7 @@ class Report:
                 singleReport['dataRows'][dataRowIndex].append([source, '#FFFFFF', markupPlain])
                 singleReport['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
                 if pastInterval is False:
-                    globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
+                    globs.log.write(3, function='Report', action='buildNoActivityOutput', msg='SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
                     singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
                 else:
                     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
@@ -1190,6 +1204,7 @@ class Report:
         return singleReport
 
     def buildLastSeenOutput(self, reportStructure):
+        globs.log.write(1, function='Report', action='buildLastSeenOutput', msg='Printing \'Last Seen\' report output.')
 
         singleReport = {}
 
@@ -1238,7 +1253,7 @@ class Report:
         sqlStmt = "SELECT source, destination, dupversion, lastTimestamp FROM backupsets ORDER BY source, destination"
         dbCursor = globs.db.execSqlStmt(sqlStmt)
         sourceDestList = dbCursor.fetchall()
-        globs.log.write(3,'sourceDestList=[{}]'.format(sourceDestList))
+        globs.log.write(3, function='Report', action='buildLastSeenOutput', msg='sourceDestList=[{}]'.format(sourceDestList))
 
         for source, destination, dupversion, lastTimestamp in sourceDestList:
             # If src/dest is known offline, skip
@@ -1283,7 +1298,7 @@ class Report:
             singleReport['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
             singleReport['dataRows'][dataRowIndex].append([dupversion,'#FFFFFF', markupPlain])
             if pastInterval is False:
-                globs.log.write(3, 'SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
+                globs.log.write(3, function='Report', action='buildLastSeenOutput', msg='SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
                 singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
             else:
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
@@ -1292,6 +1307,7 @@ class Report:
         return singleReport
 
     def createHtmlFormat(self, reportStructure, reportOutput):
+        globs.log.write(1, function='Report', action='createHtmlFormat', msg='Creating HTML formatted output.')
         msgHtml = '<html><head></head><body>\n'
         sectionIndex = -1
         for reportSection in reportOutput['sections']:
@@ -1334,6 +1350,7 @@ class Report:
         return msgHtml
 
     def createTextFormat(self, reportStructure, reportOutput):
+        globs.log.write(1, function='Report', action='createTextFormat', msg='Creating text formatted output.')
         msgText = ''
         SectionIndex = -1
         for reportSection in reportOutput['sections']:
@@ -1367,6 +1384,7 @@ class Report:
         return msgText
 
     def createCsvFormat(self, reportStructure, reportOutput):
+        globs.log.write(1, function='Report', action='createCsvFormat', msg='Creating CSV formatted output.')
         msgCsv = ''
         SectionIndex = -1
         for reportSection in reportOutput['sections']:
@@ -1391,5 +1409,6 @@ class Report:
         return msgCsv
 
     def createJsonFormat(self, reportStructure, reportOutput):
+        globs.log.write(1, function='Report', action='createJsonFormat', msg='Creating JSON formatted output.')
         return reportOutput
 

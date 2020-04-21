@@ -57,19 +57,18 @@ def maskData(inData, force = False):
 # Close everything and exit cleanly
 def closeEverythingAndExit(errcode):
     
-    log.write(1,'Closing everything...')
-
+    log.write(1, function='Globs', action='closeEverythingAndExit', msg='Closing everything...')
     if inServer is not None:
-        log.write(1,'Closing inbound email server...')
+        log.write(1, function='Globs', action='closeEverythingAndExit', msg='Closing inbound email server...')
         inServer.close()
     if outServer is not None:
-        log.write(1,'Closing outbound email server...')
+        log.write(1, function='Globs', action='closeEverythingAndExit', msg='Closing outbound email server...')
         outServer.close()
     if db is not None:
-        log.write(1,'Closing database file...')
+        log.write(1, function='Globs', action='closeEverythingAndExit', msg='Closing database file...')
         db.dbClose()
     if log is not None:
-        log.write(1,'Closing log file...')
+        log.write(1, function='Globs', action='closeEverythingAndExit', msg='Closing log file...')
         log.closeLog()
 
     os._exit(errcode)
