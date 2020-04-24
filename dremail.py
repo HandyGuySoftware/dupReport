@@ -561,7 +561,7 @@ class EmailServer:
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
         if emailParts['header']['content-transfer-encoding'].lower() == 'quoted-printable':
-            emailParts['body']['fullbody'] = quopri.decodestring(emailParts['body']['fullbody'])
+            emailParts['body']['fullbody'] = quopri.decodestring(emailParts['body']['fullbody'].replace('=0D=0A','\n')).decode("utf-8")
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='New (quopri) Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
         # See if email is text or JSON. JSON messages begin with '{"Data":'
