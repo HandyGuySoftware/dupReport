@@ -560,7 +560,7 @@ class EmailServer:
         
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
-        if msgParts['content-transfer-encoding'].lower() == 'quoted-printable':
+        if emailParts['header']['content-transfer-encoding'].lower() == 'quoted-printable':
             emailParts['body']['fullbody'] = quopri.decodestring(emailParts['body']['fullbody'])
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='New (quopri) Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
