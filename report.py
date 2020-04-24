@@ -82,7 +82,13 @@ def buildQuery(options, whereOpts = None, groupby=False):
         sqlStmt = 'SELECT ' + buildSelectList(options['columns']) + ' FROM report '
 
     if whereOpts:
-        sqlStmt += ' WHERE ' + buildWhereClause(options['groupby'], whereOpts) 
+        sqlStmt += ' WHERE ' + buildWhereClause(options['groupby'], whereOpts)
+
+    if options['failedonly']:
+        if whereOpts:
+            sqlStmt += ' AND parsedResult != \'Success\' '
+        else:
+            sqlStmt += ' WHERE parsedResult != \'Success\' '
 
     if groupby:
         sqlStmt += ' ORDER BY ' + buildOrderList(options['groupby']) 
@@ -404,7 +410,7 @@ class Report:
             self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
-        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'includeruntime'):
+        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'includeruntime', 'failedonly'):
             self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
             
         # Get reports that need to run as defined in [report]layout option
@@ -443,7 +449,7 @@ class Report:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
                 # Fix some of the data field types - boolean
-                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline'):
+                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'failedonly'):
                     if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
                        self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
         
@@ -782,25 +788,6 @@ class Report:
 
         return dataRowIndex, singleReport
 
-    def buildReport_PrintTitles(self, reportStructure, singleReport, dataRowIndex):
-        globs.log.write(globs.SEV_NOTICE, function='Report', action='buildReport_PrintTitles', msg='Printing column title row.')
-        # Add column headings
-        # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
-        # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
-        if reportStructure['options']['suppresscolumntitles'] == False:
-            singleReport['dataRows'].append([])
-            dataRowIndex += 1
-            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rowHead'], 1])
-            for i in range(singleReport['inlineColumnCount']):
-                # Get the formatting for the title.
-                # The text of the heading comes from the inlineColumNames list
-                # The formatting coms from the fldDefs{} dictionary
-                markup = toMarkup(bold=True, align = fldDefs[singleReport['inlineColumnNames'][i][0]][0])
-                newStr = '{:{fmt}}'.format(singleReport['inlineColumnNames'][i][1], fmt=fldDefs[singleReport['inlineColumnNames'][i][0]][1])
-                singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
-
-        return dataRowIndex, singleReport
-
     def buildReport_PrintGroup(self, groupName, reportStructure, singleReport, dataRowIndex):
         globs.log.write(globs.SEV_NOTICE, function='Report', action='buildReport_PrintGroup', msg='Printing group heading row.')
         # Build the subheading (title) for the group
@@ -829,6 +816,25 @@ class Report:
         dataRowIndex += 1
         singleReport['dataRows'][dataRowIndex].append([dataRowTypes['grpHeading'], singleReport['inlineColumnCount']])
         singleReport['dataRows'][dataRowIndex].append([grpHeading, reportStructure['options']['groupheadingbg'], toMarkup(align="center")])
+
+        return dataRowIndex, singleReport
+
+    def buildReport_PrintTitles(self, reportStructure, singleReport, dataRowIndex):
+        globs.log.write(globs.SEV_NOTICE, function='Report', action='buildReport_PrintTitles', msg='Printing column title row.')
+        # Add column headings
+        # Column headings (or 'titles' - the usage varies throughout the code) get a starting list of ['rowHeadDataType',1] (because each title spans 1 column in the report)
+        # Then a series of ['columTitle', bgcolor, markup] lists, one for each column
+        if reportStructure['options']['suppresscolumntitles'] == False:
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['rowHead'], 1])
+            for i in range(singleReport['inlineColumnCount']):
+                # Get the formatting for the title.
+                # The text of the heading comes from the inlineColumNames list
+                # The formatting coms from the fldDefs{} dictionary
+                markup = toMarkup(bold=True, align = fldDefs[singleReport['inlineColumnNames'][i][0]][0])
+                newStr = '{:{fmt}}'.format(singleReport['inlineColumnNames'][i][1], fmt=fldDefs[singleReport['inlineColumnNames'][i][0]][1])
+                singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
 
         return dataRowIndex, singleReport
 
@@ -942,7 +948,6 @@ class Report:
             
             # Loop through each column in the row
             for i in range(len(reportStructure['options']['columns'])):
-                
                 # Figure out the appropriate background. We'll need this in a couple of places
                 # Default color is white (#FFFFFF)
                 bground = self.getBackgroundColor(reportStructure, reportStructure['options']['columns'][i][0], i, rowList[singleRow][i])

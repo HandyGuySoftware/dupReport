@@ -48,7 +48,7 @@ rcParts= [
     ('main',        'masksensitive',    'true',                                                                     True),
     ('main',        'emailservers',     'incoming, outgoing',                                                       True),
     ('main',        'syslog',           '',                                                                         True),
-    ('main',        'sysloglevel',      '5',                                                           True),
+    ('main',        'sysloglevel',      '5',                                                                        True),
     
     # [incoming] section defaults
     ('incoming',    'protocol',       'imap',                                                                       False),
@@ -109,6 +109,7 @@ rcParts= [
     ('report',      'errorbg',          '#FF0000',                                                                  True),
     ('report',      'weminline',        'false',                                                                    True),
     ('report',      'includeruntime',   'true',                                                                     True),
+    ('report',      'failedonly',       'False',                                                                    True),
 
     # [srcdest] sample specification
     ('srcdest',     'type',             'report',                                                                   True),

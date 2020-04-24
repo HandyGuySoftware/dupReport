@@ -60,7 +60,6 @@ sevlevels = [
     ('DEBUG', SEV_DEBUG)
     ]
 
-
 # Mask sensitive data in log files
 # Replace incoming string with string of '*' the same length of the original
 def maskData(inData, force = False):
