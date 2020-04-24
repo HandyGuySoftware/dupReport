@@ -45,11 +45,11 @@ if __name__ == "__main__":
     # We don't have a log file named yet, but we still need to capture output information
     # See LogHandler class description for more details
     globs.log = log.LogHandler()
-    globs.log.write(1, function='main', action='startup', msg='dupReport Log - Start')
-    globs.log.write(1, function='main', action='startup', msg='Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
-    globs.log.write(1, function='main', action='startup', msg='Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
-    globs.log.write(1, function='main', action='startup', msg='Python version {}'.format(sys.version))
-    globs.log.write(1, function='main', action='startup', msg='Program path: {}'.format(globs.progPath))
+    globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='dupReport Log - Start')
+    globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
+    globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+    globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Python version {}'.format(sys.version))
+    globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Program path: {}'.format(globs.progPath))
     # Check if we're running a compatible version of Python. Must be 3.0 or higher
     if sys.version_info.major < 3:
         globs.log.err('dupReport requires Python 3.0 or higher to run. Your installation is on version {}.{}.{}.\nPlease install a newer version of Python.'.format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     if globs.report.validConfig is False:
         errmsg = 'Report configuration has errors. See log file {} for specific error messages.'.format(globs.logName)
         globs.log.err(errmsg)
-        globs.log.write(1, function='main', action='ValidateConfig', msg=errmsg)
+        globs.log.write(globs.SEV_ERROR, function='main', action='ValidateConfig', msg=errmsg)
         globs.closeEverythingAndExit(0)
     if globs.opts['validatereport'] == True:  # We just want to validate the report. Exit from here without doing anyting else.
         globs.closeEverythingAndExit(0)
@@ -99,15 +99,15 @@ if __name__ == "__main__":
     globs.db = db.Database(globs.opts['dbpath'])
     if globs.opts['initdb'] is True:    
         # Forced initialization from command line
-        globs.log.write(1, function='main', action='InitDB', msg='Database initialization specified on command line.')
+        globs.log.write(globs.SEV_NOTICE, function='main', action='InitDB', msg='Database initialization specified on command line.')
         globs.db.dbInitialize()
     else:   # Check for DB version
         needToUpgrade, currDbVersion = globs.db.checkDbVersion()
         if needToUpgrade is True:
             import convert
-            globs.log.write(1, function='main', action='DBUpgrade', msg='Upgrading database {} from version {} to version {}{}{}'.format(globs.opts['dbpath'], currDbVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+            globs.log.write(globs.SEV_NOTICE, function='main', action='DBUpgrade', msg='Upgrading database {} from version {} to version {}{}{}'.format(globs.opts['dbpath'], currDbVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
             convert.convertDb(currDbVersion)
-            globs.log.write(1, function='main', action='DBUpgrade', msg='Database upgrade complete.')
+            globs.log.write(globs.SEV_NOTICE, function='main', action='DBUpgrade', msg='Database upgrade complete.')
 
     # Remove source/destination from database?
     if globs.opts['remove']:
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     if globs.opts['purgedb'] == True:
         globs.db.purgeOldEmails()
 
-    globs.log.write(1, function='main', action='Complete', msg='Program completed in {:.3f} seconds. Exiting.'.format(time.time() - startTime))
+    globs.log.write(globs.SEV_NOTICE, function='main', action='Complete', msg='Program completed in {:.3f} seconds. Exiting.'.format(time.time() - startTime))
 
     if globs.opts['showprogress'] > 0:
         globs.log.out('Ending program.')

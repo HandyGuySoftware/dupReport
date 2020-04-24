@@ -12,24 +12,36 @@ import sys
 import globs
 import os
 import datetime
+import logging
 import socket
+from logging.handlers import SysLogHandler
+
 
 # Class to handle log management
 class LogHandler:
     def __init__(self):
-        self.logFile = None         # Handle to log file, when opened
-        self.suppressFlag = False   # Do we want to suppress log output? (Relic from older versions)
-        self.defLogLevel = 3        # Default logging level. Will get updated when log is opened
-        self.tmpFile = None         # Temp file to hold log output before log file is opened.
+        self.logFile = None             # Handle to log file, when opened
+        self.suppressFlag = False       # Do we want to suppress log output? (Relic from older versions)
+        self.defLogLevel = globs.SEV_NOTICE   # Default logging level. Will get updated when log is opened
+        self.tmpFile = None             # Temp file to hold log output before log file is opened.
         self.tmpLogPath = globs.progPath + '/' + globs.tmpName    # Path for temp log
         self.hostname = socket.gethostname()
+        self.syslog = {
+            'logger': None,
+            'host': None,
+            'port': 514, 
+            'level': globs.SEV_NOTICE,
+            'handler': None
+            }
 
         return None
 
-    def openLog(self, path = None, append = False, level = 1):
+    def openLog(self, path = None, append = False, level = globs.SEV_DEBUG):
         if self.logFile is not None:    # Another log file is open. Need to close it first
             self.logFile.close()
+
         self.defLogLevel = level
+
         if path is not None:    # Path provided. Open log file for write or append
             try:
                 if append is True:
@@ -47,15 +59,43 @@ class LogHandler:
                     self.tmpFile = None
             except (OSError, IOError):
                 e = sys.exc_info()[0]
-                globs.log.write(1, function='Log', action='openLog', msg='Error opening log file {}: {}\n'.format(path, e))
+                globs.log.write(globs.SEV_ERROR, function='Log', action='openLog', msg='Error opening log file {}: {}'.format(path, e))
                 sys.stderr.write('Error opening log file {}: {}\n'.format(path, e))
+
+        if globs.opts['syslog'] != '':
+            syslogparts = globs.opts['syslog'].split(':')
+            self.syslog['host'] = syslogparts[0]
+            if len(syslogparts) == 2:   # Syslog port specified.
+                self.syslog['port'] = int(syslogparts[1])
+
+            if globs.opts['sysloglevel'] not in range(8):  # Severity levels are 0-7
+                globs.log.write(globs.SEV_ERROR, function='Log', action='openLog', msg='Invalid syslog level specified: {}. Reverting to level 5 (SEV_NOTICE)'.format(globs.opts['sysloglevel']))
+            else:
+                self.syslog['level'] = globs.opts['sysloglevel']
+
+            globs.log.write(globs.SEV_DEBUG, function='Log', action='openLog', msg='Opening syslog connection to {}:{}'.format(self.syslog['host'], self.syslog['port']))
+            try:
+                self.syslog['logger'] = logging.getLogger()
+                self.syslog['logger'].setLevel(self.syslog['level'])
+                self.syslog['handler'] = SysLogHandler(address=(self.syslog['host'], self.syslog['port']), facility = 16)
+                self.syslog['logger'].addHandler(self.syslog['handler'])
+                self.syslog['logger'].propagate = False   
+            except :
+                e = sys.exc_info()[0]
+                globs.log.write(globs.SEV_ERROR, function='Log', action='connect:syslog', msg='Error connecting to syslog sever {}:{}. Most likely an incorrect server or port was specified. Msg: {}'.format(self.syslog['host'], self.syslog['port'], e))
+                self.syslog['handler'] = None
 
         return None
 
     def closeLog(self):
+        if self.syslog['handler'] != None:
+            self.write(globs.SEV_NOTICE, function='Log', action='closeLog', msg='Closing syslog connection')
+            self.syslog['handler'].close
+
         if self.logFile is not None:    # Another log file is open. Need to close it first
             self.logFile.close()
         self.logFile = None
+
         return None;
 
     # Write log info to stderr
@@ -75,22 +115,25 @@ class LogHandler:
             sys.stdout.flush()
         return None
 
-    def createSyslogOutput(self, level, msg, msgID = 0, function='', subfunction=''):
-        facility = 16
-        pri = (facility * 8) + level
-        isoTimeStamp = datetime.datetime.now().isoformat()
-        application = 'dupReport'
+    def writeSyslog(self, level, msg):
 
-        # Syslog message consists of 'HEADER STRUCTURED-DATA MSG' format
-        header = '<{}>1 {} {} dupreport - {}'.format(pri, isoTimeStamp, self.hostname, msgID)
-        structData = '[SD@0 func={} subfunc={}]'.format(function, subfunction)
-        sysLogData = '{} {} {}'.format(header, structData, msg)
+        if level <= self.syslog['level']:               # Check that we're writing to an appropriate logging level
+            if level <= globs.SEV_CRITICAL:
+                self.syslog['logger'].critical(msg)
+            elif level <= globs.SEV_ERROR:
+                self.syslog['logger'].error(msg)
+            elif level <= globs.SEV_WARNING:
+                self.syslog['logger'].warning(msg)
+            elif level <= globs.SEV_INFO:
+                self.syslog['logger'].info(msg)
+            elif level <= globs.SEV_DEBUG:
+                self.syslog['logger'].debug(msg)
 
-        return sysLogData
+        return None
 
 
     # Write log info to log file
-    # Log Format = [LEVEL][TIMESTAMP][FUNCTION][ACTION][MESSAGE]
+    # Log Format = [TIMESTAMP][SEVERITY][FUNCTION][ACTION]<MESSAGE>
     def write(self, level, function='-', action='-', msg='' ):
 
         if self.suppressFlag:       # Suppress log output even if logging is set
@@ -106,11 +149,18 @@ class LogHandler:
             logTarget = self.tmpFile
 
         if (msg is not None) and (msg != ''):   # Non-empty message. Good to go...
+            logData = '[{}][{}][{}][{}]{}'.format(datetime.datetime.now().isoformat(), globs.sevlevels[level][0], function, action, msg)
+
+            # Write to program log
             if level <= self.defLogLevel:               # Check that we're writing to an appropriate logging level
-                logData = '[{}][{}][{}][{}][{}]'.format(level, datetime.datetime.now().isoformat(), function, action, msg)
                 logTarget.write(logData)
                 logTarget.write('\n')
                 logTarget.flush()          # Protect against buffered log data getting lost due to program crash
+
+            # Write to syslog, if necessary
+            if self.syslog['handler'] != None:
+                self.writeSyslog(level, logData)
+
         return None
 
     # Temporarily suppress all logging

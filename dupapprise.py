@@ -22,7 +22,7 @@ class dupApprise:
     services = None
 
     def __init__(self):
-        globs.log.write(1, function='Apprise', action='Init', msg='Initializing Apprise support')
+        globs.log.write(globs.SEV_NOTICE, function='Apprise', action='Init', msg='Initializing Apprise support')
 
         #import apprise
 
@@ -30,7 +30,7 @@ class dupApprise:
         self.appriseOpts = globs.optionManager.getRcSection('apprise')
 
         if 'services' not in self.appriseOpts:
-            globs.log.write(1, function='Apprise', action='Init', msg='Error: No services defined for Apprise notification')
+            globs.log.write(globs.SEV_ERROR, function='Apprise', action='Init', msg='Error: No services defined for Apprise notification')
             globs.closeEverythingAndExit(1)  # Abort program. Can't continue
 
         # Set defaults for missing values
@@ -47,24 +47,24 @@ class dupApprise:
         
         # Check for correct message level indicator
         if self.appriseOpts['msglevel'] not in ('success', 'warning', 'failure'):
-            globs.log.write(1, function='Apprise', action='Init', msg='Error: Bad apprise message level: {}'.format(self.appriseOpts['msglevel']))
+            globs.log.write(globs.SEV_ERROR, function='Apprise', action='Init', msg='Error: Bad apprise message level: {}'.format(self.appriseOpts['msglevel']))
             globs.closeEverythingAndExit(1)  # Abort program. Can't continue.
 
         # Initialize apprise library
         result = self.appriseConn = apprise.Apprise()
-        globs.log.write(1, function='Apprise', action='Init', msg='Initializing Apprise library. Result={}'.format(result))
+        globs.log.write(globs.SEV_NOTICE, function='Apprise', action='Init', msg='Initializing Apprise library. Result={}'.format(result))
 
         # Add individual service URLs to connection
         self.services =  self.appriseOpts['services'].split(",")
         for i in self.services:
             result = self.appriseConn.add(i)
-            globs.log.write(1, function='Apprise', action='Init', msg='Added service {}, result={}'.format(i, result))
+            globs.log.write(globs.SEV_NOTICE, function='Apprise', action='Init', msg='Added service {}, result={}'.format(i, result))
 
-        globs.log.write(1, function='Apprise', action='Init', msg='Apprise Initialization complete.')
+        globs.log.write(globs.SEV_NOTICE, function='Apprise', action='Init', msg='Apprise Initialization complete.')
         return None
 
     def parseMessage(self, msg, source, destination, result, message, warningmessage, errormessage, completetime):
-        globs.log.write(1, function='Apprise', action='parseMessage', msg=msg)
+        globs.log.write(globs.SEV_NOTICE, function='Apprise', action='parseMessage', msg=msg)
 
         newMsg = msg
         newMsg = newMsg.replace('#SOURCE#',source)
@@ -76,7 +76,7 @@ class dupApprise:
         newMsg = newMsg.replace('#WARNMSG#',warningmessage)
         newMsg = newMsg.replace('#COMPLETETIME#','{} {}'.format(completetime[0], completetime[1]))
 
-        globs.log.write(1, function='Apprise', action='parseMessage', msg='New message=[{}]'.format(newMsg))
+        globs.log.write(globs.SEV_NOTICE, function='Apprise', action='parseMessage', msg='New message=[{}]'.format(newMsg))
         return newMsg
 
     def sendNotifications(self):
@@ -85,19 +85,19 @@ class dupApprise:
         reportRows = dbCursor.fetchall()
 
         for source, destination, parsedResult, messages, warnings, errors, timestamp in reportRows:
-            globs.log.write(1, function='Apprise', action='sendNotifications', msg='Preparing Apprise message for {}-{}, parsedResult={} msglevel={}'.format(source, destination, parsedResult, self.appriseOpts['msglevel']))
+            globs.log.write(globs.SEV_NOTICE, function='Apprise', action='sendNotifications', msg='Preparing Apprise message for {}-{}, parsedResult={} msglevel={}'.format(source, destination, parsedResult, self.appriseOpts['msglevel']))
 
             # See if we need to send a notification based on the result status
             if self.appriseOpts['msglevel'] == 'warning':
                 if parsedResult.lower() not in ('warning', 'failure'):
-                    globs.log.write(1, function='Apprise', action='sendNotifications', msg='Msglevel mismatch at warning level - skipping')
+                    globs.log.write(globs.SEV_NOTICE, function='Apprise', action='sendNotifications', msg='Msglevel mismatch at warning level - skipping')
                     continue
             elif self.appriseOpts['msglevel'] == 'failure':
                 if parsedResult.lower() != 'failure':
-                    globs.log.write(1, function='Apprise', action='sendNotifications', msg='Msglevel mismatch at failure level - skipping')
+                    globs.log.write(globs.SEV_NOTICE, function='Apprise', action='sendNotifications', msg='Msglevel mismatch at failure level - skipping')
                     continue
 
-            globs.log.write(3, function='Apprise', action='sendNotifications', msg='Apprise message is sendable.')
+            globs.log.write(globs.SEV_DEBUG, function='Apprise', action='sendNotifications', msg='Apprise message is sendable.')
            
             newTitle = self.parseMessage(self.appriseOpts['title'], source, destination, parsedResult, messages, warnings, errors, drdatetime.fromTimestamp(timestamp))
             newBody = self.parseMessage(self.appriseOpts['body'], source, destination, parsedResult, messages, warnings, errors, drdatetime.fromTimestamp(timestamp))
@@ -109,8 +109,8 @@ class dupApprise:
             if  bLen!= 0:
                 newBody = (newBody[:bLen]) if len(newBody) > bLen else newBody  
 
-            globs.log.write(3, function='Apprise', action='sendNotifications', msg='Sending notification: Title=[{}] Body=[{}]'.format(newTitle, newBody))
+            globs.log.write(globs.SEV_DEBUG, function='Apprise', action='sendNotifications', msg='Sending notification: Title=[{}] Body=[{}]'.format(newTitle, newBody))
             result = self.appriseConn.notify(title=newTitle, body=newBody)
-            globs.log.write(1, function='Apprise', action='sendNotifications', msg='Apprise sent. Result={}.'.format(result))
+            globs.log.write(globs.SEV_NOTICE, function='Apprise', action='sendNotifications', msg='Apprise sent. Result={}.'.format(result))
 
         return

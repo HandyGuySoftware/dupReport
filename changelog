@@ -12,6 +12,7 @@
 - Re-structured the documentation for better readibility and made it easier to find specific settings. (Issue #140)
 - Ability to specify multiple inbound (IMAP/POP3) and outbound (SMTP) email servers. Specified by [main]emailservers= option or -e commandline option.
 - Standardized log format for easier searching and organization (Issue #137)
+- Added ability to send output to syslog server or log aggregator (Issue #128)
 
 2.2.11
 ------

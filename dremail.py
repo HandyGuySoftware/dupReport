@@ -78,7 +78,7 @@ serverRcParts = {
 
 class EmailManager:
     def __init__(self):
-        globs.log.write(1, function='EmailManager', action='Init', msg='Initializing Email Manager.')
+        globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='Init', msg='Initializing Email Manager.')
 
         self.incoming = {}  # Dictionary of incoming email servers. Order of elements is unimportant
         self.outgoing = []  # List of outgoing SMTP servers. Need to save elements in order specified.
@@ -104,10 +104,10 @@ class EmailManager:
                 isValid = False
 
         if len(self.incoming) == 0:
-            globs.log.write(1, function='EmailManager', action='Init', msg='No incoming email server(s) specified.')
+            globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='Init', msg='No incoming email server(s) specified.')
             isValid = False
         if len(self.outgoing) == 0:
-            globs.log.write(1, function='EmailManager', action='Init', msg='No outgoing email server(s) specified.')
+            globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='Init', msg='No outgoing email server(s) specified.')
             isValid = False
 
         if not isValid:
@@ -117,22 +117,22 @@ class EmailManager:
 
     # Return the first available outgoing SMTP server
     def getSmtpServer(self):
-        globs.log.write(1, function='EmailManager', action='getSmtpServer', msg='Looking for outgoing SMTP server.')
+        globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='getSmtpServer', msg='Looking for outgoing SMTP server.')
         for i in range(len(self.outgoing)):
             self.outgoing[i].connect()
             if self.outgoing[i].available == True:
                 return self.outgoing[i]
 
-        globs.log.write(1, function='EmailManager', action='getSmtpServer', msg='Unable to find any available outgoing SMTP servers.')
+        globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='getSmtpServer', msg='Unable to find any available outgoing SMTP servers.')
         return None
 
     def checkForNewMessages(self):
-        globs.log.write(1, function='EmailManager', action='checkForNewMessages', msg='Checking inbound servers for new email messages.')
+        globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='checkForNewMessages', msg='Checking inbound servers for new email messages.')
         for server in self.incoming:
             # Get new messages on server
             progCount = 0   # Count for progress indicator
             newMessages = self.incoming[server].checkForMessages()
-            globs.log.write(1, function='EmailManager', action='checkForNewMessages', msg='Found {} new messages on server {}'.format(newMessages, self.incoming[server].options['server']))
+            globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='checkForNewMessages', msg='Found {} new messages on server {}'.format(newMessages, self.incoming[server].options['server']))
             if newMessages > 0:
                 nxtMsg = self.incoming[server].processNextMessage()
                 while nxtMsg is not None:
@@ -156,7 +156,7 @@ class EmailManager:
     # Validate the .rc file options for an email server
     # Return true/false if options are valid and list of options    
     def validateServerOptions(self, server):
-        globs.log.write(1, function='EmailManager', action='validateServerOptions', msg='Validating .rc file options for server {}'.format(server))
+        globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='validateServerOptions', msg='Validating .rc file options for server {}'.format(server))
 
         options = {}
         isValid = True
@@ -164,13 +164,13 @@ class EmailManager:
         
         # Make sure there is a valid protocol field in the spec. Without this, all else is useless
         if rcOptions is None:
-            globs.log.write(1, function='EmailManager', action='validateServerOptions', msg='No specification found in .rc file for email server \'{}\''.format(server))
+            globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='validateServerOptions', msg='No specification found in .rc file for email server \'{}\''.format(server))
             isValid = False
         elif 'protocol' not in rcOptions:
-            globs.log.write(1, function='EmailManager', action='validateServerOptions', msg='No protocol specified for server \'{}\''.format(server))
+            globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='validateServerOptions', msg='No protocol specified for server \'{}\''.format(server))
             isValid = False
         elif rcOptions['protocol'] not in ['imap', 'pop3', 'smtp']:
-            globs.log.write(1, function='EmailManager', action='validateServerOptions', msg='Invalid protocol \'{}\' specified for email server \'{}\''.format(rcOptions['protocol'], server))
+            globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='validateServerOptions', msg='Invalid protocol \'{}\' specified for email server \'{}\''.format(rcOptions['protocol'], server))
             isValid = False
 
         if not isValid:
@@ -179,7 +179,7 @@ class EmailManager:
         # Looking good. Now loop through required options to see if any are missing
         for option in serverRcParts[rcOptions['protocol']]:
             if option not in rcOptions:
-                globs.log.write(1, function='EmailManager', action='validateServerOptions', msg='Required option \'{}\' not found in defintion of email server \'{}\''.format(option, server))
+                globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='validateServerOptions', msg='Required option \'{}\' not found in defintion of email server \'{}\''.format(option, server))
                 isValid = False
             else:
                 if option in ['port']: # Int conversion
@@ -193,7 +193,7 @@ class EmailManager:
 
 class EmailServer:
     def __init__(self, serverName, optionList):
-        globs.log.write(3, function='EmailServer', action='init', msg='Initializing email server \'{}\''.format(serverName))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='init', msg='Initializing email server \'{}\''.format(serverName))
         
         self.options = optionList
         self.name = serverName
@@ -202,12 +202,12 @@ class EmailServer:
         self.numEmails = 0      # Number of emails in list
         self.nextEmail = 0      # index into list of next email to be retrieved
         self.available = False  # Set to True if able to make a connection
-        globs.log.write(3, function='EmailServer', action='init', msg='Email server \'{}\' initialized'.format(serverName))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='init', msg='Email server \'{}\' initialized'.format(serverName))
         return None
 
     def connect(self):
-        globs.log.write(1, function='EmailServer', action='connect', msg='Connecting to email server \'{}\''.format(self.options['server']))
-        globs.log.write(3, function='EmailServer', action='connect', msg='serverconnect=[{}] keepalive=[{}]'.format(self.serverconnect, self.options['keepalive']))
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='connect', msg='Connecting to email server \'{}\''.format(self.options['server']))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect', msg='serverconnect=[{}] keepalive=[{}]'.format(self.serverconnect, self.options['keepalive']))
 
         # See if a server connection is already established (self.serverconnect != None)
         # This is the most common case, so check this first
@@ -215,16 +215,16 @@ class EmailServer:
             if not self.options['keepalive']: # Do we care about keepalives?
                 return None
 
-            globs.log.write(3, function='EmailServer', action='connect:KeepAlive', msg='Checking existing server connection using {}'.format(self.options['protocol']))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:KeepAlive', msg='Checking existing server connection using {}'.format(self.options['protocol']))
             if self.options['protocol'] == 'imap':
                 try:
                     status = self.serverconnect.noop()[0]
                 except:
                     e = sys.exc_info()[0]
-                    globs.log.write(1, function='EmailServer', action='connect:Imap', msg='IMAP noop() Error: {}'.format(e))
+                    globs.log.write(globs.SEV_ERROR, function='EmailServer', action='connect:Imap', msg='IMAP noop() Error: {}'.format(e))
                     status = 'NO'
                 if status != 'OK':
-                    globs.log.write(3, function='EmailServer', action='connect:Imap', msg='Server {} timed out. Reconnecting.'.format(self.options['server']))
+                    globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Imap', msg='Server {} timed out. Reconnecting.'.format(self.options['server']))
                     self.serverconnect = None
                     self.available = False
                     self.connect()
@@ -233,10 +233,10 @@ class EmailServer:
                     status = self.serverconnect.noop()
                 except:
                     e = sys.exc_info()[0]
-                    globs.log.write(1, function='EmailServer', action='connect:Pop3', msg='POP3 noop() Error: {}'.format(e))
+                    globs.log.write(globs.SEV_ERROR, function='EmailServer', action='connect:Pop3', msg='POP3 noop() Error: {}'.format(e))
                     status = '+NO'
                 if status.decode() != '+OK':        # Stats from POP3 returned as byte string. Need to decode before compare (Issue #107)
-                    globs.log.write(1, function='EmailServer', action='connect:Pop3', msg='Server {} timed out. Reconnecting.'.format(self.options['server']))
+                    globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='connect:Pop3', msg='Server {} timed out. Reconnecting.'.format(self.options['server']))
                     self.serverconnect = None
                     self.available = False
                     self.connect()
@@ -245,15 +245,15 @@ class EmailServer:
                     status = self.serverconnect.noop()[0]
                 except:  # smtplib.SMTPServerDisconnected
                     e = sys.exc_info()[0]
-                    globs.log.write(1, function='EmailServer', action='connect:Smtp', msg='SMTP noop() Error: {}'.format(e))
+                    globs.log.write(globs.SEV_ERROR, function='EmailServer', action='connect:Smtp', msg='SMTP noop() Error: {}'.format(e))
                     status = -1
                 if status != 250: # Disconnected. Need to reconnect to server
-                    globs.log.write(3, function='EmailServer', action='connect:Smtp', msg='Server {} timed out. Reconnecting.'.format(self.options['server']))
+                    globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Smtp', msg='Server {} timed out. Reconnecting.'.format(self.options['server']))
                     self.serverconnect = None
                     self.available = False
                     self.connect()
         else:     # self.serverconnect == None. Never connected, need to establish server connection
-            globs.log.write(3, function='EmailServer', action='connect:Init', msg='Initiating new server connection using {}'.format(self.options['protocol']))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Init', msg='Initiating new server connection using {}'.format(self.options['protocol']))
             if self.options['protocol'] == 'imap':
                 try:
                     if self.options['encryption'] != 'none':
@@ -261,14 +261,14 @@ class EmailServer:
                     else:
                         self.serverconnect = imaplib.IMAP4(self.options['server'],self.options['port'])
                     retVal, data = self.serverconnect.login(self.options['account'], self.options['password'])
-                    globs.log.write(3, function='EmailServer', action='connectInit', msg='IMAP Logged in. retVal=[{}] data=[{}]'.format(retVal, globs.maskData(data)))
+                    globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connectInit', msg='IMAP Logged in. retVal=[{}] data=[{}]'.format(retVal, globs.maskData(data)))
                     retVal, data = self.serverconnect.select(self.options['folder'])
-                    globs.log.write(3,function='EmailServer', action='connect:Imap', msg='Setting IMAP folder. retVal=[{}] data=[{}]'.format(retVal, data))
+                    globs.log.write(globs.SEV_DEBUG,function='EmailServer', action='connect:Imap', msg='Setting IMAP folder. retVal=[{}] data=[{}]'.format(retVal, data))
                     self.available = True
                     return retVal
                 except:
                     e = sys.exc_info()[0]
-                    globs.log.write(1, function='EmailServer', action='connect:Imap', msg='IMAP connection Error: {}'.format(e))
+                    globs.log.write(globs.SEV_ERROR, function='EmailServer', action='connect:Imap', msg='IMAP connection Error: {}'.format(e))
                     self.available = False
                     return None
             elif self.options['protocol'] == 'pop3':
@@ -278,52 +278,52 @@ class EmailServer:
                     else:
                         self.serverconnect = poplib.POP3(self.options['server'],self.options['port'])
                     retVal = self.serverconnect.user(self.options['account'])
-                    globs.log.write(3, function='EmailServer', action='connect:Pop3', msg='POP3 Logged in. retVal=[{}]'.format(retVal))
+                    globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Pop3', msg='POP3 Logged in. retVal=[{}]'.format(retVal))
                     retVal = self.serverconnect.pass_(self.options['password'])
-                    globs.log.write(3, function='EmailServer', action='connect:Pop3', msg='Entered password. retVal={}'.format(retVal))
+                    globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Pop3', msg='Entered password. retVal={}'.format(retVal))
                     self.available = True
                     return retVal.decode()
                 except:
                     e = sys.exc_info()[0]
-                    globs.log.write(1, function='EmailServer', action='connect:Pop3', msg='POP3 connection Error: {}'.format(e))
+                    globs.log.write(globs.SEV_ERROR, function='EmailServer', action='connect:Pop3', msg='POP3 connection Error: {}'.format(e))
                     self.available = False
                     return None
             elif self.options['protocol'] == 'smtp':
                 try:
-                    globs.log.write(3, function='EmailServer', action='connect:Smtp', msg='Initializing SMPT Object for address=[{}] port=[{}]'.format(self.options['server'],self.options['port']))
+                    globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Smtp', msg='Initializing SMPT Object for address=[{}] port=[{}]'.format(self.options['server'],self.options['port']))
                     self.serverconnect = smtplib.SMTP(self.options['server'],self.options['port'])
-                    globs.log.write(3, function='EmailServer', action='connect:Smtp', msg='SMPT serverconnect object=[{}]'.format(self.serverconnect))
+                    globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Smtp', msg='SMPT serverconnect object=[{}]'.format(self.serverconnect))
                     if self.options['encryption'] != 'none':   # Do we need to use SSL/TLS?
-                        globs.log.write(3, function='EmailServer', action='connect:Smtp', msg='Starting TLS')
+                        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Smtp', msg='Starting TLS')
                         try:
                             tlsContext = ssl.create_default_context()
                             self.serverconnect.starttls(context=tlsContext)
                         except Exception as e:
-                            globs.log.write(1, function='EmailServer', action='connect:Smtp', msg='SMTP TLS Exception: [{}]'.format(e))
+                            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='connect:Smtp', msg='SMTP TLS Exception: [{}]'.format(e))
                     try:
-                        globs.log.write(3, function='EmailServer', action='connect:Smtp', msg='Logging into server.')
+                        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Smtp', msg='Logging into server.')
                         retVal, retMsg = self.serverconnect.login(self.options['account'], self.options['password'])
-                        globs.log.write(3, function='EmailServer', action='connect:Smtp', msg='Logged in. retVal=[{}] retMsg=[{}]'.format(retVal, retMsg))
+                        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='connect:Smtp', msg='Logged in. retVal=[{}] retMsg=[{}]'.format(retVal, retMsg))
                         self.available = True
                         return retMsg.decode()
                     except:
                         e = sys.exc_info()[0]
-                        globs.log.write(1,  function='EmailServer', action='connect:Smtp', msg='SMTP login Error: {}'.format(e))
+                        globs.log.write(globs.SEV_ERROR,  function='EmailServer', action='connect:Smtp', msg='SMTP login Error: {}'.format(e))
                         self.available = False
                 except (smtplib.SMTPAuthenticationError, smtplib.SMTPConnectError, smtplib.SMTPSenderRefused):
                     e = sys.exc_info()[0]
-                    globs.log.write(1,  function='EmailServer', action='connect:Smtp', msg='SMTP connection Error: {}'.format(e))
+                    globs.log.write(globs.SEV_ERROR,  function='EmailServer', action='connect:Smtp', msg='SMTP connection Error: {}'.format(e))
                     self.available = False
                     return None
             else:   # Bad protocol specification
-                globs.log.write(1, function='EmailServer', action='connect', msg='Invalid protocol specification: {}. Aborting program.'.format(self.options['protocol']))
+                globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='connect', msg='Invalid protocol specification: {}. Aborting program.'.format(self.options['protocol']))
                 globs.closeEverythingAndExit(1)
                 return None
         return None
 
     # Close email server connection
     def close(self):
-        globs.log.write(1, function='EmailServer', action='close', msg='Closing connection to {}.'.format(self.options['server']))
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='close', msg='Closing connection to {}.'.format(self.options['server']))
         # If self.serverconnect == None, nothing left to close
         if self.serverconnect != None:
             if self.options['protocol'] in ['pop3', 'smtp']:
@@ -336,8 +336,12 @@ class EmailServer:
     # Return number of messages if there (or 0 if none)
     # Return None if empty
     def checkForMessages(self):
-        globs.log.write(1, function='EmailServer', action='checkForMessages', msg='Checking for messages on server {}. Protocol={}'.format(self.options['server'], self.options['protocol']))
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='checkForMessages', msg='Checking for messages on server {}. Protocol={}'.format(self.options['server'], self.options['protocol']))
         self.connect()
+        if not self.available:
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='checkForMessages', msg='Server {} marked as \'unavailable\''.format(self.options['server']))
+            return 0
+
         if self.options['protocol'] == 'pop3':
             self.numEmails = len(self.serverconnect.list()[1])  # Get list of new emails
             if self.numEmails == 0:     # No new emails
@@ -351,7 +355,7 @@ class EmailServer:
             # Issue #124 - only read unseen/unread messages. Speed up input processing.
             scope = '(UNSEEN)' if self.options['unreadonly'] == True else 'ALL'
             retVal, data = self.serverconnect.search(None, scope)
-            globs.log.write(3, function='EmailServer', action='checkForMessagesImap', msg='Searching folder. retVal=[{}] data=[{}]'.format(retVal, data))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='checkForMessagesImap', msg='Searching folder. retVal=[{}] data=[{}]'.format(retVal, data))
             if retVal != 'OK':          # No new emails
                 self.newEmails = None
                 self.numEmails = 0
@@ -372,7 +376,7 @@ class EmailServer:
     # This function will return the value in parentheses (if it exists) or the raw info (if it does not)
     # Inputs: val = value to parse, dt = date format string, tf = time format string
     def parenOrRaw(self, val, df = None, tf = None, tz = None):
-        globs.log.write(3, function='EmailServer', action='parenOrRaw', msg='Extracting actual value from {}'.format(val))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='parenOrRaw', msg='Extracting actual value from {}'.format(val))
         retval = val    # Set default return as input value
         # Search for '(XXX)' in value
         pat = re.compile('\(.*\)')
@@ -383,7 +387,7 @@ class EmailServer:
             if df != None:  # Looking for date/time
                 retval = drdatetime.toTimestamp(val, dfmt=df, tfmt=tf, utcOffset=tz)
 
-        globs.log.write(3, function='EmailServer', action='parenOrRaw', msg='Retrieved [{}]'.format(retval))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='parenOrRaw', msg='Retrieved [{}]'.format(retval))
         return retval
 
     # Issue 105
@@ -392,11 +396,11 @@ class EmailServer:
     # Can process them properly
     # Please, in the name of all that is holy, stop using POP3!!!
     def mergePop3Headers(self, hdrBody):
-        globs.log.write(3, function='EmailServer', action='mergePop3Headers', msg='Merging POP3 headers for [{}]'.format(hdrBody))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='mergePop3Headers', msg='Merging POP3 headers for [{}]'.format(hdrBody))
         hdrLine = ""
         for nxtHdr in hdrBody:
             hdrLine += nxtHdr.decode('utf-8') + "\r\n"
-        globs.log.write(3, function='EmailServer', action='mergePop3Headers', msg='POP3 headers merged: [{}]'.format(hdrLine))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='mergePop3Headers', msg='POP3 headers merged: [{}]'.format(hdrLine))
         return hdrLine
 
     # Extract specific fields from an email header
@@ -405,7 +409,7 @@ class EmailServer:
     # Our mission is to sort it all out
     # Return date, subject, message-id
     def extractHeaders(self, hdrs):
-        globs.log.write(1, function='EmailServer', action='extractHeaders', msg='Extracting headers from ({})'.format(hdrs))
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='extractHeaders', msg='Extracting headers from ({})'.format(hdrs))
         hdrFields={}                            # Dictionary to hold the header fields we found
         splitlines = hdrs.split("\r\n")         # Split header into separate lines
         for line in splitlines:
@@ -418,14 +422,14 @@ class EmailServer:
                 hdrFields[sections[0].lower()] = sections[1].lstrip().rstrip()  # Add field to hdrFields dictionary
                 lastHeader = sections[0].lower()                                # Remember this header, in case the next line is a continuation
 
-        globs.log.write(1, function='EmailServer', action='extractHeaders', msg='Header fields extracted: [{}]'.format(hdrFields))
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='extractHeaders', msg='Header fields extracted: [{}]'.format(hdrFields))
         return hdrFields['date'], hdrFields['subject'], hdrFields['message-id']
     
     # Retrieve and process next message from server
     # Returns <Message-ID> or '<INVALID>' if there are more messages in queue, even if this message was unusable
     # Returns None if no more messages
     def processNextMessage(self):
-        globs.log.write(1, function='EmailServer', action='processNextMessage', msg='Processing next message on server {}. Protocol={}'.format(self.options['server'], self.options['protocol']))
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='Processing next message on server {}. Protocol={}'.format(self.options['server'], self.options['protocol']))
         self.connect()
 
         # Increment message counter to the next message. 
@@ -444,9 +448,9 @@ class EmailServer:
         if self.options['protocol'] == 'pop3':
             # Get message header
             server_msg, body, octets = self.serverconnect.top((self.newEmails[self.nextEmail])+1,0)
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='server_msg=[{}]  body=[{}]  octets=[{}]'.format(server_msg,body,octets))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='server_msg=[{}]  body=[{}]  octets=[{}]'.format(server_msg,body,octets))
             if server_msg[:3].decode() != '+OK':
-                globs.log.write(1,  function='EmailServer', action='processNextMessage', msg='ERROR getting message {}'.format(self.nextEmail))
+                globs.log.write(globs.SEV_ERROR,  function='EmailServer', action='processNextMessage', msg='ERROR getting message {}'.format(self.nextEmail))
                 return '<INVALID>'
             # Get date, subject, and message ID from headers
             hdrLine = self.mergePop3Headers(body)       # Convert to IMAP format
@@ -455,42 +459,42 @@ class EmailServer:
             # Get message header
             retVal, data = self.serverconnect.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
             if retVal != 'OK':
-                globs.log.write(1, function='EmailServer', action='processNextMessage', msg='ERROR getting message {}'.format(self.nextEmail))
+                globs.log.write(globs.SEV_ERROR, function='EmailServer', action='processNextMessage', msg='ERROR getting message {}'.format(self.nextEmail))
                 return '<INVALID>'
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
             emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
         else:   # Invalid protocol spec
-            globs.log.write(1, function='EmailServer', action='processNextMessage', msg='Invalid protocol specification: {}.'.format(self.options['protocol']))
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='Invalid protocol specification: {}.'.format(self.options['protocol']))
             return None
             
         # Log message basics
-        globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Next Message: headers=[{}]'.format(emailParts['header']))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Next Message: headers=[{}]'.format(emailParts['header']))
         
         # Check if any of the vital parts are missing
         if emailParts['header']['messageId'] is None or emailParts['header']['messageId'] == '':
-            globs.log.write(1, function='EmailServer', action='processNextMessage', msg='No message-Id. Abandoning message.')
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='No message-Id. Abandoning message.')
             return '<INVALID>'
         if emailParts['header']['date'] is None or emailParts['header']['date'] == '':
-            globs.log.write(1, function='EmailServer', action='processNextMessage', msg='No Date. Abandoning message.')
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='No Date. Abandoning message.')
             return emailParts['header']['messageId']
         if emailParts['header']['subject'] is None or emailParts['header']['subject'] == '':
-            globs.log.write(1, function='EmailServer', action='processNextMessage', msg='No Subject. Abandoning message.')
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='No Subject. Abandoning message.')
             return emailParts['header']['messageId']
 
         # See if it's a message of interest
         # Match subject field against 'subjectregex' parameter from RC file (Default: 'Duplicati Backup report for...')
         if re.search(globs.opts['subjectregex'], emailParts['header']['subject']) == None:
-            globs.log.write(1, function='EmailServer', action='processNextMessage', msg='Message [{}] is not a Message of Interest. Can\'t match subjectregex from .rc file. Skipping message.'.format(emailParts['header']['messageId']))
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='Message [{}] is not a Message of Interest. Can\'t match subjectregex from .rc file. Skipping message.'.format(emailParts['header']['messageId']))
             return emailParts['header']['messageId']    # Not a message of Interest
 
         # Get source & desination computers from email subject
         srcRegex = '{}{}'.format(globs.opts['srcregex'], re.escape(globs.opts['srcdestdelimiter']))
         destRegex = '{}{}'.format(re.escape(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
-        globs.log.write(3, function='EmailServer', action='processNextMessage', msg='srcRegex=[{}]  destRegex=[{}]'.format(srcRegex, destRegex))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='srcRegex=[{}]  destRegex=[{}]'.format(srcRegex, destRegex))
         partsSrc = re.search(srcRegex, emailParts['header']['subject'])
         partsDest = re.search(destRegex, emailParts['header']['subject'])
         if (partsSrc is None) or (partsDest is None):    # Correct subject but delimeter not found. Something is wrong.
-            globs.log.write(1,  function='EmailServer', action='processNextMessage', msg='SrcDestDelimeter [{}] not found in subject line. Skipping message.'.format(globs.opts['srcdestdelimiter']))
+            globs.log.write(globs.SEV_NOTICE,  function='EmailServer', action='processNextMessage', msg='SrcDestDelimeter [{}] not found in subject line. Skipping message.'.format(globs.opts['srcdestdelimiter']))
             return emailParts['header']['messageId']
 
         # See if the record is already in the database, meaning we've seen it before
@@ -500,7 +504,7 @@ class EmailServer:
             globs.db.dbCommit()
             return emailParts['header']['messageId']
         # Message not yet in database. Proceed.
-        globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Message ID [{}] does not yet exist in DB.'.format(emailParts['header']['messageId']))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message ID [{}] does not yet exist in DB.'.format(emailParts['header']['messageId']))
 
         dTup = email.utils.parsedate_tz(emailParts['header']['date'])
         if dTup:
@@ -517,11 +521,11 @@ class EmailServer:
             xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])  
             dtTimStmp = drdatetime.toTimestamp(xDate, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
             emailParts['header']['emailTimestamp'] = dtTimStmp
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Email Date: Timestamp=[{}] Date=[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Email Date: Timestamp=[{}] Date=[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
 
         emailParts['header']['sourceComp'] = re.search(srcRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[0]
         emailParts['header']['destComp'] = re.search(destRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[1]
-        globs.log.write(3, function='EmailServer', action='processNextMessage', msg='emailParts[\'header\']={}'.format(emailParts['header']))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='emailParts[\'header\']={}'.format(emailParts['header']))
 
         # Search for source/destination pair in database. Add if not already there
         retVal = globs.db.searchSrcDestPair(emailParts['header']['sourceComp'], emailParts['header']['destComp'])
@@ -546,19 +550,19 @@ class EmailServer:
             # "...usually the data format is [(bytes, bytes), bytes] but when the message is marked as unseen manually, 
             # the format is [bytes, (bytes, bytes), bytes] – Niklas R Sep 8 '15 at 23:29
             # Need to check if len(data)==2 (normally unread) or ==3 (manually set unread)
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='IMAP message fetch(): retval={} dataLen={}'.format(retVal, len(data)))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='IMAP message fetch(): retval={} dataLen={}'.format(retVal, len(data)))
             if len(data) == 2:
                 emailParts['body']['fullbody'] = data[0][1].decode('utf-8')  # Get message body
             else:
                 emailParts['body']['fullbody'] = data[1][1].decode('utf-8')  # Get message body
         
-        globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Message Body=[{}]'.format(emailParts['body']['fullbody']))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
         # See if email is text or JSON. JSON messages begin with '{"Data":'
         isJson = True if emailParts['body']['fullbody'][:8] == '{\"Data\":' else False
 
         if isJson:
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Message is JSON formatted')
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message is JSON formatted')
 
             jsonStatus = json.loads(emailParts['body']['fullbody'].replace("=\r\n","").replace("=\n",""), strict = False)    # Top-level JSON data
             jsonData = jsonStatus['Data']                                           # 'Data' branch under main data
@@ -581,15 +585,15 @@ class EmailServer:
                     emailParts['body']['parsedResult'] = 'Failure'   
                 emailParts['body']['errors'] = jsonData['Message'] if 'Message' in jsonData else ''
         else: # Not JSON - standard Duplicati message format
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Message is Duplicati formatted')
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message is Duplicati formatted')
             # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in emailParts['body']{}
             for section,regex,flag,typ, jsonSection in lineParts:
                 emailParts['body'][section] = self.searchMessagePart(emailParts['body']['fullbody'], regex, flag, typ) # Get the field parts
 
         # Adjust fields if not a clean run
-        globs.log.write(3, function='EmailServer', action='processNextMessage', msg="emailParts['body']['failed']=[{}]".format(emailParts['body']['failed']))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg="emailParts['body']['failed']=[{}]".format(emailParts['body']['failed']))
         if emailParts['body']['failed'] == '':  # Looks like a good run
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Email indicates a successful backup.')
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Email indicates a successful backup.')
             # Get the start and end times of the backup
             if  isJson:
                 emailParts['body']['endTimestamp'] = drdatetime.toTimestampRfc3339(emailParts['body']['endTimeStr'], utcOffset = emailParts['header']['timezone'])
@@ -612,20 +616,20 @@ class EmailServer:
                 emailParts['body']['sizeOfExaminedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfExaminedFiles'])
                 emailParts['body']['sizeOfOpenedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfOpenedFiles'])
         else:  # Something went wrong. Let's gather the details.
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Email indicates a failed backup.')
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Email indicates a failed backup.')
             if not isJson:
                 emailParts['body']['errors'] = emailParts['body']['failed']
                 emailParts['body']['parsedResult'] = 'Failure'
                 emailParts['body']['warnings'] = emailParts['body']['details']
 
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Errors=[{}]'.format(emailParts['body']['errors']))
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Warnings=[{}]'.format(emailParts['body']['warnings']))
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Log Data=[{}]'.format(emailParts['body']['logdata']))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Errors=[{}]'.format(emailParts['body']['errors']))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Warnings=[{}]'.format(emailParts['body']['warnings']))
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Log Data=[{}]'.format(emailParts['body']['logdata']))
 
             # Since the backup job report never ran, we'll use the email date/time as the report date/time
             emailParts['body']['endTimestamp'] = emailParts['header']['emailTimestamp']
             emailParts['body']['beginTimestamp'] = emailParts['header']['emailTimestamp']
-            globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Replacing date/time for failed backup with: end=[{}]  begin=[{}]'.format(emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'])), 
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Replacing date/time for failed backup with: end=[{}]  begin=[{}]'.format(emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'])), 
 
         # Replace commas (,) with newlines (\n) in message fields. SQLite really doesn't like commas in SQL statements!
         for part in ['messages', 'warnings', 'errors', 'logdata']:
@@ -646,7 +650,7 @@ class EmailServer:
 
             globs.emailManager.sendEmail(msgText=errMsg, subject='Duplicati Job Status Error')
 
-        globs.log.write(3, function='EmailServer', action='processNextMessage', msg='Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(emailParts['body']['endTimestamp']), drdatetime.fromTimestamp(emailParts['body']['beginTimestamp'])))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Resulting timestamps: endTimeStamp=[{}] beginTimeStamp=[{}]'.format(drdatetime.fromTimestamp(emailParts['body']['endTimestamp']), drdatetime.fromTimestamp(emailParts['body']['beginTimestamp'])))
 
         globs.db.execEmailInsertSql(emailParts)
         return emailParts['header']['messageId']
@@ -656,7 +660,7 @@ class EmailServer:
     # Provide ability to mark messages as read/seen if [main]optread is true in the .rc file.
     # This function is only works for IMAP. POP3 doesn't have this capability.
     def markMessagesRead(self):
-        globs.log.write(1, function='EmailServer', action='markMessagesRead', msg='Marking {} {} messages as \'read/seen\''.format(self.numEmails, self.options['protocol']))
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='markMessagesRead', msg='Marking {} {} messages as \'read/seen\''.format(self.numEmails, self.options['protocol']))
         for msg in range(self.numEmails):
             self.serverconnect.store(self.newEmails[msg],'+FLAGS','\Seen')
         return
@@ -667,7 +671,7 @@ class EmailServer:
     # multiLine - 0=single line, 1=multi-line
     # type - 0=int or 1=string
     def searchMessagePart(self, msgField, regex, multiLine, typ):
-        globs.log.write(3, function='EmailServer', action='searchMessagePart', msg='Searching for standard field: regex=[{}], multiline=[{}], typ=[{}]'.format(regex, multiLine, typ))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='searchMessagePart', msg='Searching for standard field: regex=[{}], multiline=[{}], typ=[{}]'.format(regex, multiLine, typ))
 
         match = re.compile(regex, multiLine).search(msgField)  # Search msgField for regex match
         if match:  # Found a match - regex is in msgField
@@ -689,12 +693,12 @@ class EmailServer:
             else:         # String field
                 retData = ''
 
-        globs.log.write(3, function='EmailServer', action='searchMessagePart', msg='Search result: \'{}\''.format(retData))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='searchMessagePart', msg='Search result: \'{}\''.format(retData))
         return retData
 
     # Search for field in JSON message
     def searchMessagePartJson(self, jsonParts, key, typ):
-        globs.log.write(3, function='EmailServer', action='searchMessagePart', msg='Searching for JSON field \'{}\', typ=[{}]'.format(key,typ))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='searchMessagePart', msg='Searching for JSON field \'{}\', typ=[{}]'.format(key,typ))
         if key in jsonParts:
             return jsonParts[key];
         
@@ -709,7 +713,7 @@ class EmailServer:
         self.connect()
 
         # Build email message
-        globs.log.write(1, function='EmailServer', action='sendEmail', msg='Building email.')
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Building email.')
         msg = MIMEMultipart('alternative')
         if subject is None:
             subject = globs.report.rStruct['defaults']['title']
@@ -749,11 +753,11 @@ class EmailServer:
                     part.set_payload(attachment.read())
                     part.add_header('Content-Disposition', 'attachment', filename=file_name)
                     encoders.encode_base64(part)
-                    globs.log.write(1, function='EmailServer', action='sendEmail', msg='Attaching file {} to email.'.format(file_name))
+                    globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Attaching file {} to email.'.format(file_name))
                     msg.attach(part)
 
         # Send the message via SMTP server.
         # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        globs.log.write(1,function='EmailServer', action='sendEmail', msg='Sending email to [{}]'.format(globs.maskData(receiver.split(','))))
+        globs.log.write(globs.SEV_NOTICE,function='EmailServer', action='sendEmail', msg='Sending email to [{}]'.format(globs.maskData(receiver.split(','))))
         self.serverconnect.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
         return None

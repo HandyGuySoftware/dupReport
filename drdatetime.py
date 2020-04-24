@@ -52,9 +52,9 @@ validTimeDelims = ':'                                               # Valid deli
 # Print error messages to the log and stderr if there is a date or time format problem.
 # It happens more often than you'd think!
 def timeStampCrash(msg):
-    globs.log.write(1, function='DateTime', action='timeStampCrash', msg=msg)
-    globs.log.write(1, function='DateTime', action='timeStampCrash', msg='This is likely caused by an email using a different date or time format than expected,\nparticularly if you\'re collecting emails from multiple locations or time zones.')
-    globs.log.write(1, function='DateTime', action='timeStampCrash', msg='Please check the \'dateformat=\' and \'timeformat=\' value(s) in the [main] section\nand any [<source>-<destination>] sections of your .rc file for accuracy.')
+    globs.log.write(globs.SEV_NOTICE, function='DateTime', action='timeStampCrash', msg=msg)
+    globs.log.write(globs.SEV_NOTICE, function='DateTime', action='timeStampCrash', msg='This is likely caused by an email using a different date or time format than expected,\nparticularly if you\'re collecting emails from multiple locations or time zones.')
+    globs.log.write(globs.SEV_NOTICE, function='DateTime', action='timeStampCrash', msg='Please check the \'dateformat=\' and \'timeformat=\' value(s) in the [main] section\nand any [<source>-<destination>] sections of your .rc file for accuracy.')
     globs.log.err('Date/time format specification mismatch. See log file for details. Exiting program.')
     globs.closeEverythingAndExit(1)
 
@@ -66,7 +66,7 @@ def timeStampCrash(msg):
 # tfmt is time format - - defaults to user-defined time format in .rc file
 # utcOffset is UTC offset info as extracted from the incoming email message header
 def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
-    globs.log.write(3, function='DateTime', action='toTimestamp', msg='Converting \'{}\' (dfmt=\'{}\', tfmt=\'{}\' offset=\'{}\')'.format(dtStr, dfmt, tfmt, utcOffset))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='toTimestamp', msg='Converting \'{}\' (dfmt=\'{}\', tfmt=\'{}\' offset=\'{}\')'.format(dtStr, dfmt, tfmt, utcOffset))
 
     # Set default formats
     if (dfmt is None):
@@ -124,7 +124,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     try:
         ts = datetime.datetime(year, month, day, hour, minute, second).timestamp()
     except ValueError as err:
-        globs.log.write(1, function='DateTime', action='toTimestamp', msg='Error: {}'.format(err.args[0]))
+        globs.log.write(globs.SEV_ERROR, function='DateTime', action='toTimestamp', msg='Error: {}'.format(err.args[0]))
         timeStampCrash('Error creating timestamp: DateString={} DateFormat={} year={} month={} day={} hour={} minute={} second={}'.format(dtStr, dfmt, year, month, day, hour, minute, second))   # Write error message, close program
  
     # Apply email's UTC offset to date/time
@@ -134,14 +134,14 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
         if globs.opts['applyutcoffset']:
             ts += float(utcOffset)
 
-    globs.log.write(3, function='DateTime', action='toTimestamp', msg='Date/Time {} converted to {}'.format(dtStr, ts))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='toTimestamp', msg='Date/Time {} converted to {}'.format(dtStr, ts))
     return ts
 
 # Convert an RFC 3339 format datetime string to an epoch-style timestamp
 # Needed because the JSON output format uses this style for datetime notation
 # Basically, decode the RFC3339 string elements into separate date & time strings, then send to toTimeStamp() as a normal date/time string.
 def toTimestampRfc3339(tsString, utcOffset = None):
-    globs.log.write(3, function='DateTime', action='toTimestampRfc3339', msg='Converting {}, offset={}'.format(tsString, utcOffset))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='toTimestampRfc3339', msg='Converting {}, offset={}'.format(tsString, utcOffset))
 
     # Strip trailing 'Z' and last digit from milliseconds, the float number is too big to convert
     tsStringNew = tsString[:-2] 
@@ -152,12 +152,12 @@ def toTimestampRfc3339(tsString, utcOffset = None):
     # Now, use existing methods to convert to a timestamp
     ts = toTimestamp("{}/{}/{} {}:{}:{}".format(dt.month, dt.day, dt.year, dt.hour, dt.minute, dt.second), "MM/DD/YYYY", "HH:MM:SS", utcOffset)
 
-    globs.log.write(3, function='DateTime', action='toTimestampRfc3339', msg='Date/Time {} converted to {}'.format(tsString, ts))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='toTimestampRfc3339', msg='Date/Time {} converted to {}'.format(tsString, ts))
     return ts
 
 # Convert from timestamp to resulting time and date formats
 def fromTimestamp(ts, dfmt = None, tfmt = None):
-    globs.log.write(3, function='DateTime', action='fromTimestamp', msg='Converting {} (dfmt=\'{}\', tfmt\'{}\')'.format(ts, dfmt, tfmt))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='fromTimestamp', msg='Converting {} (dfmt=\'{}\', tfmt\'{}\')'.format(ts, dfmt, tfmt))
     
     # 'x' holds the array for yr/mo/day or hh/m/ss
     # Placement in the array is determined by the position values (columns 2, 3, & 4) in the dtFmtDefs[] list
@@ -206,7 +206,7 @@ def fromTimestamp(ts, dfmt = None, tfmt = None):
     x[seCol] = '%S'
     retTime = dt.strftime('{}{}{}{}{}{}'.format(x[0],delim,x[1],delim,x[2], ampm))
 
-    globs.log.write(3, function='DateTime', action='fromTimestamp', msg='Converted {} to {} {}'.format(ts, retDate, retTime))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='fromTimestamp', msg='Converted {} to {} {}'.format(ts, retDate, retTime))
     return retDate, retTime
 
 # Calculate # of days since some arbitrary date
@@ -216,7 +216,7 @@ def daysSince(tsIn):
     now = datetime.datetime.fromtimestamp(nowTimestamp)
     then = datetime.datetime.fromtimestamp(tsIn)
     diff = (now-then).days
-    globs.log.write(3, function='DateTime', action='daysSince', msg= 'Now={} {} Then={} {} Days Between={}'.format(nowTimestamp,fromTimestamp(nowTimestamp), tsIn, fromTimestamp(tsIn), diff))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='daysSince', msg= 'Now={} {} Then={} {} Days Between={}'.format(nowTimestamp,fromTimestamp(nowTimestamp), tsIn, fromTimestamp(tsIn), diff))
     return diff
 
 # Calculate time difference between two dates
@@ -243,6 +243,6 @@ def timeDiff(td, durationZeroes = False):
         if seconds != 0:
             retVal += "{}s ".format(seconds)
 
-    globs.log.write(3, function='DateTime', action='timeDiff', msg='td={}  duration={}'.format(td, retVal))
+    globs.log.write(globs.SEV_DEBUG, function='DateTime', action='timeDiff', msg='td={}  duration={}'.format(td, retVal))
     return retVal
 

@@ -19,29 +19,29 @@ import drdatetime
 class Database:
     dbConn = None
     def __init__(self, dbPath):
-        globs.log.write(1,function='Database', action='Init', msg='Initializing database manager.')
+        globs.log.write(globs.SEV_NOTICE,function='Database', action='Init', msg='Initializing database manager.')
 
         # First, see if the database is there. If not, need to create it
         isThere = os.path.isfile(dbPath)
 
         if self.dbConn:     # If not None then DB connection already exists. This is bad.
-            globs.log.write(1, function='Database', action='Init', msg='SQLite3 Error: trying to reinitialize the database connection. Exiting program.')
+            globs.log.write(globs.SEV_ERROR, function='Database', action='Init', msg='SQLite3 Error: trying to reinitialize the database connection. Exiting program.')
             globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
 
         try:
             self.dbConn = sqlite3.connect(dbPath)   # Connect to database
         except sqlite3.Error as err:
-            globs.log.write(1, function='Database', action='Init', msg='SQLite3 error connecting to database: {}. Exiting program.'.format(err.args[0]))
+            globs.log.write(globs.SEV_ERROR, function='Database', action='Init', msg='SQLite3 error connecting to database: {}. Exiting program.'.format(err.args[0]))
             globs.closeEverythingAndExit(1) # Abort program. Can't continue with DB error
 
         if not isThere:     # Database did not exist. Need to initialize contents
-            globs.log.write(1, function='Database', action='Init', msg='New database. Needs initializing.')
+            globs.log.write(globs.SEV_NOTICE, function='Database', action='Init', msg='New database. Needs initializing.')
             self.dbInitialize()
         return None
 
     # Close database connection
     def dbClose(self):
-        globs.log.write(1, function='Database', action='dbClose', msg='Closing database manager.')
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='dbClose', msg='Closing database manager.')
 
         # Don't attempt to close a non-existant conmnection
         if self.dbConn:
@@ -58,22 +58,22 @@ class Database:
 
         currVerNum = (maj * 100) + (min * 10) + subm
         newVerNum = (globs.dbVersion[0] * 100) + (globs.dbVersion[1] * 10) + globs.dbVersion[2]
-        globs.log.write(3, function='Database', action='checkDbVersion', msg='Database: current version={}  new version={}'.format(currVerNum, newVerNum))
+        globs.log.write(globs.SEV_DEBUG, function='Database', action='checkDbVersion', msg='Database: current version={}  new version={}'.format(currVerNum, newVerNum))
         if currVerNum < newVerNum:
-            globs.log.write(1, function='Database', action='checkDbVersion', msg='Database version is out of date. Needs update to latest version.')
+            globs.log.write(globs.SEV_NOTICE, function='Database', action='checkDbVersion', msg='Database version is out of date. Needs update to latest version.')
             needToUpgrade = True
 
         return needToUpgrade, currVerNum
 
     # Commit pending database transaction
     def dbCommit(self):
-        globs.log.write(3, function='Database', action='dbCommit', msg='Committing transaction.')
+        globs.log.write(globs.SEV_DEBUG, function='Database', action='dbCommit', msg='Committing transaction.')
         if self.dbConn:     # Don't try to commit to a nonexistant connection
             self.dbConn.commit()
         return None
 
     def execEmailInsertSql(self, emailParts):  
-        globs.log.write(1, function='Database', action='execEmailInsertSql', msg='Inserting into emails table: messageId={}  sourceComp={}  destComp={}'.format(emailParts['header']['messageId'], emailParts['header']['sourceComp'], emailParts['header']['destComp']))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='execEmailInsertSql', msg='Inserting into emails table: messageId={}  sourceComp={}  destComp={}'.format(emailParts['header']['messageId'], emailParts['header']['sourceComp'], emailParts['header']['destComp']))
 
         durVal = float(emailParts['body']['endTimestamp']) - float(emailParts['body']['beginTimestamp'])
         sqlStmt = "INSERT INTO emails(messageId, sourceComp, destComp, emailTimestamp, \
@@ -94,8 +94,8 @@ class Database:
                 emailParts['body']['verboseErrors'], emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'], \
                 durVal, emailParts['body']['messages'], emailParts['body']['warnings'], emailParts['body']['errors'], emailParts['body']['dupversion'], emailParts['body']['logdata'])
 
-        globs.log.write(3, function='Database', action='execEmailInsertSql', msg='sqlStmt=[{}]'.format(sqlStmt))
-        globs.log.write(3, function='Database', action='execEmailInsertSql', msg='data=[{}]'.format(data))
+        globs.log.write(globs.SEV_DEBUG, function='Database', action='execEmailInsertSql', msg='sqlStmt=[{}]'.format(sqlStmt))
+        globs.log.write(globs.SEV_DEBUG, function='Database', action='execEmailInsertSql', msg='data=[{}]'.format(data))
 
         if not self.dbConn:
             return None
@@ -105,14 +105,14 @@ class Database:
         try:
             curs.execute(sqlStmt, data)
         except sqlite3.Error as err:
-            globs.log.write(1, function='Database', action='execEmailInsertSql', msg='SQLite error: {}'.format(err.args[0]))
+            globs.log.write(globs.SEV_ERROR, function='Database', action='execEmailInsertSql', msg='SQLite error: {}'.format(err.args[0]))
             globs.closeEverythingAndExit(1)  # Abort program. Can't continue with DB error
         
         self.dbCommit()
         return None
 
     def execReportInsertSql(self, sqlStmt, sqlData):  
-        globs.log.write(1, function='Database', action='execReportInsertSql', msg='Inserting into emails table: sqlStmt=[{}] sqlData=[{}]'.format(sqlStmt, sqlData))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='execReportInsertSql', msg='Inserting into emails table: sqlStmt=[{}] sqlData=[{}]'.format(sqlStmt, sqlData))
 
         if not self.dbConn:
             return None
@@ -122,7 +122,7 @@ class Database:
         try:
             curs.execute(sqlStmt, sqlData)
         except sqlite3.Error as err:
-            globs.log.write(1, function='Database', action='execReportInsertSql', msg='SQLite error: {}'.format(err.args[0]))
+            globs.log.write(globs.SEV_ERROR, function='Database', action='execReportInsertSql', msg='SQLite error: {}'.format(err.args[0]))
             globs.closeEverythingAndExit(1)  # Abort program. Can't continue with DB error
         
         self.dbCommit()
@@ -131,7 +131,7 @@ class Database:
     # Execute a Sqlite command and manage exceptions
     # Return the cursor object to the command result
     def execSqlStmt(self, stmt):
-        globs.log.write(1, function='Database', action='execSqlStmt', msg='Executing SQL statement: [{}]'.format(stmt))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='execSqlStmt', msg='Executing SQL statement: [{}]'.format(stmt))
 
         if not self.dbConn:
             return None
@@ -141,7 +141,7 @@ class Database:
         try:
             curs.execute(stmt)
         except sqlite3.Error as err:
-            globs.log.write(1, function='Database', action='execSqlStmt', msg='SQLite error: {}'.format(err.args[0]))
+            globs.log.write(globs.SEV_ERROR, function='Database', action='execSqlStmt', msg='SQLite error: {}'.format(err.args[0]))
             globs.closeEverythingAndExit(1)  # Abort program. Can't continue with DB error
         
         # Return the cursor to the executed command result.    
@@ -149,7 +149,7 @@ class Database:
 
     # Initialize database to empty, default tables
     def dbInitialize(self):
-        globs.log.write(1, function='Database', action='dbInitialize', msg='Initializing (resetting) database.')
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='dbInitialize', msg='Initializing (resetting) database.')
 
         # Don't initialize a non-existant connection
         if not self.dbConn:
@@ -192,30 +192,30 @@ class Database:
 
         self.dbCommit()
         self.dbCompact()
-        globs.log.write(1, function='Database', action='dbInitialize', msg='Database initialization complete.')
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='dbInitialize', msg='Database initialization complete.')
         return None
 
     # See if a particular message ID is already in the database
     # Return True (already there) or False (not there)
     def searchForMessage(self, msgID):
-        globs.log.write(1, function='Database', action='searchForMessage', msg='Searching for message {} in database.'.format(msgID))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='searchForMessage', msg='Searching for message {} in database.'.format(msgID))
         sqlStmt = "SELECT messageId FROM emails WHERE messageId=\'{}\'".format(msgID)
         dbCursor = self.execSqlStmt(sqlStmt)
         idExists = dbCursor.fetchone()
         if idExists:
-            globs.log.write(1, function='Database', action='searchForMessage', msg='Message [{}] already in email database'.format(msgID))
+            globs.log.write(globs.SEV_NOTICE, function='Database', action='searchForMessage', msg='Message [{}] already in email database'.format(msgID))
             return True
         else:
-            globs.log.write(1, function='Database', action='searchForMessage', msg='Message [{}] not yet in email database'.format(msgID))
+            globs.log.write(globs.SEV_NOTICE, function='Database', action='searchForMessage', msg='Message [{}] not yet in email database'.format(msgID))
             return False
 
     def searchSrcDestPair(self, src, dest, add2Db = True):
-        globs.log.write(1, function='Database', action='searchSrcDestPair', msg='Searching for {}{}{} in backupsets'.format(src, globs.opts['srcdestdelimiter'], dest))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='searchSrcDestPair', msg='Searching for {}{}{} in backupsets'.format(src, globs.opts['srcdestdelimiter'], dest))
         sqlStmt = "SELECT source, destination FROM backupsets WHERE source=\'{}\' AND destination=\'{}\'".format(src, dest)
         dbCursor = self.execSqlStmt(sqlStmt)
         idExists = dbCursor.fetchone()
         if idExists:
-            globs.log.write(1, function='Database', action='searchSrcDestPair', msg='{}{}{} already in backupsets.'.format(src, globs.opts['srcdestdelimiter'], dest))
+            globs.log.write(globs.SEV_NOTICE, function='Database', action='searchSrcDestPair', msg='{}{}{} already in backupsets.'.format(src, globs.opts['srcdestdelimiter'], dest))
             return True
 
         if add2Db is True:
@@ -223,13 +223,13 @@ class Database:
                 VALUES ('{}', '{}', 0, 0, 0, '')".format(src, dest)
             self.execSqlStmt(sqlStmt)
             self.dbCommit()
-            globs.log.write(1, function='Database', action='searchSrcDestPair', msg='{}{}{} added to database'.format(src, globs.opts['srcdestdelimiter'], dest))
+            globs.log.write(globs.SEV_NOTICE, function='Database', action='searchSrcDestPair', msg='{}{}{} added to database'.format(src, globs.opts['srcdestdelimiter'], dest))
         return False
 
     # Roll back database to specific date/time
     # Datespec = Date & time to roll back to
     def rollback(self, datespec):
-        globs.log.write(1, function='Database', action='rollback', msg='Rolling back database to {}'.format(datespec))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='rollback', msg='Rolling back database to {}'.format(datespec))
 
         # Get timestamp for input date/time
         newTimeStamp = drdatetime.toTimestamp(datespec)
@@ -250,11 +250,11 @@ class Database:
             if emailTimestamp is None:
                 # After the rollback, some srcdest pairs may have no corresponding entries in the the database, meaning they were not seen until after the rollback period
                 # We should remove these from the database, to return it to the state it was in before the rollback.
-                globs.log.write(1, function='Database', action='rollback', msg='Deleting {}{}{} from backupsets. Not seen until after rollback.'.format(source, globs.opts['srcdestdelimiter'], destination))
+                globs.log.write(globs.SEV_NOTICE, function='Database', action='rollback', msg='Deleting {}{}{} from backupsets. Not seen until after rollback.'.format(source, globs.opts['srcdestdelimiter'], destination))
                 sqlStmt = 'DELETE FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"'.format(source, destination)
                 dbCursor = self.execSqlStmt(sqlStmt)
             else:
-                globs.log.write(1, function='Database', action='rollback', msg='Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp)))
+                globs.log.write(globs.SEV_NOTICE, function='Database', action='rollback', msg='Resetting {}{}{} to {}'.format(source, globs.opts['srcdestdelimiter'], destination, drdatetime.fromTimestamp(emailTimestamp)))
                 # Update backupset table to reflect rolled-back date
                 sqlStmt = 'update backupsets set lastFileCount={}, lastFileSize={}, lastTimestamp={}, dupversion=\'{}\' where source = \'{}\' and destination = \'{}\''.format(examinedFiles, sizeOfExaminedFiles, emailTimestamp, dupversion, source, destination)
                 dbCursor = self.execSqlStmt(sqlStmt)
@@ -264,12 +264,12 @@ class Database:
 
     # Remove a source/destination pair from the database
     def removeSrcDest(self, source, destination):
-        globs.log.write(1, function='Database', action='removeSrcDest', msg='Deleting {}{}{} from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='removeSrcDest', msg='Deleting {}{}{} from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
 
         # Does the src/dest exist in the database?
         exists = self.searchSrcDestPair(source, destination, False)
         if not exists:
-            globs.log.write(1, function='Database', action='removeSrcDest', msg='Pair {}{}{} does not exist in database. Check spelling and capitalization then try again.'.format(source, globs.opts['srcdestdelimiter'], destination))
+            globs.log.write(globs.SEV_NOTICE, function='Database', action='removeSrcDest', msg='Pair {}{}{} does not exist in database. Check spelling and capitalization then try again.'.format(source, globs.opts['srcdestdelimiter'], destination))
             return False
 
         sqlStmt = "DELETE FROM backupsets WHERE source = \"{}\" AND destination = \"{}\"".format(source, destination)
@@ -280,15 +280,15 @@ class Database:
 
         self.dbCommit()
 
-        globs.log.write(1, function='Database', action='removeSrcDest', msg='{}{}{} removed from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
-        globs.log.write(1, function='Database', action='removeSrcDest', msg='Please remove all emails referencing the \'{}{}{}\' backup,\nor they will be added back into the database the next time dupReport is run.'.format(source, globs.opts['srcdestdelimiter'], destination))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='removeSrcDest', msg='{}{}{} removed from database.'.format(source, globs.opts['srcdestdelimiter'], destination))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='removeSrcDest', msg='Please remove all emails referencing the \'{}{}{}\' backup,\nor they will be added back into the database the next time dupReport is run.'.format(source, globs.opts['srcdestdelimiter'], destination))
         globs.log.out('Please remove all emails referencing the \'{}{}{}\' backup,\nor they will be added back into the database the next time dupReport is run.'.format(source, globs.opts['srcdestdelimiter'], destination))
 
         return True
 
     # Purge database of old emails
     def purgeOldEmails(self):
-        globs.log.write(1, function='Database', action='purgeOldEmails', msg='Purging unseen emails from database')
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='purgeOldEmails', msg='Purging unseen emails from database')
         self.execSqlStmt('DELETE FROM emails WHERE dbSeen = 0')
         self.dbCommit()
         self.dbCompact()
@@ -296,7 +296,7 @@ class Database:
 
     # Compact database to eliminate unused space
     def dbCompact(self):
-        globs.log.write(1, function='Database', action='dbCompact', msg='Compacting database')
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='dbCompact', msg='Compacting database')
 
         # Need to reset connection isolation level in order to compress database
         # Why? Not sure. But see https://github.com/ghaering/pysqlite/issues/109 for details
@@ -306,7 +306,7 @@ class Database:
         self.dbConn.isolation_level = isoTmp    # Re-set isolation level back to previous value
         self.dbCommit()
 
-        globs.log.write(1, function='Database', action='dbCompact', msg='Database compaction complete.')
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='dbCompact', msg='Database compaction complete.')
         return None
 
 

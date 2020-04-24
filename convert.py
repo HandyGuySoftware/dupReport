@@ -61,7 +61,7 @@ v310Translate = {'source':'source','destination':'destination','date':'date','ti
                  'errors':'errors','result':'parsedResult','joblogdata':'logdata','joberrors':'errors','added':'addedFiles','deleted':'deletedFiles','modified':'modifiedFiles','jobmessages':'messages','jobwarnings':'warnings'}
 
 def moveOption(oMgr, fromSect, fromOpt, toSect, toOpt):
-    globs.log.write(3, function='Convert', action='moveOption', msg='Moving [{}]{} to: [{}]{}'.format(fromSect, fromOpt, toSect, toOpt))
+    globs.log.write(globs.SEV_DEBUG, function='Convert', action='moveOption', msg='Moving [{}]{} to: [{}]{}'.format(fromSect, fromOpt, toSect, toOpt))
     value = oMgr.getRcOption(fromSect, fromOpt)
     oMgr.clearRcOption(fromSect, fromOpt)
     oMgr.setRcOption(toSect, toOpt, value)
@@ -72,37 +72,37 @@ def convertRc(oMgr, fromVersion):
     dateStr = now.strftime('%Y%m%d-%H%M%S')
     rcFileName = oMgr.options['rcfilename']
     rcFileBackup = rcFileName + '.' + dateStr
-    globs.log.write(1, function='Convert', action='convertRc', msg='Backing up .rc file prior to conversion. Backup file is {}'.format(rcFileBackup))
+    globs.log.write(globs.SEV_NOTICE, function='Convert', action='convertRc', msg='Backing up .rc file prior to conversion. Backup file is {}'.format(rcFileBackup))
     copyfile(rcFileName, rcFileBackup)
 
     doConvertRc(oMgr, fromVersion)
-    globs.log.write(1, function='Convert', action='convertRc', msg='Updating .rc file version number to {}.{}.{}.'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]))
+    globs.log.write(globs.SEV_NOTICE, function='Convert', action='convertRc', msg='Updating .rc file version number to {}.{}.{}.'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]))
     oMgr.setRcOption('main', 'rcversion', '{}.{}.{}'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]))
     oMgr.updateRc()
     return
 
 def doConvertRc(oMgr, fromVersion):
     if fromVersion < 210:
-        globs.log.write(1, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 210.'.format(fromversion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 210.'.format(fromversion))
         # Start adding back in secitons
         if oMgr.parser.has_section('main') is False:
-            globs.log.write(3, function='Convert', action='convertRc', msg='Adding [main] section.')
+            globs.log.write(globs.SEV_DEBUG, function='Convert', action='convertRc', msg='Adding [main] section.')
             oMgr.addRcSection('main')
 
         if oMgr.parser.has_section('incoming') is False:
-            globs.log.write(3, function='Convert', action='convertRc', msg='Adding [incoming] section.')
+            globs.log.write(globs.SEV_DEBUG, function='Convert', action='convertRc', msg='Adding [incoming] section.')
             oMgr.addRcSection('incoming')
 
         if oMgr.parser.has_section('outgoing') is False:
-            globs.log.write(3, function='Convert', action='convertRc', msg='Adding [outgoing] section.')
+            globs.log.write(globs.SEV_DEBUG, function='Convert', action='convertRc', msg='Adding [outgoing] section.')
             oMgr.addRcSection('outgoing')
 
         if oMgr.parser.has_section('report') is False:
-            globs.log.write(3, function='Convert', action='convertRc', msg='Adding [report] section.')
+            globs.log.write(globs.SEV_DEBUG, function='Convert', action='convertRc', msg='Adding [report] section.')
             oMgr.addRcSection('report')
 
         if oMgr.parser.has_section('headings') is False:
-            globs.log.write(3, function='Convert', action='convertRc', msg='Adding [headings] section.')
+            globs.log.write(globs.SEV_DEBUG, function='Convert', action='convertRc', msg='Adding [headings] section.')
             oMgr.addRcSection('headings')
 
         for fromsection, fromoption, tosection, tooption in optList:
@@ -117,7 +117,7 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.updateRc()
         doConvertRc(oMgr, 210)
     elif fromVersion < 300:
-        globs.log.write(1, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 300.'.format(fromversion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 300.'.format(fromversion))
         # Remove deprecated options
         if oMgr.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in version 2.2.0
             oMgr.clearRcOption('report', 'noactivitybg')
@@ -128,7 +128,7 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.updateRc()
         doConvertRc(oMgr, 300)
     elif fromVersion < 310:
-        globs.log.write(1, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 310.'.format(fromversion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 310.'.format(fromversion))
         # Adjust size display option
         value1 = oMgr.getRcOption('report', 'sizedisplay')
         value2 = oMgr.getRcOption('report', 'showsizedisplay')
@@ -243,16 +243,16 @@ def convertDb(fromVersion):
     dateStr = now.strftime('%Y%m%d-%H%M%S')
     dbFileName = globs.opts['dbpath']
     dbFileBackup = dbFileName + '.' + dateStr
-    globs.log.write(1, function='Convert', action='convertDb', msg='Backing up .rc file prior to conversion. Backup file is {}'.format(dbFileBackup))
+    globs.log.write(globs.SEV_NOTICE, function='Convert', action='convertDb', msg='Backing up .rc file prior to conversion. Backup file is {}'.format(dbFileBackup))
     copyfile(dbFileName, dbFileBackup)
 
     doConvertDb(fromVersion)
-    globs.log.write(1, function='Convert', action='convertDb', msg='Updating database file version number to {}.{}.{}.'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+    globs.log.write(globs.SEV_NOTICE, function='Convert', action='convertDb', msg='Updating database file version number to {}.{}.{}.'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
     globs.db.execSqlStmt("UPDATE version SET major = {}, minor = {}, subminor = {} WHERE desc = 'database'".format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
     globs.db.dbCommit()
 
 def doConvertDb(fromVersion):
-    globs.log.write(1, function='Convert', action='doConvertDb', msg='Converting database from version {} to version {}.{}.{}'.format(fromVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
+    globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Converting database from version {} to version {}.{}.{}'.format(fromVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
 
     # Database version history
     # 1.0.1 - Convert from character-based date/time to uynix timestamp format. 
@@ -262,7 +262,7 @@ def doConvertDb(fromVersion):
 
     # Update DB version number
     if fromVersion < 101: # Upgrade from DB version 100 (original format). 
-        globs.log.write(1, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 101'.format(fromVersion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 101'.format(fromVersion))
         sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, duration real, examinedFiles int, examinedFilesDelta int, \
         sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
         warnings varchar(255), errors varchar(255), failedMsg varchar(100), dupversion varchar(100), logdata varchar(255))"
@@ -304,10 +304,10 @@ def doConvertDb(fromVersion):
             # Update emails table with new data
             if endTimestamp is not None and beginTimestamp is not None:
                 sqlStmt = "UPDATE emails SET emailTimestamp = {}, endTimestamp = {}, beginTimestamp = {}, duration = {} WHERE messageId = \'{}\'".format(emailTimestamp, endTimestamp, beginTimestamp, (endTimestamp - beginTimestamp), messageId)
-                globs.log.write(1, function='Convert', action='doConvertDb', msg=sqlStmt)
+                globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg=sqlStmt)
                 globs.db.execSqlStmt(sqlStmt)
 
-            globs.log.write(1, function='Convert', action='doConvertDb', msg='messageId:{}  emailDate={} emailTime={} emailTimestamp={} endDate={} endTime={} endTimestamp={} beginDate={} beginTime={} beginTimestamp={} duration={}'.format(messageId, emailDate, emailTime, emailTimestamp,\
+            globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='messageId:{}  emailDate={} emailTime={} emailTimestamp={} endDate={} endTime={} endTimestamp={} beginDate={} beginTime={} beginTimestamp={} duration={}'.format(messageId, emailDate, emailTime, emailTimestamp,\
                 endDate, endTime, endTimestamp, beginDate, beginTime, beginTimestamp, duration))
         globs.db.execSqlStmt("DROP TABLE _emails_old_")
  
@@ -321,10 +321,10 @@ def doConvertDb(fromVersion):
 
             sqlStmt = "UPDATE backupsets SET lastTimestamp = {} WHERE source = \'{}\' AND destination = \'{}\'".format(lastTimestamp, source, destination)
             globs.db.execSqlStmt(sqlStmt)
-            globs.log.write(1, function='Convert', action='doConvertDb', msg='Updating backupsets: Source={} destination={} lastDate={} lastTime={} lastTimestamp={}'.format(source, destination, lastDate, lastTime, lastTimestamp))
+            globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Updating backupsets: Source={} destination={} lastDate={} lastTime={} lastTimestamp={}'.format(source, destination, lastDate, lastTime, lastTimestamp))
         doConvertDb(101)
     elif fromVersion < 102: # Upgrade from version 101
-        globs.log.write(1, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 102'.format(fromVersion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 102'.format(fromVersion))
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN duration real")
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN dupversion varchar(100)")
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN logdata varchar(255)")
@@ -358,7 +358,7 @@ def doConvertDb(fromVersion):
         globs.db.execSqlStmt("DROP TABLE _emails_old_")
         doConvertDb(102)
     elif fromVersion < 103: # Upgrade from version 102
-        globs.log.write(1, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 103'.format(fromVersion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 103'.format(fromVersion))
         # Add dupversion & logdata fields to emails table
         globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN dupversion varchar(100)")
         globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN logdata varchar(255)")
@@ -372,7 +372,7 @@ def doConvertDb(fromVersion):
         globs.db.execSqlStmt("UPDATE report SET logdata = ''")
         doConvertDb(103)
     elif fromVersion < 300: # Upgrade from version 103
-        globs.log.write(1, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 300'.format(fromVersion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 300'.format(fromVersion))
         # Add date & time fields to reports table
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN date real")
         globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN time real")
