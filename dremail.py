@@ -11,6 +11,8 @@
 import imaplib
 import poplib
 import email
+import quopri
+import base64
 import re
 import datetime
 import time
@@ -423,7 +425,7 @@ class EmailServer:
                 lastHeader = sections[0].lower()                                # Remember this header, in case the next line is a continuation
 
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='extractHeaders', msg='Header fields extracted: [{}]'.format(hdrFields))
-        return hdrFields['date'], hdrFields['subject'], hdrFields['message-id']
+        return hdrFields['date'], hdrFields['subject'], hdrFields['message-id'], hdrFields['content-transfer-encoding']
     
     # Retrieve and process next message from server
     # Returns <Message-ID> or '<INVALID>' if there are more messages in queue, even if this message was unusable
@@ -457,12 +459,12 @@ class EmailServer:
             emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'] = self.extractHeaders(hdrLine)
         elif self.options['protocol'] == 'imap':
             # Get message header
-            retVal, data = self.serverconnect.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
+            retVal, data = self.serverconnect.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID CONTENT-TRANSFER-ENCODING)])')
             if retVal != 'OK':
                 globs.log.write(globs.SEV_ERROR, function='EmailServer', action='processNextMessage', msg='ERROR getting message {}'.format(self.nextEmail))
                 return '<INVALID>'
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
-            emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
+            emailParts['header']['date'], emailParts['header']['subject'], emailParts['header']['messageId'], emailParts['header']['content-transfer-encoding'] = self.extractHeaders(data[0][1].decode('utf-8'))
         else:   # Invalid protocol spec
             globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='Invalid protocol specification: {}.'.format(self.options['protocol']))
             return None
@@ -557,6 +559,10 @@ class EmailServer:
                 emailParts['body']['fullbody'] = data[1][1].decode('utf-8')  # Get message body
         
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message Body=[{}]'.format(emailParts['body']['fullbody']))
+
+        if msgParts['content-transfer-encoding'].lower() == 'quoted-printable':
+            emailParts['body']['fullbody'] = quopri.decodestring(emailParts['body']['fullbody'])
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='New (quopri) Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
         # See if email is text or JSON. JSON messages begin with '{"Data":'
         isJson = True if emailParts['body']['fullbody'][:8] == '{\"Data\":' else False
