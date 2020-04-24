@@ -32,7 +32,7 @@ rcParts= [
     ('main',        'rcversion',        '{}.{}.{}'.format(globs.rcVersion[0],globs.rcVersion[1],globs.rcVersion[2]),True),
     ('main',        'dbpath',           os.path.dirname(os.path.realpath(sys.argv[0])),                             True),
     ('main',        'logpath',          os.path.dirname(os.path.realpath(sys.argv[0])),                             True),
-    ('main',        'verbose',          '1',                                                                        True),
+    ('main',        'verbose',          '5',                                                           True),
     ('main',        'logappend',        'false',                                                                    True),
     ('main',        'subjectregex',     '^Duplicati Backup report for',                                             True),
     ('main',        'srcregex',         '\w*',                                                                      True),
@@ -47,6 +47,8 @@ rcParts= [
     ('main',        'showprogress',     '0',                                                                        True),
     ('main',        'masksensitive',    'true',                                                                     True),
     ('main',        'emailservers',     'incoming, outgoing',                                                       True),
+    ('main',        'syslog',           '',                                                                         True),
+    ('main',        'sysloglevel',      '5',                                                           True),
     
     # [incoming] section defaults
     ('incoming',    'protocol',       'imap',                                                                       False),
@@ -155,6 +157,7 @@ class OptionManager:
     options = {}        # List of all available program options
 
     def __init__(self):
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='OptionManager', msg='Initializing option manager.')
         return None
 
     # Determine if masking is required based on value of command line option
@@ -166,17 +169,15 @@ class OptionManager:
         return mask
    
     def openRcFile(self, rcFileSpec):
-        globs.log.write(1,'options.openRcFile({})'.format(globs.maskData(rcFileSpec, self.maskPath())))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='openRcFile', msg='Opening .rc file {}'.format(globs.maskData(rcFileSpec, self.maskPath())))
         if self.rcFileName:     # Rc file already initiailzed. Something is wrong.
-            globs.log.write(2, 'RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, globs.maskData(rcFileSpec, self.maskPath())))
+            globs.log.write(globs.SEV_NOTICE, function='Options', action='openRcFile', msg='RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, globs.maskData(rcFileSpec, self.maskPath())))
             return False
-
         try:
             self.parser = configparser.SafeConfigParser(interpolation=None)
             self.parser.read(rcFileSpec)
         except configparser.ParsingError as err:
-            globs.log.err('RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))
-            globs.log.write(1, 'RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))
+            globs.log.write(globs.SEV_ERROR, function='Options', action='openRcFile', msg='RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))
             return False
 
         self.rcFileName = rcFileSpec    # Store RC file path
@@ -185,7 +186,6 @@ class OptionManager:
     # Check if need to upgrade RC file version
     # Returns True if need to upgrade RC file, False if at current version
     def checkRcFileVersion(self):
-        globs.log.write(1,'options.checkRcFileVersion()')
         needToUpgrade = False   # Assume .rc file is up to date
         currVerNum = 0
 
@@ -204,11 +204,11 @@ class OptionManager:
             currVerNum = (int(verParts[0]) * 100) + (int(verParts[1]) * 10) + int(verParts[2])
             # Split RC version into component parts
             newVerNum = (globs.rcVersion[0] * 100) + (globs.rcVersion[1] * 10) + globs.rcVersion[2]
-            globs.log.write(3,'RC file versions: current={} new={}.'.format(currVerNum, newVerNum))
+            globs.log.write(globs.SEV_DEBUG, function='Options', action='checkRcFileVersion', msg='RC file versions: current={} new={}.'.format(currVerNum, newVerNum))
             if currVerNum < newVerNum: # .rc file need an upgrade
                 needToUpgrade = True
 
-        globs.log.write(1,'Current version number={}. Need to upgrade rc file? {}'.format(currVerNum, needToUpgrade))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='checkRcFileVersion', msg='Current version number={}. Need to upgrade rc file? {}'.format(currVerNum, needToUpgrade))
         return needToUpgrade, currVerNum
 
     # See if RC file has all the parts needed before proceeding with the rest of the program
@@ -217,15 +217,12 @@ class OptionManager:
     # <newRC> = True if enough RC info has changed to require user config & restart
     # <newRC> = False if program can continue without restart
     def setRcDefaults(self):
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcDefaults', msg='Setting .rc file defaults')
         errlist = []
 
-        globs.log.write(1,'options.setRcDefaults()')
         if not self.parser:
-            globs.log.err('RC file not yet opened. Can not set defaults.')
-            globs.log.write(1, 'RC file not yet opened. Can not set defaults.')
+            globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcDefaults', msg='RC file not yet opened. Can not set defaults.')
             return False
-
-        globs.log.write(1, 'rc.setDefaults({})'.format(globs.maskData(self.rcFileName, self.maskPath())))
 
         defaultsOK = True       # Is the file configuration OK?
         needUpdate = False      # Do we need to update/refresh the file
@@ -239,25 +236,25 @@ class OptionManager:
                 continue
             
             if not self.parser.has_section(section): # Whole section is missing.
-                globs.log.write(2, 'Adding RC section: [{}]'.format(section))
+                globs.log.write(globs.SEV_DEBUG, function='Options', action='setRcDefaults', msg='Adding RC section: [{}]'.format(section))
                 self.parser.add_section(section)
                 needUpdate = True
 
             if not self.parser.has_option(section, option): # Option is missing. Might be able to continue if non-critical.
-                globs.log.write(2, 'Adding RC option: [{}] {}={}'.format(section, option, default))
+                globs.log.write(globs.SEV_DEBUG, function='Options', action='setRcDefaults', msg='Adding RC option: [{}] {}={}'.format(section, option, default))
                 self.parser.set(section, option, default)
                 needUpdate = True
                 if canCont == False:
                     errlist.append('[{}]{}={} option added. Please update with valid information.\n'.format(section, option, default))
                     defaultsOK = False
 
-        globs.log.write(3,'needUpdate = {} defaultsOK={}'.format(needUpdate, defaultsOK))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='setRcDefaults', msg='needUpdate = {} defaultsOK={}'.format(needUpdate, defaultsOK))
         if needUpdate:
             self.updateRc()
         if not defaultsOK:
             for i in range(len(errlist)):
                 globs.log.err(errlist[i])
-                globs.log.write(1, errlist[i])
+                globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcDefaults', msg=errlist[i])
         return defaultsOK
 
     # Read .rc file options
@@ -267,36 +264,30 @@ class OptionManager:
     # restart =   False if OK to continue
     # restart =  True if need to restart
     def readRcOptions(self):
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='readRcOptions', msg='Reading .rc file options')
         restart = False
 
-        globs.log.write(1, 'options.readRcOptions({})'.format(globs.maskData(self.rcFileName, self.maskPath())))
-    
         # Extract sections and options from .rc file
         # Only need [main] section
         # [<email], [report] and associated sections will be parsed when email & report objects are initiated
-        #for section in ('main', 'incoming', 'outgoing'):
         for name, value in self.parser.items('main'):
             self.options[name] = value
 
         # Fix some of the datatypes
-        #for item in ('verbose', 'inport', 'outport', 'showprogress'):  # integers
-        for item in ('verbose', 'showprogress'):  # integers
+        for item in ('verbose', 'showprogress', 'sysloglevel'):  # integers
             self.options[item] = int(self.options[item])
 
-        #for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'inkeepalive', 'outkeepalive', 'masksensitive', 'markread', 'unreadonly'):  # boolean
         for item in ('logappend', 'warnoncollect', 'applyutcoffset', 'show24hourtime', 'purgedb', 'masksensitive'):  # boolean
             self.options[item] = self.options[item].lower() in ('true')
 
         # Check for valid date format
         if self.options['dateformat'] not in drdatetime.dtFmtDefs:
-            globs.log.err('RC file error: Invalid date format: [{}]\n'.format(self.options['dateformat']))
-            globs.log.write(1, 'RC file error: Invalid date format: [{}]\n'.format(self.options['dateformat']))
+            globs.log.write(globs.SEV_ERROR, function='Options', action='readRcOptions', msg='RC file error: Invalid date format: [{}]\n'.format(self.options['dateformat']))
             restart = True
 
         # Check for valid time format
         if self.options['timeformat'] not in drdatetime.dtFmtDefs:
-            globs.log.err('RC file error: Invalid time format [{}]\n'.format(self.options['timeformat']))
-            globs.log.write(1, 'RC file error: Invalid time format [{}]\n'.format(self.options['timeformat']))
+            globs.log.write(globs.SEV_ERROR, function='Options', action='readRcOptions', msg='RC file error: Invalid time format [{}]\n'.format(self.options['timeformat']))
             restart = True
 
         # Set default path for RC file. Command line may override this.
@@ -311,7 +302,7 @@ class OptionManager:
 
         for option, optName, globName in configList:
             if option != None:  # option specified on command line
-                globs.log.write(2, 'Option {} path specified on command line.'.format(optName))
+                globs.log.write(globs.SEV_DEBUG, function='Options', action='readRcOptions', msg='Option {} specified on command line.'.format(optName))
                 self.options[optName] = self.processPath(option, globName)
             elif optName in self.options and self.options[optName] == '':  # No command line & not specified in RC file. Use default path & filename
                 self.options[optname] = self.processPath(globs.progPath, globName)
@@ -340,7 +331,7 @@ class OptionManager:
         for rb in ['rollback', 'rollbackx']:
             if self.options[rb] != None: # Roll back and continue
                 if not drdatetime.toTimestamp(self.options[rb], self.options['dateformat'], self.options['timeformat']):
-                    globs.log.err('Invalid rollback date specification: {}.\n'.format(self.options[rb]))
+                    globs.log.write(globs.SEV_NOTICE, function='Options', action='readRcOptions', msg='Invalid rollback date specification: {}.\n'.format(self.options[rb]))
                     globs.closeEverythingAndExit(1)
 
         # Misc command line arguments
@@ -369,18 +360,17 @@ class OptionManager:
         # Print config to log. Mask out appropriate data
         for opName in self.options:
             if opName in ('rcfilename', 'dbpath', 'logpath', 'inserver', 'inaccount', 'inpassword', 'outserver', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver'): # Mask sensitive data fields
-                globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, globs.maskData(self.options[opName], self.options['masksensitive'])))
+                globs.log.write(globs.SEV_DEBUG, function='Options', action='readRcOptions', msg='Parsed config option [{}]=[{}]'.format(opName, globs.maskData(self.options[opName], self.options['masksensitive'])))
             else:
-                globs.log.write(3, 'Parsed config option [{}]=[{}]'.format(opName, self.options[opName]))
+                globs.log.write(globs.SEV_DEBUG, function='Options', action='readRcOptions', msg='Parsed config option [{}]=[{}]'.format(opName, self.options[opName]))
 
-        globs.log.write(1, 'Need to restart? {}'.format(restart))
-
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='readRcOptions', msg='Need to restart? {}'.format(restart))
         return restart
 
 
     # save updated RC configuration to .rc file
     def updateRc(self):
-        globs.log.write(1, 'Updating .rc file')
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='updateRc', msg='Updating .rc file')
 
         with open(self.rcFileName, 'w') as configfile:
             self.parser.write(configfile)
@@ -388,7 +378,7 @@ class OptionManager:
 
     # Get operating parameters from .rc file, overlay with command line options
     def processCmdLineArgs(self):
-        globs.log.write(1, 'options.processCmdLineArgs()')
+        globs.log.write(globs.SEV_NOTICE,  function='Options', action='processCmdLineArgs', msg='Processing command line arguments.')
 
         # Parse command line options with ArgParser library
         argParser = argparse.ArgumentParser(description='dupReport options.')
@@ -396,21 +386,21 @@ class OptionManager:
         argParser.add_argument("-a","--append", help="Append new logs to log file. Same as [main]logappend= in rc file.", action="store_true")
         argParser.add_argument("-b","--rollback", help="Roll back datebase to specified date. Format is -b <datetimespec>", action="store")
         argParser.add_argument("-B","--rollbackx", help="Roll back datebase to specified date, then exit program. Format is -b <datetimespec>", action="store")
-#
+
         opGroup1 = argParser.add_mutually_exclusive_group()
         opGroup1.add_argument("-c", "--collect", help="Collect new emails only. (Don't run report)", action="store_true")
         opGroup1.add_argument("-t", "--report", help="Run summary report only. (Don't collect emails)", action="store_true")
-#
+
         argParser.add_argument("-d","--dbpath", help="Path to dupReport database file.", action="store")
         argParser.add_argument("-e","--emailservers", help="List of incoming (IMAP & POP3) and outgoing (SMTP) servers to use.", action="store")
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
         argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
-#
+
         opGroup2 = argParser.add_mutually_exclusive_group()
         opGroup2.add_argument("-k", "--masksensitive", help="Mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
         opGroup2.add_argument("-K", "--nomasksensitive", help="Don't mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
-#
+
         argParser.add_argument("-l","--logpath", help="Path to dupReport log file. (Default: 'dupReport.log'. Same as [main]logpath= in rc file.", action="store")
         argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
         argParser.add_argument("-o", "--validatereport", help="Validate the report options for accuracy then exit the program.", action="store_true")
@@ -418,8 +408,8 @@ class OptionManager:
         argParser.add_argument("-r","--rcpath", help="Path to dupReport config file.", action="store")
         argParser.add_argument("-s","--size", help="Convert file sizes to megabytes or gigabytes. Options are 'byte', 'mb' 'gb'. \
             Same as [report]sizedisplay= in rc file.", action="store", choices=['mb','gb','byte'])
-        argParser.add_argument("-v", "--verbose", help="Log file verbosity, 0-3. Same as [main]verbose= in rc file.", \
-            type=int, action="store", choices=[0,1,2,3])
+        argParser.add_argument("-v", "--verbose", help="Log file verbosity, 0-7. Same as [main]verbose= in rc file.", \
+            type=int, action="store", choices=[0,1,2,3,4,5,6,7])
         argParser.add_argument("-V","--Version", help="dupReport version and program info.", action="store_true")
         argParser.add_argument("-w", "--stopbackupwarn", help="Suppress sending of unseen backup warning emails. Overrides all \"nobackupwarn\" options in rc file.", action="store_true")
         argParser.add_argument("-x", "--nomail", help="Do not send email report. Typically used with -f", action="store_true")
@@ -431,53 +421,50 @@ class OptionManager:
             self.cmdLineArgs = argParser.parse_args()
         except:
             e = sys.exc_info()[0]
-            globs.log.write(1, 'Argument parser error: {}'.format(e))
+            globs.log.write(globs.SEV_ERROR, function='Options', action='readRcOptions', msg='Argument parser error: {}'.format(e))
             globs.closeEverythingAndExit(1)
 
-
-        globs.log.write(3, 'Command line parsed:')
-        globs.log.write(3, '- rcpath = [{}]'.format(globs.maskData(self.cmdLineArgs.rcpath, True)))
-        globs.log.write(3, '- dbpath = [{}]'.format(globs.maskData(self.cmdLineArgs.dbpath, True)))
-        globs.log.write(3, '- logpath = [{}]'.format(globs.maskData(self.cmdLineArgs.logpath, True)))
-        globs.log.write(3, '- verbose = [{}]'.format(self.cmdLineArgs.verbose))
-        globs.log.write(3, '- Version = [{}]'.format(self.cmdLineArgs.Version))
-        globs.log.write(3, '- append = [{}]'.format(self.cmdLineArgs.append))
-        globs.log.write(3, '- size = [{}]'.format(self.cmdLineArgs.size))
-        globs.log.write(3, '- initdb = [{}]'.format(self.cmdLineArgs.initdb))
-        globs.log.write(3, '- rollback = [{}]'.format(self.cmdLineArgs.rollback))
-        globs.log.write(3, '- rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
-        globs.log.write(3, '- file = [{}]'.format(self.cmdLineArgs.file))
-        globs.log.write(3, '- fileattach = [{}]'.format(self.cmdLineArgs.fileattach))
-        globs.log.write(3, '- nomail = [{}]'.format(self.cmdLineArgs.nomail))
-        globs.log.write(3, '- remove = [{}]'.format(self.cmdLineArgs.remove))
-        globs.log.write(3, '- purgedb = [{}]'.format(self.cmdLineArgs.purgedb))
-        globs.log.write(3, '- stopbackupwarn = [{}]'.format(self.cmdLineArgs.stopbackupwarn))
-        globs.log.write(3, '- collect = [{}]'.format(self.cmdLineArgs.collect))
-        globs.log.write(3, '- report = [{}]'.format(self.cmdLineArgs.report))
-        globs.log.write(3, '- masksensitive = [{}]'.format(self.cmdLineArgs.masksensitive))
-        globs.log.write(3, '- nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
-        globs.log.write(3, '- validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
-        globs.log.write(3, '- layout = [{}]'.format(self.cmdLineArgs.layout))
-        globs.log.write(3, '- emailservers = [{}]'.format(self.cmdLineArgs.emailservers))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='rcpath = [{}]'.format(globs.maskData(self.cmdLineArgs.rcpath, True)))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='dbpath = [{}]'.format(globs.maskData(self.cmdLineArgs.dbpath, True)))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='logpath = [{}]'.format(globs.maskData(self.cmdLineArgs.logpath, True)))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='verbose = [{}]'.format(self.cmdLineArgs.verbose))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='Version = [{}]'.format(self.cmdLineArgs.Version))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='append = [{}]'.format(self.cmdLineArgs.append))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='size = [{}]'.format(self.cmdLineArgs.size))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='initdb = [{}]'.format(self.cmdLineArgs.initdb))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='rollback = [{}]'.format(self.cmdLineArgs.rollback))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='file = [{}]'.format(self.cmdLineArgs.file))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='fileattach = [{}]'.format(self.cmdLineArgs.fileattach))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='nomail = [{}]'.format(self.cmdLineArgs.nomail))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='remove = [{}]'.format(self.cmdLineArgs.remove))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='purgedb = [{}]'.format(self.cmdLineArgs.purgedb))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='stopbackupwarn = [{}]'.format(self.cmdLineArgs.stopbackupwarn))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='collect = [{}]'.format(self.cmdLineArgs.collect))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='report = [{}]'.format(self.cmdLineArgs.report))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='masksensitive = [{}]'.format(self.cmdLineArgs.masksensitive))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='layout = [{}]'.format(self.cmdLineArgs.layout))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='emailservers = [{}]'.format(self.cmdLineArgs.emailservers))
     
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
-            globs.log.write(2, 'RC path specified on command line.')
+            globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='RC path specified on command line.')
             rc = self.cmdLineArgs.rcpath
             if os.path.isdir(rc): # directory specified only. Add default file name
                 rc += '/{}'.format(globs.rcName)
         else: # RC path not specified on command line. use default location
-            globs.log.write(2, 'RC path not specified on command line. Using default.')
+            globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='RC path not specified on command line. Using default.')
             rc = '{}/{}'.format(globs.progPath, globs.rcName)
         self.options['rcfilename'] = rc
         
-        globs.log.write(3, 'Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], self.maskPath())))
-
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], self.maskPath())))
         return None
 
     # Get individual .rc file option
     def getRcOption(self, section, option):
-        globs.log.write(3, 'options.getRcOption({}, {})'.format(section, option))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='getRcOption', msg='Retrieving .rc option: [{}]{}='.format(section, option))
         if self.parser.has_option(section, option):
             return self.parser.get(section, option)
         else:
@@ -485,24 +472,24 @@ class OptionManager:
 
     # Set individual .rc file option
     def setRcOption(self, section, option, value):
-        globs.log.write(1, 'options.setRcOption({}, {}, {})'.format(section, option, value))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcOption', msg='Setting .rc option: [{}]{}={}'.format(section, option, value))
         self.parser.set(section, option, value)
         return None
 
     # Clear individual option in .rc file
     def clearRcOption(self, section, option):
-        globs.log.write(1, 'options.clearRcOption({}, {})'.format(section, option))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='clearRcOption', msg='Deleting .rc option: [{}]{}='.format(section, option))
         self.parser.remove_option(section, option)
         return None
 
     # Add a new section to the .rc file
     def addRcSection(self, section):
-        globs.log.write(1, 'options.addRcSection({})'.format(section))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='addRcSection', msg='Adding .rc section: [{}]'.format(section))
         self.parser.add_section(section)
         return None
 
     def getRcSection(self, section):
-        globs.log.write(1, 'options.getRcSection({})'.format(section))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='getRcSection', msg='Retrieving .rc section: [{}]'.format(section))
         vals = {}
 
         if self.parser.has_section(section):
@@ -511,24 +498,25 @@ class OptionManager:
                 vals[name] = value
         else:
             vals = None
-
         return vals
 
     def hasSection(self, section):
-        globs.log.write(1, 'options.hasSection({})'.format(section))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='hasSection', msg='Check if .rc file has [{}] section'.format(section))
 
+        retval=False
         if self.parser.has_section(section):
-            return True
-        return False
+            retval=True
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='hasSection', msg='Does section [{}] exist? {}'.format(section, retval))
+        return retval
 
 
     def clearRcSection(self, section):
-        globs.log.write(1, 'options.clearRcSection({})'.format(section))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='clearRcSection', msg='Deleting .rc section [{}]'.format(section))
         self.parser.remove_section(section)
         return None
 
     def getRcSectionDateTimeFmt(self, src, dest):
-        globs.log.write(1, 'options.getRcSectionDateTimeFmt({}, {})'.format(src, dest))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='getRcSectionDateTimeFmt', msg='Getting Date/Time format for .rc section [{}{}{}]'.format(src, globs.opts['srcdestdelimiter'],dest))
 
         # Set defaults to global options
         dtfmt = globs.opts['dateformat']
@@ -543,7 +531,7 @@ class OptionManager:
             if tmp in drdatetime.dtFmtDefs: # Is it a legal date format?
                 dtfmt = tmp
             else:
-                globs.log.write(2, 'Invalid date format in .rc file, [{}{}{}]: dateformat={}'.format(src, globs.opts['srcdestdelimiter'], dest, tmp))
+                globs.log.write(globs.SEV_NOTICE, function='Options', action='getRcSectionDateTimeFmt', msg='Invalid date format in .rc file, [{}{}{}]: dateformat={}'.format(src, globs.opts['srcdestdelimiter'], dest, tmp))
 
         # Does [src-dest] timeformat= exist?
         if self.parser.has_option(section, 'timeformat'):
@@ -551,12 +539,10 @@ class OptionManager:
             if tmp in drdatetime.dtFmtDefs: # Is it a legal time format?
                 tmfmt = tmp
             else:
-                globs.log.write(2, 'Invalid time format in .rc file, [{}{}{}]: dateformat={}'.format(src, globs.opts['srcdestdelimiter'], dest, tmp))
+                globs.log.write(globs.SEV_NOTICE, function='Options', action='getRcSectionDateTimeFmt', msg='Invalid time format in .rc file, [{}{}{}]: dateformat={}'.format(src, globs.opts['srcdestdelimiter'], dest, tmp))
 
-        globs.log.write(3,'returning [{}][{}]'.format(dtfmt, tmfmt))
+        globs.log.write(globs.SEV_DEBUG, function='Options', action='getRcSectionDateTimeFmt', msg='Correct date format=[{}]  Correct time format=[{}]'.format(dtfmt, tmfmt))
         return dtfmt, tmfmt
-
-
 
     # Strips trailing slash character from a path specification if one exists
     def processPath(self, path, fName):
@@ -571,21 +557,20 @@ class OptionManager:
         if path == '':  # no path, use the default path & join it with fName
             joined = os.path.join(globs.progPath, fName)
             return joined
-
         return path     #Assume it's a full filespec. Return it and the OS will raise an error if it tries to open it & can't
 
 # Initialize options in the program
 # Return True if program can continue
 # Return False if enough changed in the .rc file that program needs to stop
 def initOptions():
-    globs.log.write(1, 'initOptions()')
+    globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='Initializing global program options.')
 
     # Set program path
 
     # Create OptionManager instance
     oMgr = OptionManager()
     # Parse command line options
-    globs.log.write(1,'Processing command line...')
+    globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='Processing command line.')
     oMgr.processCmdLineArgs()
     # Prepare the .rc file for processing
     oMgr.openRcFile(oMgr.options['rcfilename'])   
@@ -593,14 +578,14 @@ def initOptions():
     # Check if .rc file needs upgrading
     needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
     if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
-        globs.log.out('RC file is out of date. Needs update from version {} to version {}{}{}.'.format(currRcVersion, globs.rcVersion[0], globs.rcVersion[1], globs.rcVersion[2]))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='RC file is out of date. Needs update from version {} to version {}{}{}.'.format(currRcVersion, globs.rcVersion[0], globs.rcVersion[1], globs.rcVersion[2]))
         import convert
         convert.convertRc(oMgr, currRcVersion)
-        globs.log.out('RC file has been updated to the latest version.')
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='RC file has been updated to the latest version.')
     
     # Check .rc file structure to see if all proper fields are there. If False, something needs attention.
     if oMgr.setRcDefaults() is False:
-        globs.log.out('RC file {} has changed or has an unrecoverable error. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='RC file {} has changed or has an unrecoverable error. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
         return False
 
     # RC file is structurally correct. Now need to parse rc options for global use. 
@@ -616,8 +601,7 @@ def initOptions():
     if validateOutputFiles() is False:
         return False
 
-    globs.log.write(1, 'Program initialization complete. Continuing program.')
-
+    globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='Option initialization complete. Continuing program.')
     return True
 
 # Determine if output files specified on command line (-f or -F) have proper format spec
@@ -631,10 +615,10 @@ def validateOutputFiles():
         for fspec in globs.ofileList:
             fsplit = fspec[0].split(',')   
             if len(fsplit) != 2:
-                globs.log.err('Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.\n'.format(fsplit))
+                globs.log.write(globs.SEV_NOTICE, function='Options', action='validateOutputFiles', msg='Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
                 canContinue = False
             elif fsplit[1] not in ('html','txt', 'csv', 'json'):
-                globs.log.err('Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.\n'.format(fsplit[0], fsplit[1]))
+                globs.log.write(globs.SEV_NOTICE, function='Options', action='validateOutputFiles', msg='Output file {}: Invalid output file format specificaton: {}. Please check your command line parameters.'.format(fsplit[0], fsplit[1]))
                 canContinue = False
 
     return canContinue
