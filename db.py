@@ -11,10 +11,13 @@
 import sqlite3
 import sys
 import os
+from datetime import datetime
+from datetime import timedelta
 
 # Import dupReport modules
 import globs
 import drdatetime
+
 
 class Database:
     dbConn = None
@@ -229,10 +232,31 @@ class Database:
     # Roll back database to specific date/time
     # Datespec = Date & time to roll back to
     def rollback(self, datespec):
-        globs.log.write(globs.SEV_NOTICE, function='Database', action='rollback', msg='Rolling back database to {}'.format(datespec))
+        globs.log.write(globs.SEV_NOTICE, function='Database', action='rollback', msg='Rolling back database: spec={}'.format(datespec))
 
-        # Get timestamp for input date/time
-        newTimeStamp = drdatetime.toTimestamp(datespec)
+        # See if we're using a delta-based time spec
+        deltaParts = drdatetime.timeDeltaSpec(datespec)
+        if deltaParts != False:
+            today = datetime.now()
+            globs.log.write(globs.SEV_DEBUG, function='Database', action='rollback', msg='Using delta timespec. Today={}'.format(today))
+            for i in range(len(deltaParts)):
+                tval = int(deltaParts[i][:-1])
+                tspec = deltaParts[i][-1:]
+                if tspec == 's': # Subtract seconds
+                    today -= timedelta(seconds=tval)
+                elif tspec == 'm':
+                    today -= timedelta(minutes=tval)
+                elif tspec == 'h':
+                    today -= timedelta(hours=tval)
+                elif tspec == 'd':
+                    today -= timedelta(days=tval)
+                elif tspec == 'w':
+                    today -= timedelta(weeks=tval)
+                globs.log.write(globs.SEV_DEBUG, function='Database', action='rollback', msg='Rolled back {}{}. Today now={}'.format(tval,tspec, today))
+            newTimeStamp = today.timestamp()
+        else:
+            # Get timestamp for input date/time
+            newTimeStamp = drdatetime.toTimestamp(datespec)
 
         # Delete all email records that happened after input datetime
         sqlStmt = 'DELETE FROM emails WHERE emailtimestamp > {}'.format(newTimeStamp)

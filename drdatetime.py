@@ -104,7 +104,8 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     if timeMatch:
         timeStr = dtStr[timeMatch.regs[0][0]:timeMatch.regs[0][1]]
     else:
-        timeStampCrash('Can\'t find a match for time pattern {} in date/time string {}.'.format(tfmt, dtStr))   # Write error message, close program
+        timeStr = '00:00:00'
+        globs.log.write(globs.SEV_DEBUG, function='DateTime', action='toTimestamp', msg='No time portion provided. Defaulting to \'00:00:00\'')
     timePart = re.split(validTimeDelims, timeStr)
     hour = int(timePart[hrCol])
     minute = int(timePart[mnCol])
@@ -236,7 +237,7 @@ def timeDiff(td, durationZeroes = False):
         retVal = ""
         if days != 0:
             retVal += "{}d ".format(days)
-        if hours != 0:
+        if hours != 0:  
             retVal += "{}h ".format(hours)
         if minutes != 0:
             retVal += "{}m ".format(minutes)
@@ -245,4 +246,41 @@ def timeDiff(td, durationZeroes = False):
 
     globs.log.write(globs.SEV_DEBUG, function='DateTime', action='timeDiff', msg='td={}  duration={}'.format(td, retVal))
     return retVal
+
+def checkValidDateTimeSpec(tspec, dfmt = None, tfmt = None):
+    globs.log.write(globs.SEV_NOTICE, function='DateTime', action='checkValidDateTimeSpec', msg='Checking {} for date/time specification validity.'.format(tspec))
+
+    # Set default formats
+    if (dfmt is None):
+        dfmt = globs.opts['dateformat']
+    if (tfmt is None):
+        tfmt = globs.opts['timeformat']
+
+    # Extract the date
+    dtPat = re.compile(dateParseRegex)      # Compile regex for date/time pattern
+    dateMatch = re.match(dtPat,tspec)       # Match regex against date/time
+    if dateMatch == None:                   # Bad date, check timedelta format
+        if timeDeltaSpec(tspec) == False:
+            return False
+
+    return True
+    
+# If using a time delta rollback scheme (i.e., '1w,3h')
+# Check if the scheme is valid
+def timeDeltaSpec(spec):
+    validSpec = True
+
+    # Check if it's time delta format
+    tsParts = spec.split(',')
+    p = re.compile('\d+[smhdw]')
+    
+    for spec in range(len(tsParts)):
+        m = p.match(tsParts[spec])
+        if m == None:
+            validSpec = False
+
+    if validSpec:
+        return tsParts
+    else:
+        return False
 
