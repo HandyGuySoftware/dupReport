@@ -328,11 +328,16 @@ class OptionManager:
         # Check rollback specifications
         self.options['rollback'] = self.cmdLineArgs.rollback
         self.options['rollbackx'] = self.cmdLineArgs.rollbackx
-        # Check for valid time stamp specifications
+        # Check for valid rollback specifications
+        # Can be specified as:
+        # MM/DD/YYYY (or a valid variation) - roll back to beginning of specified day (00:00:00)
+        # MM/DD/YYYY HH:MM:SS               - Roll back to specific date and time
+        # Xs,Xm,Xh,Xd,Xw                    - Subtract X seconds, months, hours, days, weeks from current time (regardless of timestamps in DB)
         for rb in ['rollback', 'rollbackx']:
-            if self.options[rb] != None: # Roll back and continue
-                if not drdatetime.toTimestamp(self.options[rb], self.options['dateformat'], self.options['timeformat']):
-                    globs.log.write(globs.SEV_NOTICE, function='Options', action='readRcOptions', msg='Invalid rollback date specification: {}.\n'.format(self.options[rb]))
+            if self.options[rb] != None: 
+                if drdatetime.checkValidDateTimeSpec(self.options[rb], self.options['dateformat'], self.options['timeformat']) == False:
+                    # It's not a standard date/time spec and not a timedelta spec
+                    globs.log.write(globs.SEV_ERROR, function='Options', action='readRcOptions', msg='Invalid rollback date specification: {}.\n'.format(self.options[rb]))
                     globs.closeEverythingAndExit(1)
 
         # Misc command line arguments

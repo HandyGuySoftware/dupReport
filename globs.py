@@ -78,14 +78,15 @@ def maskData(inData, force = False):
 def closeEverythingAndExit(errcode):
     
     log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing everything...')
-    if len(emailManager.incoming) != 0:
-        for server in emailManager.incoming:
-            log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing inbound email server: {}'.format(emailManager.incoming[server].name))
-            emailManager.incoming[server].close()
-    if len(emailManager.incoming) != 0:
-        for i in range(len(emailManager.outgoing)):
-            log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing outbound email server: {}'.format(emailManager.outgoing[i].name))
-            emailManager.outgoing[i].close()
+    if emailManager != None:
+        if len(emailManager.incoming) != 0:
+            for server in emailManager.incoming:
+                log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing inbound email server: {}'.format(emailManager.incoming[server].name))
+                emailManager.incoming[server].close()
+        if len(emailManager.incoming) != 0:
+            for i in range(len(emailManager.outgoing)):
+                log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing outbound email server: {}'.format(emailManager.outgoing[i].name))
+                emailManager.outgoing[i].close()
     if db is not None:
         log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing database file.')
         db.dbClose()
