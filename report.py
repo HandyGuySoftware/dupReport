@@ -720,7 +720,9 @@ class Report:
     def buildRuntimeOutput(self, reportStructure, startTime):
         globs.log.write(globs.SEV_NOTICE, function='Report', action='buildRuntimeOutput', msg='Calculating running time.')
 
-        runTime = time.time() - startTime
+        timeDiff = time.time() - startTime
+        runTime = time.strftime("%Hh:%Mm:%Ss", time.gmtime(timeDiff))
+
         singleReport = {}
         singleReport['name'] = 'runtime'
         singleReport['inlineColumnCount'] = 1
@@ -732,9 +734,9 @@ class Report:
         singleReport['dataRows'] = []
         singleReport['dataRows'].append([])
         singleReport['dataRows'][0].append([dataRowTypes['singleLine'], 1])
-        singleReport['dataRows'][0].append(['Running Time: {:.3f} seconds.'.format(runTime), '#FFFFFF', toMarkup()])
+        singleReport['dataRows'][0].append(['Running Time: {}'.format(runTime), '#FFFFFF', toMarkup()])
 
-        globs.log.write(globs.SEV_DEBUG, function='Report', action='buildRuntimeOutput', msg='Running time was {} seconds.'.format(runTime))
+        globs.log.write(globs.SEV_DEBUG, function='Report', action='buildRuntimeOutput', msg='Running time was {}.'.format(runTime))
         return singleReport
 
     
