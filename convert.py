@@ -224,6 +224,14 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.setRcOption('incoming', 'markread', markread)
         oMgr.clearRcOption('main', 'markread')
 
+        # Move logging levels
+        verbose = oMgr.getRcOption('main', 'verbose')
+        if verbose in ['1','2']:
+            verbose = '5'
+        elif verbose == '3':
+            verbose = '7'
+        oMgr.setRcOption('main', 'verbose', verbose)
+
         # Add authentication methods
         oMgr.setRcOption('incoming', 'authentication', 'basic')
         oMgr.setRcOption('outgoing', 'authentication', 'basic')
