@@ -16,7 +16,7 @@
 - Standardized log format for easier searching and organization (Issue #137)
 - Added ability to send output to syslog server or log aggregator (Issue #128)
 - Fixed long-standing bug in handling Content Transfer Encoded messages (Issue #141)
-- Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 -8:00:00") (Issue #131)
+- Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 8:00:00") (Issue #131)
 
 2.2.11
 ------
