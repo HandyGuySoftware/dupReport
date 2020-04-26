@@ -424,6 +424,10 @@ class EmailServer:
                 hdrFields[sections[0].lower()] = sections[1].lstrip().rstrip()  # Add field to hdrFields dictionary
                 lastHeader = sections[0].lower()                                # Remember this header, in case the next line is a continuation
 
+        if 'content-transfer-encoding' not in hdrFields:
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='extractHeaders', msg='No \'content-transfer-encoding\' header. Defaulting to \'\'.')
+            hdrFields['content-transfer-encoding'] = ''
+
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='extractHeaders', msg='Header fields extracted: [{}]'.format(hdrFields))
         return hdrFields['date'], hdrFields['subject'], hdrFields['message-id'], hdrFields['content-transfer-encoding']
     
