@@ -11,6 +11,8 @@
 import imaplib
 import poplib
 import email
+import quopri
+import base64
 import re
 import datetime
 import time
@@ -294,7 +296,7 @@ class EmailServer:
                 lastHeader = sections[0].lower()                                # Remember this header, in case the next line is a continuation
 
         globs.log.write(1,'Header fields extracted: date=[{}] subject=[{}]  message-id=[{}]'.format(hdrFields['date'], hdrFields['subject'], hdrFields['message-id']))
-        return hdrFields['date'], hdrFields['subject'], hdrFields['message-id']
+        return hdrFields['date'], hdrFields['subject'], hdrFields['message-id'], hdrFields['content-transfer-encoding']
     
     # Retrieve and process next message from server
     # Returns <Message-ID> or '<INVALID>' if there are more messages in queue, even if this message was unusable
@@ -328,19 +330,19 @@ class EmailServer:
             msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(hdrLine)
         elif self.protocol == 'imap':
             # Get message header
-            retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID)])')
+            retVal, data = self.server.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[HEADER.FIELDS (DATE SUBJECT MESSAGE-ID CONTENT-TRANSFER-ENCODING)])')
             if retVal != 'OK':
                 globs.log.write(1, 'ERROR getting message: {}'.format(self.nextEmail))
                 return '<INVALID>'
             globs.log.write(3,'Server.fetch(): retVal=[{}] data=[{}]'.format(retVal,data))
 
-            msgParts['date'], msgParts['subject'], msgParts['messageId'] = self.extractHeaders(data[0][1].decode('utf-8'))
+            msgParts['date'], msgParts['subject'], msgParts['messageId'], msgParts['content-transfer-encoding']= self.extractHeaders(data[0][1].decode('utf-8'))
         else:   # Invalid protocol spec
             globs.log.err('Invalid protocol specification: {}.'.format(self.protocol))
             return None
             
         # Log message basics
-        globs.log.write(1,'\n*****\nNext Message: Date=[{}] Subject=[{}] Message-Id=[{}]'.format(msgParts['date'], msgParts['subject'], msgParts['messageId']))
+        globs.log.write(1,'\n*****\nNext Message: Date=[{}] Subject=[{}] Message-Id=[{}] Transfer-Encoding=[{}]'.format(msgParts['date'], msgParts['subject'], msgParts['messageId'], msgParts['content-transfer-encoding']))
         
         # Check if any of the vital parts are missing
         if msgParts['messageId'] is None or msgParts['messageId'] == '':
@@ -431,7 +433,12 @@ class EmailServer:
         
         globs.log.write(3, 'Message Body=[{}]'.format(msgBody))
 
+        if msgParts['content-transfer-encoding'].lower() == 'quoted-printable':
+            msgBody = quopri.decodestring(msgBody.replace('=0D=0A','\n')).decode("utf-8")
+            globs.log.write(3, 'New (quopri) Message Body=[{}]'.format(msgBody))
+
         # See if email is text or JSON. JSON messages begin with '{"Data":'
+        globs.log.write(3, "msgBody[:8] = [{}]".format(msgBody[:8]))
         isJson = True if msgBody[:8] == '{\"Data\":' else False
 
         if isJson:
