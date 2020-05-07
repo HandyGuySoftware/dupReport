@@ -18,6 +18,10 @@
 - Fixed long-standing bug in handling Content Transfer Encoded messages (Issue #141)
 - Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 8:00:00") (Issue #131)
 
+2.2.12
+------
+- Fix email parsing bug where the message uses Content Transfer Encoding (Issue #141)
+
 2.2.11
 ------
 - Fix SMTP connection bug for some email services (Issue #129)
