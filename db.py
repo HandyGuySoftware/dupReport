@@ -18,7 +18,6 @@ from datetime import timedelta
 import globs
 import drdatetime
 
-
 class Database:
     dbConn = None
     def __init__(self, dbPath):
