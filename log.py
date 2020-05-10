@@ -117,17 +117,24 @@ class LogHandler:
 
     def writeSyslog(self, level, msg):
 
+        newMsg = msg
+        
+        # Syslog messages have to be less than 1K in length.
+        if len(msg) > 999:
+            newMsg = msg[:999]
+            self.write(globs.SEV_DEBUG, function='log', action='writeSyslog', msg='Truncating syslog message')
+
         if level <= self.syslog['level']:               # Check that we're writing to an appropriate logging level
             if level <= globs.SEV_CRITICAL:
-                self.syslog['logger'].critical(msg)
+                self.syslog['logger'].critical(newMsg)
             elif level <= globs.SEV_ERROR:
-                self.syslog['logger'].error(msg)
+                self.syslog['logger'].error(newMsg)
             elif level <= globs.SEV_WARNING:
-                self.syslog['logger'].warning(msg)
+                self.syslog['logger'].warning(newMsg)
             elif level <= globs.SEV_INFO:
-                self.syslog['logger'].info(msg)
+                self.syslog['logger'].info(newMsg)
             elif level <= globs.SEV_DEBUG:
-                self.syslog['logger'].debug(msg)
+                self.syslog['logger'].debug(newMsg)
 
         return None
 
