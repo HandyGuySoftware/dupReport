@@ -658,9 +658,15 @@ class Report:
                     globs.db.execReportInsertSql(sqlStmt, rptData)
 
                     # Update latest activity into into backupsets
-                    sqlStmt = 'UPDATE backupsets SET lastFileCount={}, lastFileSize={}, \
-                        lasttimestamp=\'{}\', dupversion=\'{}\' WHERE source=\'{}\' AND destination=\'{}\''.format(examinedFiles, sizeOfExaminedFiles, \
-                        endTimeStamp, dupversion, source, destination)
+                    # Issue #138 - If the run was an error, there might not be a version number (depending on the Duplicati version)
+                    # Get the current values of these fields, use them if the new ones are invalid.
+                    sqlStmt = 'SELECT lastFileCount, lastFileSize, lasttimestamp, dupversion FROM backupsets WHERE source=\'{}\' AND destination=\'{}\''.format(source, destination)
+                    dbCursor = globs.db.execSqlStmt(sqlStmt)
+                    setRow = dbCursor.fetchone()
+                    if dupversion == '':
+                        dupversion = setRow[3]
+
+                    sqlStmt = 'UPDATE backupsets SET lastFileCount={}, lastFileSize={}, lasttimestamp=\'{}\', dupversion=\'{}\' WHERE source=\'{}\' AND destination=\'{}\''.format(examinedFiles, sizeOfExaminedFiles, endTimeStamp, dupversion, source, destination)
                     globs.db.execSqlStmt(sqlStmt)
                     globs.db.dbCommit()
 
