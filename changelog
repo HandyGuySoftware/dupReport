@@ -18,6 +18,7 @@
 - Fixed long-standing bug in handling Content Transfer Encoded messages (Issue #141)
 - Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 8:00:00") (Issue #131)
 - Fixed bug preventing recording of last version for a failed backup run (Issue #138)
+- Fixed bug where 'Limited' message/warning/error fields were not being displayed properly (Issue #147)
 
 2.2.12
 ------
