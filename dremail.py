@@ -67,6 +67,9 @@ lineParts = [
     ('messages',            'Messages: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ('warnings',            'Warnings: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ('errors',              'Errors: \[.*^\]',              re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('limitedMessages',     'LimitedMessages: \[.*^\]',     re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('limitedWarnings',     'LimitedWarnings: \[.*^\]',     re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('limitedErrors',       'LimitedErrors: \[.*^\]',       re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ('logdata',             'Log data:(.*?)\n(.*?)(?=\Z)',  re.MULTILINE|re.DOTALL,     1,                              'LogLines'),
     ('details',             'Details: .*',                  re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ('failed',              'Failed: .*',                   re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
@@ -625,6 +628,16 @@ class EmailServer:
                 emailParts['body']['sizeOfAddedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfAddedFiles'])
                 emailParts['body']['sizeOfExaminedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfExaminedFiles'])
                 emailParts['body']['sizeOfOpenedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfOpenedFiles'])
+
+            # Issue #147 - 'Limited' W/E/M fields get moved to standard W/E/M fields
+            # The 'Limited' fields were introduced in Beta 2.0.5.1 (2.0.5.1_beta_2020-01-18)	
+            if emailParts['body']['limitedErrors'] != '':
+                emailParts['body']['errors'] = emailParts['body']['limitedErrors'] 
+            if emailParts['body']['limitedWarnings'] != '':
+                emailParts['body']['warnings'] = emailParts['body']['limitedWarnings'] 
+            if emailParts['body']['limitedMessages'] != '':
+                emailParts['body']['messages'] = emailParts['body']['limitedMessages'] 
+                  
         else:  # Something went wrong. Let's gather the details.
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Email indicates a failed backup.')
             if not isJson:
