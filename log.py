@@ -24,7 +24,7 @@ class LogHandler:
         self.suppressFlag = False       # Do we want to suppress log output? (Relic from older versions)
         self.defLogLevel = globs.SEV_NOTICE   # Default logging level. Will get updated when log is opened
         self.tmpFile = None             # Temp file to hold log output before log file is opened.
-        self.tmpLogPath = globs.progPath + '/' + globs.tmpName    # Path for temp log
+        self.tmpLogPath = globs.progPath + '/' + globs.logName    # Path for temp log
         self.hostname = socket.gethostname()
         self.syslog = {
             'logger': None,
@@ -43,24 +43,31 @@ class LogHandler:
         self.defLogLevel = level
 
         if path is not None:    # Path provided. Open log file for write or append
-            try:
-                if append is True:
-                    self.logFile = open(path,'a', encoding="utf-8")
-                else:
-                    self.logFile = open(path,'w', encoding="utf-8")
-                # Now,copy any existing data from the temp file
-                if self.tmpFile is not None:
-                    self.tmpFile.close()
-                    self.tmpFile = open(self.tmpLogPath, 'r')
-                    tmpData = self.tmpFile.read()
-                    self.logFile.write(tmpData)
-                    self.tmpFile.close()
-                    os.remove(self.tmpLogPath)
-                    self.tmpFile = None
-            except (OSError, IOError):
-                e = sys.exc_info()[0]
-                globs.log.write(globs.SEV_ERROR, function='Log', action='openLog', msg='Error opening log file {}: {}'.format(path, e))
-                sys.stderr.write('Error opening log file {}: {}\n'.format(path, e))
+
+            # Issue #148. We opened the default log file (self.tmpLogPath) to start collecting logs until we found the real name in the .rc file.
+            # If it turns out that the actual log file (passwd in via the 'path' parameter') is the same as the temporary file, just keep using that.
+            # Else, open the log file & copy the temp log contents into it.
+            if os.path.normpath(os.path.normcase(self.tmpLogPath)) != os.path.normpath(os.path.normcase(path)):     # Are the two paths different?
+                globs.log.write(globs.SEV_DEBUG, function='Log', action='openLog', msg='Log file {} different than tmp file {}. Copying data.'.format(path, self.tmpLogPath))
+                try:
+                    if append is True:
+                        self.logFile = open(path,'a', encoding="utf-8")
+                    else:
+                        self.logFile = open(path,'w', encoding="utf-8")
+                    # Now,copy any existing data from the temp file
+                    if self.tmpFile is not None:
+                        self.tmpFile.close()
+                        self.tmpFile = open(self.tmpLogPath, 'r')
+                        tmpData = self.tmpFile.read()
+                        self.logFile.write(tmpData)
+                        self.logFile.flush()
+                        self.tmpFile.close()
+                        os.remove(self.tmpLogPath)
+                        self.tmpFile = None
+                except (OSError, IOError):
+                    e = sys.exc_info()[0]
+                    globs.log.write(globs.SEV_ERROR, function='Log', action='openLog', msg='Error opening log file {}: {}'.format(path, e))
+                    sys.stderr.write('Error opening log file {}: {}\n'.format(path, e))
 
         if globs.opts['syslog'] != '':
             syslogparts = globs.opts['syslog'].split(':')
