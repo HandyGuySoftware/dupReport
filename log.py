@@ -21,7 +21,6 @@ from logging.handlers import SysLogHandler
 class LogHandler:
     def __init__(self):
         self.logFile = None             # Handle to log file, when opened
-        self.suppressFlag = False       # Do we want to suppress log output? (Relic from older versions)
         self.defLogLevel = globs.SEV_NOTICE   # Default logging level. Will get updated when log is opened
         self.tmpFile = None             # Temp file to hold log output before log file is opened.
         self.tmpLogPath = globs.progPath + '/' + globs.logName    # Path for temp log
@@ -108,8 +107,7 @@ class LogHandler:
     # Write log info to stderr
     def err(self, msg):
         if (msg is not None) and (msg != ''):
-            sys.stderr.write(msg)
-            sys.stderr.write('\n')
+            sys.stderr.write('ERROR: {}\n'.format(msg))
             sys.stderr.flush()
         return None
 
@@ -150,9 +148,6 @@ class LogHandler:
     # Log Format = [TIMESTAMP][SEVERITY][FUNCTION][ACTION]<MESSAGE>
     def write(self, level, function='-', action='-', msg='' ):
 
-        if self.suppressFlag:       # Suppress log output even if logging is set
-            return None
-        
         if self.logFile is not None:
             logTarget = self.logFile
         else:
@@ -177,15 +172,3 @@ class LogHandler:
 
         return None
 
-    # Temporarily suppress all logging
-    # This is useful if info gets sent to the log before the log file is opened.
-    # This was made obsolete in V2.1 with the creation of the temporary file
-    # Kept around in case it becomes useful later
-    def suppress(self):
-        self.suppressFlag = True
-        return None
-
-    # Remove temporary logging suppression
-    def unSuppress(self):
-        self.suppressFlag = False
-        return None

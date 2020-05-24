@@ -13,6 +13,7 @@ from configparser import SafeConfigParser
 import argparse
 import os
 import sys
+from getpass import getpass
 
 # Import dupreport modules
 import log
@@ -155,6 +156,7 @@ class OptionManager:
     rcFileName = None   # Path to.rc file
     parser = None       # Handle for SafeConfigParser
     cmdLineArgs = None  # Command line arguments, passed from parse_args()
+    needGuidedSetup = False
     options = {}        # List of all available program options
 
     def __init__(self):
@@ -249,13 +251,24 @@ class OptionManager:
                     errlist.append('[{}]{}={} option added. Please update with valid information.\n'.format(section, option, default))
                     defaultsOK = False
 
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='setRcDefaults', msg='needUpdate = {} defaultsOK={}'.format(needUpdate, defaultsOK))
-        if needUpdate:
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcDefaults', msg='needUpdate = {} defaultsOK={}'.format(needUpdate, defaultsOK))
+
+        if self.needGuidedSetup:
+            globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcDefaults', msg='Running guided setup.')
+            guidedSetupOptions = self.guidedSetup()
+            globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcDefaults', msg='Updating guided setup options.')
+            for section in guidedSetupOptions.keys():
+                for option in guidedSetupOptions[section]:
+                    self.parser.set(section, option, guidedSetupOptions[section][option])
+            defaultsOK = True
+
+        if needUpdate or self.needGuidedSetup:
             self.updateRc()
         if not defaultsOK:
+            globs.log.err('Errors found in .rc file.')
             for i in range(len(errlist)):
                 globs.log.err(errlist[i])
-                globs.log.write(globs.SEV_NOTICE, function='Options', action='setRcDefaults', msg=errlist[i])
+                globs.log.write(globs.SEV_ERROR, function='Options', action='setRcDefaults', msg=errlist[i])
         return defaultsOK
 
     # Read .rc file options
@@ -401,11 +414,16 @@ class OptionManager:
         argParser.add_argument("-e","--emailservers", help="List of incoming (IMAP & POP3) and outgoing (SMTP) servers to use.", action="store")
         argParser.add_argument("-f", "--file", help="Send output to file or stdout. Format is -f <filespec>,<type>", action="append")
         argParser.add_argument("-F", "--fileattach", help="Same as -f, but also send file as attchment.", action="append")
-        argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
 
         opGroup2 = argParser.add_mutually_exclusive_group()
-        opGroup2.add_argument("-k", "--masksensitive", help="Mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
-        opGroup2.add_argument("-K", "--nomasksensitive", help="Don't mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
+        opGroup2.add_argument("-g","--guidedsetup", help="Force program to re-run the guided setup for new users.", action="store_true")
+        opGroup2.add_argument("-G","--noguidedsetup", help="Do not run guided setup even if there is no .rc file.", action="store_true")
+
+        argParser.add_argument("-i","--initdb", help="Initialize database.", action="store_true")
+
+        opGroup3 = argParser.add_mutually_exclusive_group()
+        opGroup3.add_argument("-k", "--masksensitive", help="Mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
+        opGroup3.add_argument("-K", "--nomasksensitive", help="Don't mask sentitive data in log file. Overrides \"masksensitive\" option in rc file.", action="store_true")
 
         argParser.add_argument("-l","--logpath", help="Path to dupReport log file. (Default: 'dupReport.log'. Same as [main]logpath= in rc file.", action="store")
         argParser.add_argument("-m", "--remove", help="Remove a source/destination pair from the database. Format is -m <source> <destination>", nargs=2, action="store")
@@ -430,42 +448,44 @@ class OptionManager:
             globs.log.write(globs.SEV_ERROR, function='Options', action='readRcOptions', msg='Argument parser error: {}'.format(e))
             globs.closeEverythingAndExit(1)
 
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='rcpath = [{}]'.format(globs.maskData(self.cmdLineArgs.rcpath, True)))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='dbpath = [{}]'.format(globs.maskData(self.cmdLineArgs.dbpath, True)))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='logpath = [{}]'.format(globs.maskData(self.cmdLineArgs.logpath, True)))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='verbose = [{}]'.format(self.cmdLineArgs.verbose))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='Version = [{}]'.format(self.cmdLineArgs.Version))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='append = [{}]'.format(self.cmdLineArgs.append))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='size = [{}]'.format(self.cmdLineArgs.size))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='initdb = [{}]'.format(self.cmdLineArgs.initdb))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='rollback = [{}]'.format(self.cmdLineArgs.rollback))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='file = [{}]'.format(self.cmdLineArgs.file))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='fileattach = [{}]'.format(self.cmdLineArgs.fileattach))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='nomail = [{}]'.format(self.cmdLineArgs.nomail))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='remove = [{}]'.format(self.cmdLineArgs.remove))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='purgedb = [{}]'.format(self.cmdLineArgs.purgedb))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='stopbackupwarn = [{}]'.format(self.cmdLineArgs.stopbackupwarn))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='collect = [{}]'.format(self.cmdLineArgs.collect))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='report = [{}]'.format(self.cmdLineArgs.report))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='masksensitive = [{}]'.format(self.cmdLineArgs.masksensitive))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='layout = [{}]'.format(self.cmdLineArgs.layout))
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='emailservers = [{}]'.format(self.cmdLineArgs.emailservers))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='rcpath = [{}]'.format(globs.maskData(self.cmdLineArgs.rcpath, True)))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='dbpath = [{}]'.format(globs.maskData(self.cmdLineArgs.dbpath, True)))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='logpath = [{}]'.format(globs.maskData(self.cmdLineArgs.logpath, True)))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='verbose = [{}]'.format(self.cmdLineArgs.verbose))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='Version = [{}]'.format(self.cmdLineArgs.Version))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='append = [{}]'.format(self.cmdLineArgs.append))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='size = [{}]'.format(self.cmdLineArgs.size))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='initdb = [{}]'.format(self.cmdLineArgs.initdb))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='rollback = [{}]'.format(self.cmdLineArgs.rollback))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='rollbackx = [{}]'.format(self.cmdLineArgs.rollbackx))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='file = [{}]'.format(self.cmdLineArgs.file))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='fileattach = [{}]'.format(self.cmdLineArgs.fileattach))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='guidedsetup= [{}]'.format(self.cmdLineArgs.guidedsetup))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='noguidedsetup= [{}]'.format(self.cmdLineArgs.noguidedsetup))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='nomail = [{}]'.format(self.cmdLineArgs.nomail))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='remove = [{}]'.format(self.cmdLineArgs.remove))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='purgedb = [{}]'.format(self.cmdLineArgs.purgedb))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='stopbackupwarn = [{}]'.format(self.cmdLineArgs.stopbackupwarn))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='collect = [{}]'.format(self.cmdLineArgs.collect))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='report = [{}]'.format(self.cmdLineArgs.report))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='masksensitive = [{}]'.format(self.cmdLineArgs.masksensitive))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='nomasksensitive = [{}]'.format(self.cmdLineArgs.nomasksensitive))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='layout = [{}]'.format(self.cmdLineArgs.layout))
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='emailservers = [{}]'.format(self.cmdLineArgs.emailservers))
     
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
-            globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='RC path specified on command line.')
+            globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='RC path specified on command line.')
             rc = self.cmdLineArgs.rcpath
             if os.path.isdir(rc): # directory specified only. Add default file name
                 rc += '/{}'.format(globs.rcName)
         else: # RC path not specified on command line. use default location
-            globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='RC path not specified on command line. Using default.')
+            globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='RC path not specified on command line. Using default.')
             rc = '{}/{}'.format(globs.progPath, globs.rcName)
         self.options['rcfilename'] = rc
-        
-        globs.log.write(globs.SEV_DEBUG, function='Options', action='processCmdLineArgs', msg='Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], self.maskPath())))
+
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='Final RC path=[{}]'.format(globs.maskData(self.options['rcfilename'], self.maskPath())))
         return None
 
     # Get individual .rc file option
@@ -565,19 +585,114 @@ class OptionManager:
             return joined
         return path     #Assume it's a full filespec. Return it and the OS will raise an error if it tries to open it & can't
 
+
+    # Guided Setup for New Users
+    def guidedSetupHelper(self, prompt='', default='', secure = False, choices = None, convertUpper = False, convertLower=False):
+
+        ready = False
+        while not ready:
+            if not secure:
+                response = input('{} [{}]:'.format(prompt, default))
+            else:
+                response = getpass('{} [{}]:'.format(prompt, default))
+            if response == '':
+                response = default
+            if convertUpper:
+                response = str.upper(response)
+            elif convertLower:
+                response = str.lower(response)
+
+            if choices == None:     # Loop until you get a correct input form the given choices
+                break
+
+            if response not in choices:
+                print("Invalid response. Please try again.")
+            else:
+                ready = True
+        return response
+    
+    def guidedSetup(self):
+        globs.log.write(globs.SEV_NOTICE, function='Options', action='guidedSetup', msg='Running guided setup for .rc file')
+
+        if not self.needGuidedSetup:
+            globs.log.write(globs.SEV_NOTICE, function='Options', action='guidedSetup', msg='Guided setup not required.')
+            return None
+
+        options = {'main': {}, 'report': {}, 'incoming': {}, 'outgoing': {}}
+
+        print("Welcome to the dupReport guided setup.")
+        print("Here we'll collect some basic information from you to help configure the program.")
+        print("Let's get started...\n")
+        
+        # Date format
+        print("Valid date formats in dupReport are:")
+        for key in drdatetime.dtFmtDefs.keys():
+            if key != 'HH:MM:SS':
+                print('\t{}'.format(key))
+        options['main']['dateformat'] = self.guidedSetupHelper(prompt='Please enter the date format for your locale', default='MM/DD/YYYY', choices=drdatetime.dtFmtDefs.keys(), convertUpper=True)
+        usesyslog = self.guidedSetupHelper(prompt='Do you use a syslog server or log aggregator where you want the dupReport logs sent', default='n', choices=['y','n'], convertLower=True)
+        if usesyslog == 'y':
+            options['main']['syslog'] = self.guidedSetupHelper(prompt='Enter the server name/ip and port of your syslog server', default='localhost:514')
+        else:
+            options['main']['syslog'] = ''
+
+        options['report']['sizedisplay'] = self.guidedSetupHelper(prompt='Do you want file sizes displayed in bytes, megabytes, or gigabytes (enter \'byte\', \'mb\', or \'gb\')', default='byte', choices=['byte','mb', 'gb'], convertLower=True)
+
+        # Incoming mail server
+        print("\nNow we'll need information about your \'incoming\' email server.")
+        print("This is the email server where your Duplicati job results are sent. dupReport will collect emails from this server and analyze them.")
+        print("You can use more than one incoming server with dupReport, but for now we'll collect information for just one.")
+        options['incoming']['protocol'] = self.guidedSetupHelper(prompt='Does the \'incoming\' server use IMAP or POP3', default='imap', choices=['imap','pop3'], convertLower=True)
+        options['incoming']['server'] = self.guidedSetupHelper(prompt='Please provide an IP address or DNS name for the \'incoming\' server', default='localhost')
+        options['incoming']['port'] = self.guidedSetupHelper(prompt='Please provide a port number for the \'incoming\' server', default='993')
+        if self.guidedSetupHelper(prompt='Does the \'incoming\' server use SSL/TLS encryption', default='Y', choices=['Y','N'], convertUpper=True) == 'Y':
+            options['incoming']['encryption'] = 'tls'
+        else:
+            options['incoming']['encryption'] = 'none'
+        options['incoming']['account'] = self.guidedSetupHelper(prompt='Please enter the user ID used to log into the \'incoming\' server', default='youremail@emailservice.com')
+        options['incoming']['password'] = self.guidedSetupHelper(prompt='Please enter the password used to log into the \'incoming\' server', default='secretpassword', secure=True)
+        options['incoming']['folder'] = ''
+        if options['incoming']['protocol'] == 'imap':
+            options['incoming']['folder'] = self.guidedSetupHelper(prompt='Please enter the IMAP folder name to where Duplicati emails are stored on the \'incoming\' server', default='INBOX', convertUpper = True)
+
+        # Outgoing mail server
+        print("\nNow we'll need information about your \'outgoing\' email server.")
+        print("This is the email server that dupReport will use to send the results of its analysis.")
+        print("You can use more than one outgoing server with dupReport, but for now we'll collect information for just one.")
+        options['outgoing']['protocol'] = 'smtp'
+        options['outgoing']['server'] = self.guidedSetupHelper(prompt='Please provide an IP address or DNS name for the \'outgoing\' server', default='localhost')
+        options['outgoing']['port'] = self.guidedSetupHelper(prompt='Please provide a port number for the \'outgoing\' server', default='587')
+        if self.guidedSetupHelper(prompt='Does the \'outgoing\' server use SSL/TLS encryption', default='Y', choices=['Y','N'], convertUpper=True) == 'Y':
+            options['outgoing']['encryption'] = 'tls'
+        else:
+            options['outgoing']['encryption'] = 'none'
+        options['outgoing']['account'] = self.guidedSetupHelper(prompt='Please enter the user ID used to log into the \'outgoing\' server', default='youremail@emailservice.com')
+        options['outgoing']['password'] = self.guidedSetupHelper(prompt='Please enter the password used to log into the \'outgoing\' server', default='secretpassword', secure=True)
+        options['outgoing']['sender'] = self.guidedSetupHelper(prompt='What email address should be used for the sender', default='youremail@emailservice.com')
+        options['outgoing']['sendername'] = self.guidedSetupHelper(prompt='What is the \'friendly name\' of the outgoing email sender', default='Your Name')
+        options['outgoing']['receiver'] = self.guidedSetupHelper(prompt='Who should the outgoing emails be sent to', default='receiver@emailservice.com')
+
+
+        print("\nOK, all set. We've recorded your responses and (hopefully) the program will work perfectly now.")
+        print('If it doesn\'t, you can change the configuration in the .rc file located at {}\n'.format(self.rcFileName))
+
+        return options
+
+
 # Initialize options in the program
 # Return True if program can continue
 # Return False if enough changed in the .rc file that program needs to stop
 def initOptions():
     globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='Initializing global program options.')
 
-    # Set program path
-
     # Create OptionManager instance
     oMgr = OptionManager()
+
     # Parse command line options
-    globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='Processing command line.')
     oMgr.processCmdLineArgs()
+    if oMgr.cmdLineArgs.guidedsetup:
+        oMgr.needGuidedSetup = True
+
     # Prepare the .rc file for processing
     oMgr.openRcFile(oMgr.options['rcfilename'])   
     
@@ -589,7 +704,11 @@ def initOptions():
         convert.convertRc(oMgr, currRcVersion)
         globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='RC file has been updated to the latest version.')
     
-    # Check .rc file structure to see if all proper fields are there. If False, something needs attention.
+    # If the current .rc version is 0 there is no .rc file. Flag need to run guided setup (unless explicitly told not to)
+    if currRcVersion == 0 and not oMgr.cmdLineArgs.noguidedsetup:
+        oMgr.needGuidedSetup = True
+    
+        # Check .rc file structure to see if all proper fields are there. If False, something needs attention.
     if oMgr.setRcDefaults() is False:
         globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='RC file {} has changed or has an unrecoverable error. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
         return False

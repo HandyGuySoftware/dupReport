@@ -55,11 +55,6 @@ if __name__ == "__main__":
         globs.log.err('dupReport requires Python 3.0 or higher to run. Your installation is on version {}.{}.{}.\nPlease install a newer version of Python.'.format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
         globs.closeEverythingAndExit(1)
     
-    # This routine suppresses log output until proper log file is established. 
-    # Used for debugging before the use of a tmp file in LogHandler was implemented
-    # Kept around because it doesn't take up much space and it might come in useful again
-    #globs.log.suppress()
-
     # Start Program Timer
     startTime = time.time()
 
@@ -68,9 +63,6 @@ if __name__ == "__main__":
     canContinue = options.initOptions() 
     if not canContinue: # Something changed in the .rc file that needs manual editing
         globs.closeEverythingAndExit(1)
-
-    # If we're not suppressing, we don't need to unsupress
-    #globs.log.unSuppress()
 
     # Looking for version info on command line? (-V)
     if globs.opts['version']:   # Print version info & exit
