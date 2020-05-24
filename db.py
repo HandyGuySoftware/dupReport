@@ -233,7 +233,7 @@ class Database:
     def rollback(self, datespec):
         globs.log.write(globs.SEV_NOTICE, function='Database', action='rollback', msg='Rolling back database: spec={}'.format(datespec))
 
-        # See if we're using a delta-based time spec
+        # See if we're using a delta-based time spec (Issue #131)
         deltaParts = drdatetime.timeDeltaSpec(datespec)
         if deltaParts != False:
             today = datetime.now()
