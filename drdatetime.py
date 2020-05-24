@@ -232,7 +232,7 @@ def timeDiff(td, durationZeroes = False):
 
     # Set return string value based on opts['durationzeroes'] setting
     if durationZeroes is True:
-        retval = "{}d {}h {}m {}s".format(days, hours, minutes, seconds)
+        retVal = "{}d {}h {}m {}s".format(days, hours, minutes, seconds)
     else: # Leave out parts that == 0
         retVal = ""
         if days != 0:
