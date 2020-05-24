@@ -592,9 +592,9 @@ class OptionManager:
         ready = False
         while not ready:
             if not secure:
-                response = input('{} [{}]:'.format(prompt, default))
+                response = input('{} [{}]: '.format(prompt, default))
             else:
-                response = getpass('{} [{}]:'.format(prompt, default))
+                response = getpass('{} [{}]: '.format(prompt, default))
             if response == '':
                 response = default
             if convertUpper:
