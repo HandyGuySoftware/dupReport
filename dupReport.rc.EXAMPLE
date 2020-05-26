@@ -1,0 +1,291 @@
+[main]
+
+# Please DO NOT CHANGE the rcversion setting. dupReprt uses this to determine if the file needs updating.
+rcversion = 3.1.0
+
+# dbpath & logpath can be either directories or full path specifications
+dbpath = D:\Users\parents\Documents\Development\dupReport
+logpath = D:\Users\parents\Documents\Development\dupReport\dupReport.log
+
+# Indicates the logging level. Valid levels are:
+#SEV_EMERGENCY = 0
+#SEV_ALERT = 1
+#SEV_CRITICAL = 2
+#SEV_ERROR = 3
+#SEV_WARNING = 4
+#SEV_NOTICE = 5
+#SEV_INFO = 6
+#SEV_DEBUG = 7
+# dupReport will log all messages tagged as <= the level specified in this option.
+# In reality, dupReport never logs anything lower than a SEV_ERROR (3), so setting this option lower than that effectively shuts off most logging.
+# Default level is 5 (SEV_NOTICE). Level 7 is full debug output.
+verbose = 7
+
+# Do you want to append each log to the last one?
+logappend = false
+
+# The default regular expressions for the subject, source, destination, and delimeter work for most circumstances
+subjectregex = ^Duplicati Backup report for
+srcregex = \w*
+destregex = \w*
+srcdestdelimiter = -
+
+# Date format is VERY important. PLEASE MAKE SURE you have a properly-formatted dateformat spec.
+# This should be set in the Guided Startup. It can be overrided on a per-backup basis in the per-back sections below if you have jobs that run in multiple locales.
+dateformat = MM/DD/YYYY
+
+# There is only one valid time specification. DO NOT CHANGE THIS.
+timeformat = HH:MM:SS
+
+# These next options are pretty straightforward. See the documentation for descriptions on how they work
+warnoncollect = false
+applyutcoffset = true
+show24hourtime = false
+purgedb = false
+showprogress = 0
+masksensitive = true
+markread = true
+
+# These options are useful if you want to send log output to a syslog server
+syslog = syslog.home.local:514
+sysloglevel = 7
+
+# This is a list of all the email servers, incoming and outgoing.
+# Each server named here must have an identically-named [server] section below somewhere else in the file
+emailservers = yahooimap, yahoopop3, gmailimap, gmailsmtp, yahoosmtp
+
+# These are the default incoming and outgoing email server definitions that come with dupReport
+# You can modify these or use custom-built definitions as shown below.
+# Just make sure whatever server definitions you are using are put in the "emailservers=" option in the [main] section
+[incoming]
+protocol = imap
+server = imap.gmail.com
+port = 993
+encryption = tls
+account = accountname@gmail.com
+password = secretpassword
+folder = INBOX
+keepalive = false
+unreadonly = false
+markread = false
+authentication = basic
+
+[outgoing]
+server = smtp.gmail.com
+protocol = smtp
+port = 587
+encryption = tls
+account = accountname@gmail.com
+password = secretpassword
+sender = accountname@gmail.com
+sendername = dupReport Summary
+receiver = sccountname@gmail.com
+keepalive = false
+markread = false
+authentication = basic
+
+# Example settings for Yahoo's IMAP server
+[yahooimap]
+protocol = imap
+server = imap.mail.yahoo.com
+port = 993
+encryption = tls
+account = accountname@yahoo.com
+password = secretpassword
+folder = INBOX
+keepalive = false
+unreadonly = false
+markread = false
+authentication = basic
+
+# Example settings for Yahoo's POP3 server
+[yahoopop3]
+protocol = pop3
+server = pop.mail.yahoo.com
+port = 995
+encryption = tls
+account = accountname@yahoo.com
+password = secretpassword
+folder = INBOX
+keepalive = false
+unreadonly = false
+markread = false
+authentication = basic
+
+# Example settings for Gmail's IMAP server
+[gmailimap]
+protocol = imap
+server = imap.gmail.com
+port = 993
+encryption = tls
+account = accountname@gmail.com
+password = secretpassword
+folder = INBOX
+keepalive = false
+unreadonly = false
+markread = false
+authentication = basic
+
+# Example settings for Gmail's SMTP server
+[gmailsmtp]
+server = smtp.gmail.com
+protocol = smtp
+port = 587
+encryption = tls
+account = accountname@gmail.com
+password = secretpassword
+sender = accountname@gmail.com
+sendername = dupReport Summary
+receiver = sccountname@gmail.com
+keepalive = false
+markread = false
+authentication = basic
+
+# Example settings for Yahoo's SMTP server
+[yahoosmtp]
+server = smtp.mail.yahoo.com
+protocol = smtp
+port = 587
+encryption = tls
+account = accountname@yahoo.com
+password = secretpassword
+sender = accountname@yahoo.com
+sendername = dupReport Summary
+receiver = accountname@yahoo.com
+keepalive = false
+markread = false
+authentication = basic
+
+# Backup-specific sections. Put information about specific backup jobs here
+# Each section must match the EXACT name of one of the backup jobs (i.e., <source>-<destination>)
+
+# This one says to not send email warnings if the backup hasn't been seen in x days
+[Server1-NAS]
+nobackupwarn = 0
+
+# This one sets the no-backup warning intrval to 10 days and sends the no-backup warning to another email address
+[Server2-NAS]
+nobackupwarn = 10
+receiver = anotheruser@gmail.com
+
+# This tells dupReport that this server is offline, so ignore any warnings about not seeing a backup
+[Server3-B2]
+offline = true
+
+# This backup runs in a different locale that uses a different date format than the one specified in the [main section]
+[Server4-B2]
+dateformat = YYYY.MM.DD
+
+# This is the main report defintion section. This sets the default options for all reports. 
+# Most options can be overridden in report-specific sections.
+# See the documentation for a description of each option
+[report]
+
+# The layout option defines the order in which the various report sections will be shown in the final report
+# Each report needs a report definition section below in the .rc file
+layout = noactivity, lastseen, srcdest, bydestnogroups, bysrc,bydest,bydate,srcdest, noactivity, lastseen
+
+sizedisplay = mb
+border = 5
+padding = 5
+displayerrors = true
+displaywarnings = false
+displaymessages = false
+sortby = source
+titlebg = #FFFFFF
+jobmessagebg = #FFFFFF
+jobwarningbg = #FFFF00
+joberrorbg = #FF0000
+suppresscolumntitles = false
+nobackupwarn = 0
+nbwsubject = Backup Warning: #SOURCE##DELIMITER##DESTINATION# Backup Not Seen for #DAYS# Days
+truncatemessage = 0
+truncatewarning = 0
+truncateerror = 0
+durationzeroes = false
+displaylogdata = true
+joblogdatabg = #FFFF00
+truncatelogdata = 0
+title = Duplicati Backup Summary Report
+# Note that column defintions can be split into multiple lines. BUT, you MUST LEAVE SPACES BEFORE THE SECOND LINE (and the third and the fourth...)
+# If you try to split .rc entries up into multiple lines and you're getting strange results, chances are you did it wrong.
+columns = source:Source, destination:Destination, date: Date, time: Time, dupversion:Version, duration:Duration, examinedFiles:Files, 
+    examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, 
+	filesWithError:Errors, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data
+weminline = false
+groupheadingbg = #D3D3D3
+normaldays = 5
+normalbg = #FFFFFF
+warningdays = 10
+warningbg = #FFFF00
+errorbg = #FF0000
+repeatcolumntitles = true
+includeruntime = true
+failedonly = False
+
+# Sample report definitions
+# The field orders and column title defintions have been changed around a bit from the defaults in these examples just to demonstrate how it's done
+
+# This defines the standard "SrcDest" report. Show backup results ordered by Source-Destination pairs.
+[srcdest]
+type = report
+title = Duplicati Backup Summary Report - By Source/Destination
+groupby = source:ascending, destination:ascending
+groupheading = Source: #SOURCE#  Destination: #DESTINATION#
+columns = date:Date, time:Time, dupversion:Version, parsedResult:Result, duration:Duration, examinedFilesDelta:Files +/-, fileSizeDelta: File Size (MB) +/-,
+	addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, parsedResult:Result
+columnsort = date:ascending, time:ascending
+
+# This defines the standard "By Source" report. Show backup results ordered by Source system.
+[bysrc]
+type = report
+title = Duplicati Backup Summary Report - By Source
+groupby = source : ascending
+groupheading = Source: #SOURCE#
+columns = destination:Destiation, date:Date, time:Time, examinedFilesDelta: Files +/-, fileSizeDelta: File Size (MB) +/-,
+	parsedResult:Result
+columnsort = destination:ascending, date:ascending, time:ascending
+
+# This defines the standard "By Destination" report. Show backup results ordered by Destination system.
+[bydest]
+type = report
+title = Duplicati Backup Summary Report - By Destination
+groupby = destination:ascending
+groupheading = Destination: #DESTINATION#
+columns = parsedResult:Result, source:Source, dupversion:Version, date:Date, time:Time, duration:Length, examinedFiles:# Files, examinedFilesDelta:#F +/-, sizeOfExaminedFiles:FSize (GB), fileSizeDelta:FS (GB) +/-, errors:Errors, logdata:Log Data
+columnsort = source:ascending, date:ascending, time:ascending
+suppresscolumntitles = false
+sizedisplay = gb
+
+# This defines the standard "By Date" report. Show backup results ordered by Date.
+[bydate]
+type = report
+title = Duplicati Backup Summary Report - By Date
+groupby = date:ascending
+groupheading = Date: #DATE#
+columns = time:Time, source:Source, destination:Destination, duration:Duration, examinedFiles:Files, examinedFilesDelta:+/-, sizeOfExaminedFiles:Size (Bytes), fileSizeDelta: Bytes +/-, parsedResult:Result, warnings:Warnings, errors:Errors, logdata:Log Data
+weminline = true
+columnsort = time:ascending
+sizedisplay = none
+
+# This shows how define a report that isn't split into groups
+[bydestnogroups]
+type = report
+title = Duplicati Backup Summary Report - By Destination (No Groups)
+columns = destination:Destination, source:Source, date:Date, time:Time, duration:Duration, examinedFilesDelta: Files +/-, fileSizeDelta: Size (GB) +/-,
+	parsedResult:Result, warnings:Warnings, errors:Errors, messages:Messages
+columnsort = destination:ascending, source:ascending, date:ascending, time:ascending
+sizedisplay = gb
+displayerrors = true
+displaywarnings = true
+displaymessages = true
+
+# This defines a report that only shows Source-Destination pairs that showed no activity
+[noactivity]
+type = noactivity
+title = Non-Activity Report
+
+# This defines a report that shows when each Source-Destination pair was last seen by dupReport
+[lastseen]
+type = lastseen
+title = Backup Sets Last Seen

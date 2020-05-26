@@ -21,6 +21,7 @@
 - Fixed bug preventing recording of last version for a failed backup run (Issue #138)
 - Fixed bug where 'Limited' message/warning/error fields were not being displayed properly (Issue #147)
 - Fixed bug where temporary log file would sometimes not be copied to permanent log file. (Issue #148)
+- Created a sample .rc file (dupReport.rc.EXAMPLE) to show how various configuration options work in a real-world scenario (Issue #149)
 
 2.2.12
 ------
