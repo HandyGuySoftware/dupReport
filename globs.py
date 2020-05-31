@@ -9,10 +9,10 @@ import os
 
 # Define version info
 version=[3,0,0]     # Program Version
-status='Beta 1 - Unstable'
+status='Beta 1'
 dbVersion=[3,0,0]   # Required DB version
 rcVersion=[3,1,0]   # Required RC version
-copyright='Copyright (c) 2020 Stephen Fried for Handy Guy Software.'
+copyright='Copyright (c) 2017-2020 Stephen Fried for Handy Guy Software.'
 
 # Define global variables
 dbName='dupReport.db'               # Default database name
@@ -35,8 +35,8 @@ emailFormat=[]    # Corresponding list of emial components print formats
 
 # Global variables referencing objects in other modules
 log = None              # Log file handling
-inServer = None      # Inbound email server
-outServer =  None     # Outbound email server
+inServer = None         # Inbound email server
+outServer =  None       # Outbound email server
 
 # Define logging levels
 SEV_EMERGENCY = 0
