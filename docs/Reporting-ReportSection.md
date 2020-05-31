@@ -34,37 +34,37 @@ dupReport comes with several pre-defined report formats:
 
 **srcdest**: This prints email results grouped by Source-Destination pairs. Here is an example of the srcdest report:
 
-![](images\report_srcdest.jpg)
+![](images/report_srcdest.jpg)
 
 
 
 **bysrc**: This prints email results grouped by Source systems. Here is an example of the bysrc report:
 
-![](D:\Users\parents\Documents\Development\dupReport\docs\images\report_bysource.jpg)
+![](images/report_bysource.jpg)
 
 
 
 **bydest**: This prints email results grouped by Destination systems. Here is an example of the bydest report:
 
-![](D:\Users\parents\Documents\Development\dupReport\docs\images\report_bydest.jpg)
+![](images/report_bydest.jpg)
 
 
 
 **bydate**: This prints email results grouped by date. Here is an example of the bydate report:
 
-![](D:\Users\parents\Documents\Development\dupReport\docs\images\report_bydate.jpg)
+![](images/report_bydate.jpg)
 
 
 
 **noactivity**: This prints a report of all the Source-Destination pairs that were not seen during the run of the program. This can be helpful for seeing which systems may be down or otherwise not reporting in properly. Here is an example of the noactivity report:
 
-![](images\report_noactivity.jpg)
+![](images/report_noactivity.jpg)
 
 
 
 **lastseen**:  This prints a list of all the current Source-Destination pairs and the date & time they were last seen by dupReport. Here is an example of the lastseen report:
 
-![](D:\Users\parents\Documents\Development\dupReport\docs\images\last_seen_line.jpg)
+![](images/last_seen_line.jpg)
 
 
 
@@ -148,7 +148,7 @@ columns = source:Source, destination:Destination, date:Run Date, time:Run Time, 
 
 The above specification will produce a report that looks like the following:
 
-![](images\SampleColumnSpec.jpg)
+![](images/SampleColumnSpec.jpg)
 
 
 
@@ -206,7 +206,7 @@ includeruntime = true
 
 Setting this to "true" places an indication of the report's running time at the bottom of the report. The running time will look like this:
 
-![](D:\Users\parents\Documents\Development\dupReport\docs\images\runtime_line.jpg)
+![](images/runtime_line.jpg)
 
 ------
 
