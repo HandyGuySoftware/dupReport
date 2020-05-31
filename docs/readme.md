@@ -41,7 +41,24 @@ Please follow dupReport on Twitter [@dupReport](https://twitter.com/DupReport)
 
 Enjoy!
 
+------
 
+# What's New in Version 3.0
+
+dupReport Version 3.0 includes some new and advanced features for analyzing and reporting on Duplicati emails:
+
+- The reporting engine has been re-built to allow for user-created reporting formats (see the new reporting documentation for more details).
+- Added a Guided Setup for new users. If there is no .rc file when the program runs the guided Setup will take the user through the most common configurable options.
+- Added the ability to specify multiple inbound (IMAP/POP3) and outbound (SMTP) email servers.
+- Standardized log format for easier searching and organization.
+- Added ability to send output to syslog server or log aggregator.
+- Can now send output to a JSON file.
+- Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 8:00:00").
+- Re-structured the documentation for better readibility and made it easier to find specific settings.
+
+Please see the (new, updated, and reorganbized) documentation on these and all the dupReport features.
+
+------
 
 # Documentation
 
