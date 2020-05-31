@@ -4,7 +4,7 @@
 
 dupReport is a program that will collect up status emails from Duplicati and combine them into a single email report that is sent to you. The following diagram helps explain how it works:
 
-![dupReport Architecture](images\dR_Architecture.jpg)\
+![dupReport Architecture](.\images\dR_Architecture.jpg)\
 
 Some general points about dupReport
 
