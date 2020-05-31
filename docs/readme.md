@@ -72,7 +72,7 @@ Running dupReport
 
 - Program Management: The [[main] Section](RcFileConfig-Main.md)
 - Handling Specific Backup Jobs: The [[\<source-destination>] Sections](RcFileConfig-SourceDestination.md)
-- [Email Management](RcFileConfig-IncomingOutgoing.md)
+- [Email Management](EmailManagement.md)
 - Push Notifications Using Apprise: The [[apprise] Section](RcFileConfig-Apprise.md)
 
 Reporting
