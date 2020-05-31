@@ -148,7 +148,14 @@ rcParts= [
     ('noactivity', 'type',              'noactivity',                                                               True),
     ('noactivity', 'title',             'Non-Activity Report',                                                      True),
     ('lastseen',   'type',              'lastseen',                                                                 True),
-    ('lastseen',   'title',             'Backup Sets Last Seen',                                                    True)
+    ('lastseen',   'title',             'Backup Sets Last Seen',                                                    True),
+
+    # Default apprise section
+    ('apprise',    'enabled',           'false',                                                                    True),
+    ('apprise',    'services',          '',                                                                         True),
+    ('apprise',    'bodytruncate',      '0',                                                                        True),
+    ('apprise',    'msglevel',          'warning',                                                                  True),
+    ('apprise',    'body',              'Completed at #COMPLETETIME#: #RESULT# - Warning: #WARNMSG# Error: #ERRMSG#',   True)
     ]
 
 # Class to manage all program options

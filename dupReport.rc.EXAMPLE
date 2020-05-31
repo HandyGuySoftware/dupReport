@@ -289,3 +289,11 @@ title = Non-Activity Report
 [lastseen]
 type = lastseen
 title = Backup Sets Last Seen
+
+# Sample apprise section for sending email notifications
+[apprise]
+status = off
+services = mailto://username:password@gmail.com
+bodytruncate = 500
+msglevel = warning
+body = Completed at #COMPLETETIME#: #RESULT# - Warning: #WARNMSG# Error: #ERRMSG#

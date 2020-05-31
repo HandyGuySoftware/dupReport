@@ -83,8 +83,8 @@ if __name__ == "__main__":
     if globs.opts['validatereport'] == True:  # We just want to validate the report. Exit from here without doing anyting else.
         globs.closeEverythingAndExit(0)
 
-    # see if [apprise] section exists in .rc file. If so, initialize Apprise options
-    if globs.optionManager.parser.has_section('apprise'):
+    # See if [apprise] is enabled in .rc file. If so, initialize Apprise options
+    if str.lower(globs.optionManager.getRcOption('apprise', 'enabled')) in ['true']:
         globs.appriseObj = dupapprise.dupApprise()
 
     # Open SQLITE database

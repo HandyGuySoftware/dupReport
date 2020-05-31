@@ -56,13 +56,15 @@ optList210 = [
     ('outgoing',    'receiver',         'outgoing',     'outreceiver')
     ]
 
-sizeTranslate = { 'none': 'none', 'mega': 'mb', 'giga': 'gb' }
+sizeTranslate = { 'byte': 'byte', 'none': 'byte', 'mega': 'mb', 'giga': 'gb' }
 v310Translate = {'source':'source','destination':'destination','date':'date','time':'time','dupversion':'dupversion','duration':'duration','files':'examinedFiles','filesplusminus':'examinedFilesDelta','size':'sizeOfExaminedFiles','sizeplusminus':'fileSizeDelta',
                  'errors':'errors','result':'parsedResult','joblogdata':'logdata','joberrors':'errors','added':'addedFiles','deleted':'deletedFiles','modified':'modifiedFiles','jobmessages':'messages','jobwarnings':'warnings'}
 
 def moveOption(oMgr, fromSect, fromOpt, toSect, toOpt):
     globs.log.write(globs.SEV_DEBUG, function='Convert', action='moveOption', msg='Moving [{}]{} to: [{}]{}'.format(fromSect, fromOpt, toSect, toOpt))
     value = oMgr.getRcOption(fromSect, fromOpt)
+    if value == None:
+        value = ''
     oMgr.clearRcOption(fromSect, fromOpt)
     oMgr.setRcOption(toSect, toOpt, value)
 
@@ -83,7 +85,7 @@ def convertRc(oMgr, fromVersion):
 
 def doConvertRc(oMgr, fromVersion):
     if fromVersion < 210:
-        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 210.'.format(fromversion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 210.'.format(fromVersion))
         # Start adding back in secitons
         if oMgr.parser.has_section('main') is False:
             globs.log.write(globs.SEV_DEBUG, function='Convert', action='convertRc', msg='Adding [main] section.')
@@ -105,7 +107,7 @@ def doConvertRc(oMgr, fromVersion):
             globs.log.write(globs.SEV_DEBUG, function='Convert', action='convertRc', msg='Adding [headings] section.')
             oMgr.addRcSection('headings')
 
-        for fromsection, fromoption, tosection, tooption in optList:
+        for fromsection, fromoption, tosection, tooption in optList210:
             moveOption(oMgr, fromsection, fromoption, tosection, tooption)
 
         # Adjusted format of sizeDisplay in version 2.1
@@ -117,7 +119,7 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.updateRc()
         doConvertRc(oMgr, 210)
     elif fromVersion < 300:
-        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 300.'.format(fromversion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 300.'.format(fromVersion))
         # Remove deprecated options
         if oMgr.parser.has_option('report', 'noactivitybg') == True:    # Deprecated in version 2.2.0
             oMgr.clearRcOption('report', 'noactivitybg')
@@ -128,7 +130,7 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.updateRc()
         doConvertRc(oMgr, 300)
     elif fromVersion < 310:
-        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 310.'.format(fromversion))
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertRc', msg='Updating .rc file from version {} to version 310.'.format(fromVersion))
         # Adjust size display option
         value1 = oMgr.getRcOption('report', 'sizedisplay')
         value2 = oMgr.getRcOption('report', 'showsizedisplay')
@@ -236,6 +238,9 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.setRcOption('incoming', 'authentication', 'basic')
         oMgr.setRcOption('outgoing', 'authentication', 'basic')
 
+        # Update [apprise] section, if it exists
+        if oMgr.hasSection('apprise'):
+            oMgr.setRcOption('apprise', 'enabled', 'true')
 
         oMgr.updateRc()
         doConvertRc(oMgr, 310)

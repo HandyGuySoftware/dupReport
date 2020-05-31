@@ -12,6 +12,7 @@
 # Import system modules
 import db
 import drdatetime
+import apprise
 
 # Import dupReport modules
 import globs
