@@ -238,7 +238,7 @@ def doConvertRc(oMgr, fromVersion):
         oMgr.setRcOption('incoming', 'authentication', 'basic')
         oMgr.setRcOption('outgoing', 'authentication', 'basic')
 
-        # Update [apprise] section, if it exists
+        # Update [apprise] section, if it exists. If it doesn't, default .rc routine will take care of it.
         if oMgr.hasSection('apprise'):
             oMgr.setRcOption('apprise', 'enabled', 'true')
 
