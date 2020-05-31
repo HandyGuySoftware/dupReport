@@ -94,3 +94,4 @@ def closeEverythingAndExit(errcode):
         log.closeLog()
 
     os._exit(errcode)
+

@@ -24,6 +24,7 @@
 - Created a sample .rc file (dupReport.rc.EXAMPLE) to show how various configuration options work in a real-world scenario (Issue #149)
 - Added [apprise] section to .rc file by default (instead of previous optional status) and made it easier for users to enable/disable it at will (Issue #150)
 
+
 2.2.12
 ------
 - Fix email parsing bug where the message uses Content Transfer Encoding (Issue #141)

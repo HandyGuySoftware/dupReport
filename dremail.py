@@ -784,3 +784,4 @@ class EmailServer:
         globs.log.write(globs.SEV_NOTICE,function='EmailServer', action='sendEmail', msg='Sending email to [{}]'.format(globs.maskData(receiver.split(','))))
         self.serverconnect.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
         return None
+
