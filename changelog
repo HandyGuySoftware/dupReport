@@ -1,3 +1,30 @@
+3.0.0
+------
+- Re-built reporting engine to allow for user-created reporting formats (Issue #130)
+	- Added logic to validate custom reports before they are run
+	- Added -o commandline option to validate the report configuration in the .rc file and exit the program. Useful when developing custom reports.
+	- Added -y commandline option to specify which reports to run at runtime. This enables more dynamic report running
+    - Reports can use default options (from [report] section) or customize those options per report
+	- Created separate "no activity" report instead of including that in the standard report output. This can now be added or left off the report run at will
+	- Created separate "lastseen" report to display the last seen backup date & time for each backupset. Replaces the [report]lastseen= option in the .rc file
+- Added Guided Setup for new users. If there is no .rc file when the program runs the guided Setup will take the user through the most common configurable options. -g command line option forces running of Guided Setup. -G suppresses running. (Issue #139)
+- Database, .rc file, and log file specification can now be either directory names or full path specifications (Issue #136)
+- Ability to specify multiple inbound (IMAP/POP3) and outbound (SMTP) email servers. Specified by [main]emailservers= option or -e commandline option.
+- Added ability to send output to syslog server or log aggregator (Issue #128)
+- Can now send output to JSON file (Issue #135)
+- Added option ([report]failedonly=) that only prints unsuccessful backup jobs (Parsed Result != 'Success') (Issue #142)
+- Changed displaysize option in .rc file from (mega/giga) to (none/mb/gb), deprecated the showdisplaysize option, and changed the -s option to -s none|mb|gb
+- Re-structured the documentation for better readibility and made it easier to find specific settings. (Issue #140)
+- Standardized log format for easier searching and organization (Issue #137)
+- Fixed long-standing bug in handling Content Transfer Encoded messages (Issue #141)
+- Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 8:00:00") (Issue #131)
+- Fixed bug preventing recording of last version for a failed backup run (Issue #138)
+- Fixed bug where 'Limited' message/warning/error fields were not being displayed properly (Issue #147)
+- Fixed bug where temporary log file would sometimes not be copied to permanent log file. (Issue #148)
+- Created a sample .rc file (dupReport.rc.EXAMPLE) to show how various configuration options work in a real-world scenario (Issue #149)
+- Added [apprise] section to .rc file by default (instead of previous optional status) and made it easier for users to enable/disable it at will (Issue #150)
+
+
 2.2.12
 ------
 - Fix email parsing bug where the message uses Content Transfer Encoding (Issue #141)
