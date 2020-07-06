@@ -16,8 +16,7 @@ option3 = value3
 | Section                                                      | Purpose                                                      |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | [[main]](RcFileConfig-Main.md)                               | Sets the main program configuration                          |
-| [[incoming]](RcFileConfig-IncomingOutgoing.md)               | Sets the configuration for the incoming POP3/IMAP email server |
-| [[outgoing]](RcFileConfig-IncomingOutgoing.md)               | Sets the configuration for the outgoing SMPT email server    |
+| \[\<Email Server>]                                           | Sets the configuration for the POP3, IMAP, and SMTP servers. See the section on [Email Management](RcFileConfig-EmailManagement.md) for more information on the configuration of these sections. |
 | [[\<source-destination>]](RcFileConfig-SourceDestination.md) | Sets specific operating configuration options for the backup job named "\<source-destination>" |
 | [[apprise]](RcFileConfig-Apprise.md)                         | Set configuration options for the Apprise notification service |
 | [[report]](Reporting-ReportSection.md)                       | Sets the default configuration for the reporting system      |
