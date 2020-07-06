@@ -8,23 +8,23 @@
 import os
 
 # Define version info
-version=[2,2,12]     # Program Version
+version=[3,0,0]     # Program Version
 status='Release'
-dbVersion=[1,0,3]   # Required DB version
-rcVersion=[3,0,0]   # Required RC version
-copyright='Copyright (c) 2020 Stephen Fried for HandyGuy Software.'
+dbVersion=[3,0,0]   # Required DB version
+rcVersion=[3,1,0]   # Required RC version
+copyright='Copyright (c) 2017-2020 Stephen Fried for Handy Guy Software.'
 
 # Define global variables
 dbName='dupReport.db'               # Default database name
 logName='dupReport.log'             # Default log file name
 rcName='dupReport.rc'               # Default configuration file name
-tmpName = 'duplog.tmp'
 db = None                           # Global database object
 dateFormat = None                   # Global date format - can be overridden per backup set
 timeFormat = None                   # Global time format - can be overridden per backup set
 report = None                       # Global report object
 ofileList = None                    # List of output files
-optionManager = None                # Option Manager
+optionManager = None                # Global Option Manager
+emailManager = None                 # Global email server management
 opts = None                         # Global program options
 progPath = None                     # Path to script files
 appriseObj = None                   # dupApprise instance
@@ -35,9 +35,29 @@ emailFormat=[]    # Corresponding list of emial components print formats
 
 # Global variables referencing objects in other modules
 log = None              # Log file handling
-inServer = None      # Inbound email server
-outServer =  None     # Outbound email server
+inServer = None         # Inbound email server
+outServer =  None       # Outbound email server
 
+# Define logging levels
+SEV_EMERGENCY = 0
+SEV_ALERT = 1
+SEV_CRITICAL = 2
+SEV_ERROR = 3
+SEV_WARNING = 4
+SEV_NOTICE = 5
+SEV_INFO = 6
+SEV_DEBUG = 7
+
+sevlevels = [
+    ('EMERGENCY', SEV_EMERGENCY),
+    ('ALERT', SEV_ALERT), 
+    ('CRITICAL', SEV_CRITICAL),
+    ('ERROR', SEV_ERROR), 
+    ('WARNING', SEV_WARNING),
+    ('NOTICE', SEV_NOTICE),
+    ('INFO', SEV_INFO),
+    ('DEBUG', SEV_DEBUG)
+    ]
 
 # Mask sensitive data in log files
 # Replace incoming string with string of '*' the same length of the original
@@ -56,19 +76,22 @@ def maskData(inData, force = False):
 # Close everything and exit cleanly
 def closeEverythingAndExit(errcode):
     
-    log.write(1,'Closing everything...')
-
-    if inServer is not None:
-        log.write(1,'Closing inbound email server...')
-        inServer.close()
-    if outServer is not None:
-        log.write(1,'Closing outbound email server...')
-        outServer.close()
+    log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing everything...')
+    if emailManager != None:
+        if len(emailManager.incoming) != 0:
+            for server in emailManager.incoming:
+                log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing inbound email server: {}'.format(emailManager.incoming[server].name))
+                emailManager.incoming[server].close()
+        if len(emailManager.incoming) != 0:
+            for i in range(len(emailManager.outgoing)):
+                log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing outbound email server: {}'.format(emailManager.outgoing[i].name))
+                emailManager.outgoing[i].close()
     if db is not None:
-        log.write(1,'Closing database file...')
+        log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing database file.')
         db.dbClose()
     if log is not None:
-        log.write(1,'Closing log file...')
+        log.write(SEV_NOTICE, function='Globs', action='closeEverythingAndExit', msg='Closing log file.')
         log.closeLog()
 
     os._exit(errcode)
+
