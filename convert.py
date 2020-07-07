@@ -218,6 +218,8 @@ def doConvertRc(oMgr, fromVersion):
             oMgr.clearRcOption('incoming', option)
         for option in ['outserver', 'outport', 'outencryption', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver', 'outkeepalive']:
             optVal = oMgr.getRcOption('outgoing', option)
+            if optVal == None:
+                optVal = ''
             oMgr.setRcOption('outgoing', option[3:], optVal)
             oMgr.clearRcOption('outgoing', option)
 
