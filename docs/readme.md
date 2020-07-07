@@ -56,7 +56,7 @@ dupReport Version 3.0 includes some new and advanced features for analyzing and 
 - Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 8:00:00").
 - Re-structured the documentation for better readibility and made it easier to find specific settings.
 
-Please see the (new, updated, and reorganbized) documentation on these and all the dupReport features.
+Please see the (new, updated, and reorganized) documentation on these and all the dupReport features.
 
 ------
 
