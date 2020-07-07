@@ -743,6 +743,8 @@ class EmailServer:
         msg['Subject'] = subject
         if sender is None:
             sender = self.options['sender']
+        if self.options['sendername'] != '':
+            sender = '{} <{}>'.format(self.options['sendername'], sender)
         msg['From'] = sender
         if receiver is None:
             receiver = self.options['receiver']
