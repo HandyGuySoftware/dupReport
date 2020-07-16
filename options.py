@@ -86,7 +86,7 @@ rcParts= [
     ('report',      'padding',          '5',                                                                        True),
     ('report',      'sizedisplay',      'byte',                                                                     True),
     ('report',      'repeatcolumntitles', 'true',                                                                   True),
-    ('report',      'suppresscolumntitles', 'true',                                                                 True),
+    ('report',      'suppresscolumntitles', 'false',                                                                 True),
     ('report',      'durationzeroes',   'true',                                                                     True),
     ('report',      'displaymessages',  'false',                                                                    True),
     ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
