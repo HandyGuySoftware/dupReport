@@ -1376,7 +1376,8 @@ class Report:
 
         # Walk through .rc file looking for 'offline=true'
         for each_section in globs.optionManager.parser.sections():
-            if globs.optionManager.getRcOption(each_section,'offline') != None:
+            hasOffline = globs.optionManager.getRcOption(each_section,'offline')
+            if hasOffline != None and hasOffline.lower() == 'true':
                 singleReport['dataRows'].append([])
                 dataRowIndex += 1
 
