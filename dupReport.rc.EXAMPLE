@@ -290,6 +290,12 @@ title = Non-Activity Report
 type = lastseen
 title = Backup Sets Last Seen
 
+# This defines a report that shos which backup sets are listed as "offline"
+[offline]
+type = offline
+title = Offline Backup Sets
+suppresscolumntitles = true
+
 # Sample apprise section for sending email notifications
 [apprise]
 status = off

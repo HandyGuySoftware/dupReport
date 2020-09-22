@@ -68,11 +68,25 @@ dupReport comes with several pre-defined report formats:
 
 
 
+**offline**: This prints a list of all the backup sets that are listed as "offline" in the .rc file (i.e., *offline=true*). Here is an example of the offline report:
+
+
+
+![](images/report_offline.jpg)
+
+
+
+Because the offline report only has one column (the Source-Destination field) you may wish to suppress the printing of the column title by using the `suppresscolumntitles = true` option in the .rc file section for that report. The resulting report will look like this:
+
+![](images/report_offline_notitles.jpg)
+
+
+
 Any of these pre-defined reports can be used in the *layout=* option to customize the report as you wish. Here are some examples of sample report layouts:
 
 > layout = srcdest, noactivity, lastseen  (Prints the srcdest, noactivity, and lastseen reports in that order)
 >
-> layout = noactivity, bydest (Prints the noactivityand bydest reports in that order)
+> layout = noactivity, offline, bydest (Prints the noactivityand bydest reports in that order)
 >
 > layout = bydate (Prints only the bydate report)
 >
