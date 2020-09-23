@@ -484,7 +484,6 @@ class Report:
                 for item in ('border', 'padding', 'normaldays', 'warningdays'):
                     if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
-
             elif self.rStruct['sections'][rIndex]['type'] == 'lastseen':
                 # Get default options
                 self.rStruct['sections'][rIndex]['options'] = self.rStruct['defaults'].copy()
@@ -507,6 +506,10 @@ class Report:
                 optionTmp = globs.optionManager.getRcSection(section[0])
                 for optTmp in optionTmp:
                     self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
+
+                # Fix some of the data field types - boolean
+                if type (self.rStruct['sections'][rIndex]['options']['suppresscolumntitles']) is not bool:
+                    self.rStruct['sections'][rIndex]['options']['suppresscolumntitles'] = self.rStruct['sections'][rIndex]['options']['suppresscolumntitles'].lower() in ('true')   
 
         # Add a section for runtime, if necessary
         if self.rStruct['defaults']['includeruntime'] == True:
@@ -1176,14 +1179,8 @@ class Report:
             countRows = dbCursor.fetchone()
 
             if countRows[0] == 0:
-                # If src/dest is known offline, skip
-                srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
-                offline = globs.optionManager.getRcOption(srcDest, 'offline')
-                if offline != None:  
-                    if offline.lower() in ('true'):
-                        continue
-
                 # Calculate days since last activity & set background accordingly
+                srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
                 diff = drdatetime.daysSince(lastTimestamp)
                 pastInterval, interval = pastBackupInterval(srcDest, diff)
 
@@ -1207,6 +1204,15 @@ class Report:
                 # Add row descriptor information
                 singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], 1])
 
+                # If src/dest is known offline, add an indicator
+                srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
+                offline = globs.optionManager.getRcOption(srcDest, 'offline')
+                isOffline = False
+                if offline != None:  
+                    if offline.lower() in ('true'):
+                        isOffline = True
+                globs.log.write(globs.SEV_DEBUG, function='Report', action='buildNoActivityOutput', msg='SrcDest=[{}] isOffline=[{}]'.format(srcDest, isOffline))
+
                 markupPlain = toMarkup()
                 markupItal = toMarkup(italic=True)
                 # See if we're past the backup interval before reporting
@@ -1214,10 +1220,16 @@ class Report:
                 singleReport['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
                 if pastInterval is False:
                     globs.log.write(globs.SEV_DEBUG, function='Report', action='buildNoActivityOutput', msg='SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
-                    singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+                    if isOffline == True:
+                        singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] {} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+                    else:
+                        singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
                 else:
                     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                    singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+                    if isOffline == True:
+                        singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+                    else:
+                        singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
 
     
         if dataRowIndex == -1:  # No rows in unseen table
@@ -1344,7 +1356,7 @@ class Report:
 
         markup = toMarkup(bold=True)
         titleBg = reportStructure['options']['titlebg']
-        singleReport['columnNames'].append(['srcdest', 'Source-Destination', titleBg, markup])
+        singleReport['columnNames'].append(['srcdest', 'Source{}Destination'.format(globs.opts['srcdestdelimiter']), titleBg, markup])
         singleReport['inlineColumnCount'] = 1
         singleReport['inlineColumnNames'] = singleReport['columnNames']
 
@@ -1375,19 +1387,24 @@ class Report:
                 singleReport['dataRows'][dataRowIndex].append([newStr, '#FFFFFF', markup])
 
         # Walk through .rc file looking for 'offline=true'
+        offlineCount = 0
         for each_section in globs.optionManager.parser.sections():
             hasOffline = globs.optionManager.getRcOption(each_section,'offline')
             if hasOffline != None and hasOffline.lower() == 'true':
                 singleReport['dataRows'].append([])
                 dataRowIndex += 1
+                offlineCount += 1
 
                 # Add row descriptor information
                 singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], 1])
+                singleReport['dataRows'][dataRowIndex].append([each_section, '#FFFFFF', toMarkup()])
 
-                markupPlain = toMarkup()
-                markupItal = toMarkup(italic=True)
+        if offlineCount == 0:
+            singleReport['dataRows'].append([])
+            dataRowIndex += 1
+            singleReport['dataRows'][dataRowIndex].append([dataRowTypes['data'], 1])
+            singleReport['dataRows'][dataRowIndex].append(['None', '#FFFFFF', toMarkup(italic=True)])
 
-                singleReport['dataRows'][dataRowIndex].append([each_section, '#FFFFFF', markupPlain])
 
         return singleReport
 
