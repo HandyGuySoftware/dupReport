@@ -1,6 +1,6 @@
 3.0.1
 ------
-- Made offline backup sets more visible by adding an "offline" report style and adding an offline indicator to the noactivity report (Issue #156)
+- Made offline backup sets more visible by adding an "offline" report style and adding an [OFFLINE] indicator to the noactivity and lastseen reports (Issue #156)
 
 3.0.0
 ------

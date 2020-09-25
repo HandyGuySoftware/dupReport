@@ -1295,10 +1295,13 @@ class Report:
         for source, destination, dupversion, lastTimestamp in sourceDestList:
             # If src/dest is known offline, skip
             srcDest = source + globs.opts['srcdestdelimiter'] + destination
+            
+            # See if the S/D job is offline
+            isOffline = False
             offline = globs.optionManager.getRcOption(srcDest, 'offline')
             if offline != None:  
                 if offline.lower() in ('true'):
-                    continue
+                    isOffline = True
 
             lastDate = drdatetime.fromTimestamp(lastTimestamp)
             diff = drdatetime.daysSince(lastTimestamp)
@@ -1336,10 +1339,16 @@ class Report:
             singleReport['dataRows'][dataRowIndex].append([dupversion,'#FFFFFF', markupPlain])
             if pastInterval is False:
                 globs.log.write(globs.SEV_DEBUG, function='Report', action='buildLastSeenOutput', msg='SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
-                singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+                if isOffline:
+                    singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] {} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+                else:
+                    singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
             else:
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+                if isOffline:
+                    singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+                else:
+                    singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
 
         return singleReport
 
