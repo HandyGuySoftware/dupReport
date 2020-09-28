@@ -265,6 +265,12 @@ failedonly = false
 
 If this is set to "true" it instructs dupReport to only print backup jobs that has a "warning" or "failed" result status. The default is "false."
 
+```
+showoffline = false
+```
+
+With this option set to "true," any backup job with it's own [source-destination] section and the *offline=true* option set within that section will be displayed in the 'noactivity' and 'lastseen' reports with an '[OFFLINE]' indicator. If this option is set to 'false,' those backup jobs will be excluded from those specific reports. The default is 'false'.
+
 ------
 
 **Sending Email if an individual Backup Has Not Been Seen**
@@ -350,6 +356,7 @@ There are some pre-defined sections in the dupReport.rc file that are used by bu
 | ------------ | ------------------------------------------------------------ |
 | [noactivity] | Specifies layout and format options for reporting on which backup jobs were not seen during the program's last run. |
 | [lastseen]   | Specifies layout and format options for reporting on when all backup jobs were last seen during the program's last run. |
+| [offline]    | Specifies layout and format options for reporting on which backup jobs are listed as 'offline' on the .rc file. |
 
 These reports can be added to the *layout=* option in the [report] section:
 

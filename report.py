@@ -411,7 +411,7 @@ class Report:
             self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
-        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'includeruntime', 'failedonly'):
+        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'includeruntime', 'failedonly', 'showoffline'):
             self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
             
         # Get reports that need to run as defined in [report]layout option
@@ -1212,6 +1212,8 @@ class Report:
                     if offline.lower() in ('true'):
                         isOffline = True
                 globs.log.write(globs.SEV_DEBUG, function='Report', action='buildNoActivityOutput', msg='SrcDest=[{}] isOffline=[{}]'.format(srcDest, isOffline))
+                if isOffline and reportStructure['options']['showoffline'] == False:  # don't want to show offline backups
+                    continue
 
                 markupPlain = toMarkup()
                 markupItal = toMarkup(italic=True)
@@ -1220,17 +1222,16 @@ class Report:
                 singleReport['dataRows'][dataRowIndex].append([destination,'#FFFFFF', markupPlain])
                 if pastInterval is False:
                     globs.log.write(globs.SEV_DEBUG, function='Report', action='buildNoActivityOutput', msg='SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
-                    if isOffline == True:
+                    if isOffline:
                         singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] {} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
                     else:
                         singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
                 else:
                     lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                    if isOffline == True:
+                    if isOffline:
                         singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
                     else:
                         singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
-
     
         if dataRowIndex == -1:  # No rows in unseen table
             singleReport['dataRows'].append([])
@@ -1302,6 +1303,9 @@ class Report:
             if offline != None:  
                 if offline.lower() in ('true'):
                     isOffline = True
+            globs.log.write(globs.SEV_DEBUG, function='Report', action='buildNoActivityOutput', msg='SrcDest=[{}] isOffline=[{}]'.format(srcDest, isOffline))
+            if isOffline and reportStructure['options']['showoffline'] == False:  # don't want to show offline backups
+                continue
 
             lastDate = drdatetime.fromTimestamp(lastTimestamp)
             diff = drdatetime.daysSince(lastTimestamp)
@@ -1339,16 +1343,16 @@ class Report:
             singleReport['dataRows'][dataRowIndex].append([dupversion,'#FFFFFF', markupPlain])
             if pastInterval is False:
                 globs.log.write(globs.SEV_DEBUG, function='Report', action='buildLastSeenOutput', msg='SrcDest=[{}] DaysDiff=[{}]. Skip reporting'.format(srcDest, diff))
-                if isOffline:
-                    singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] {} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
-                else:
+                if isOffline == False:
                     singleReport['dataRows'][dataRowIndex].append(['{} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
+                elif reportStructure['options']['showoffline']:
+                    singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] {} days ago. Backup interval is {} days.'.format(diff, interval), bgColor, markupPlain])
             else:
                 lastDateStr, lastTimeStr = drdatetime.fromTimestamp(lastTimestamp)
-                if isOffline:
-                    singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
-                else:
+                if isOffline == False:
                     singleReport['dataRows'][dataRowIndex].append(['Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
+                elif reportStructure['options']['showoffline']:
+                    singleReport['dataRows'][dataRowIndex].append(['[OFFLINE] Last activity on {} at {} ({} days ago)'.format(lastDateStr, lastTimeStr, diff), bgColor, markupItal])
 
         return singleReport
 
