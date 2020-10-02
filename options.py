@@ -111,6 +111,7 @@ rcParts= [
     ('report',      'weminline',        'false',                                                                    True),
     ('report',      'includeruntime',   'true',                                                                     True),
     ('report',      'failedonly',       'False',                                                                    True),
+    ('report',      'showoffline',      'False',                                                                     True),
 
     # [srcdest] sample specification
     ('srcdest',     'type',             'report',                                                                   True),
