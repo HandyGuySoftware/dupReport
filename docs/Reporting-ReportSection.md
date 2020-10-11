@@ -56,7 +56,7 @@ dupReport comes with several pre-defined report formats:
 
 
 
-**noactivity**: This prints a report of all the Source-Destination pairs that were not seen during the run of the program. This can be helpful for seeing which systems may be down or otherwise not reporting in properly. Here is an example of the noactivity report:
+**noactivity**: This prints a report of all the Source-Destination pairs that were not seen during the run of the program. This can be helpful for seeing which systems may be down or otherwise not reporting in properly. Here is an example of the noactivity report: 
 
 ![](images/report_noactivity.jpg)
 
