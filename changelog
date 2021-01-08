@@ -1,6 +1,7 @@
 3.0.2
 -----
 - Added BytesUploaded & BytesDownload fields from JSON emails to database & reports. (Issue #157)
+- Added OS verison to startup log info
 
 3.0.1
 ------
