@@ -86,7 +86,7 @@ rcParts= [
     ('report',      'padding',          '5',                                                                        True),
     ('report',      'sizedisplay',      'byte',                                                                     True),
     ('report',      'repeatcolumntitles', 'true',                                                                   True),
-    ('report',      'suppresscolumntitles', 'true',                                                                 True),
+    ('report',      'suppresscolumntitles', 'false',                                                                 True),
     ('report',      'durationzeroes',   'true',                                                                     True),
     ('report',      'displaymessages',  'false',                                                                    True),
     ('report',      'jobmessagebg',     '#FFFFFF',                                                                  True),
@@ -111,6 +111,7 @@ rcParts= [
     ('report',      'weminline',        'false',                                                                    True),
     ('report',      'includeruntime',   'true',                                                                     True),
     ('report',      'failedonly',       'False',                                                                    True),
+    ('report',      'showoffline',      'False',                                                                     True),
 
     # [srcdest] sample specification
     ('srcdest',     'type',             'report',                                                                   True),

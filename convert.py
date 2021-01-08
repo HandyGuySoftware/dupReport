@@ -218,6 +218,8 @@ def doConvertRc(oMgr, fromVersion):
             oMgr.clearRcOption('incoming', option)
         for option in ['outserver', 'outport', 'outencryption', 'outaccount', 'outpassword', 'outsender', 'outsendername', 'outreceiver', 'outkeepalive']:
             optVal = oMgr.getRcOption('outgoing', option)
+            if optVal == None:
+                optVal = ''
             oMgr.setRcOption('outgoing', option[3:], optVal)
             oMgr.clearRcOption('outgoing', option)
 
@@ -268,10 +270,11 @@ def doConvertDb(fromVersion):
     globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Converting database from version {} to version {}.{}.{}'.format(fromVersion, globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
 
     # Database version history
-    # 1.0.1 - Convert from character-based date/time to uynix timestamp format. 
+    # 1.0.1 - Convert from character-based date/time to unix timestamp format. 
     # 1.0.2 - Calculate & store duraction of backup
     # 1.0.3 - Store new logdata field and Duplicati version numbers (per backup)
     # 3.0.0 - changes to report table for dupReport 3.0.0
+    # 3.0.1 - Add bytesUploaded & bytesDownloaded fields to email & reports
 
     # Update DB version number
     if fromVersion < 101: # Upgrade from DB version 100 (original format). 
@@ -394,6 +397,20 @@ def doConvertDb(fromVersion):
         # Insert last dupversion for all existing backupset rows
         globs.db.execSqlStmt("UPDATE backupsets SET dupversion = (SELECT emails.dupversion FROM emails WHERE backupsets.source = emails.sourceComp and backupsets.destination = emails.destComp)")
         doConvertDb(300)
+        pass
+    elif fromVersion < 301: # Upgrade from version 300
+        globs.log.write(globs.SEV_NOTICE, function='Convert', action='doConvertDb', msg='Converting database from version {} to version 301'.format(fromVersion))
+        # Add BytesUplaoded & BytesDownloaded fields to reports table
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN bytesUploaded int")
+        globs.db.execSqlStmt("ALTER TABLE emails ADD COLUMN bytesDownloaded int")
+        globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN bytesUploaded int")
+        globs.db.execSqlStmt("ALTER TABLE report ADD COLUMN bytesDownloaded int")
+
+        # Set default values for bytes Up/Downloaded
+        globs.db.execSqlStmt("UPDATE emails SET bytesUploaded=0, bytesDownloaded=0")
+        
+        # Insert last dupversion for all existing backupset rows
+        doConvertDb(301)
         pass
     else:
         pass

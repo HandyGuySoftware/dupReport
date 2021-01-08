@@ -55,6 +55,8 @@ lineParts = [
     ('modifiedSymlinks',    'ModifiedSymlinks: \d+',        0,                          0,                              'ModifiedSymlinks'),
     ('addedSymlinks',       'AddedSymlinks: \d+',           0,                          0,                              'AddedSymlinks'),
     ('deletedSymlinks',     'DeletedSymlinks: \d+',         0,                          0,                              'DeletedSymlinks'),
+    ('bytesUploaded',       'BytesUploaded: .*',            0,                          0,                              'BytesUploaded'),
+    ('bytesDownloaded',     'BytesDownloaded: .*',          0,                          0,                              'BytesDownloaded'),
     ('partialBackup',       'PartialBackup: \w+',           0,                          1,                              'PartialBackup'),
     ('dryRun',              'Dryrun: \w+',                  0,                          1,                              'Dryrun'),
     ('mainOperation',       'MainOperation: \w+',           0,                          1,                              'MainOperation'),
@@ -515,6 +517,7 @@ class EmailServer:
         # Message not yet in database. Proceed.
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message ID [{}] does not yet exist in DB.'.format(emailParts['header']['messageId']))
 
+        # Extract date information from header
         dTup = email.utils.parsedate_tz(emailParts['header']['date'])
         if dTup:
             # See if there's timezone info in the email header data. May be 'None' if no TZ info in the date line
@@ -532,6 +535,7 @@ class EmailServer:
             emailParts['header']['emailTimestamp'] = dtTimStmp
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Email Date: Timestamp=[{}] Date=[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
 
+        # Extract source & destrination information
         emailParts['header']['sourceComp'] = re.search(srcRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[0]
         emailParts['header']['destComp'] = re.search(destRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[1]
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='emailParts[\'header\']={}'.format(emailParts['header']))
@@ -567,6 +571,7 @@ class EmailServer:
         
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
+        # See if content-transfer-encoding is in use
         if emailParts['header']['content-transfer-encoding'].lower() == 'quoted-printable':
             emailParts['body']['fullbody'] = quopri.decodestring(emailParts['body']['fullbody'].replace('=0D=0A','\n')).decode("utf-8")
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='New (quopri) Message Body=[{}]'.format(emailParts['body']['fullbody']))
@@ -583,6 +588,10 @@ class EmailServer:
             # Get message fields from JSON column in lineParts list
             for section,regex,flag,typ,jsonSection in lineParts:
                 emailParts['body'][section] = self.searchMessagePartJson(jsonData, jsonSection, typ)
+            # Get Up/Download data
+            emailParts['body']['bytesUploaded'] = jsonData['BackendStatistics']['BytesUploaded']
+            emailParts['body']['bytesDownloaded'] = jsonData['BackendStatistics']['BytesDownloaded']
+
             # See if there are log lines to display
             if len(jsonStatus['LogLines']) > 0:
                 emailParts['body']['logdata'] = jsonStatus['LogLines'][0]
@@ -602,6 +611,11 @@ class EmailServer:
             # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in emailParts['body']{}
             for section,regex,flag,typ, jsonSection in lineParts:
                 emailParts['body'][section] = self.searchMessagePart(emailParts['body']['fullbody'], regex, flag, typ) # Get the field parts
+                # bytesUploaded & bytesDownloaded are only included in JSON message formats. Set to 0 if it's a non-JSON message
+                if section == 'bytesUploaded':
+                    emailParts['body']['bytesUploaded'] = 0
+                if section == 'bytesDownloaded':
+                    emailParts['body']['bytesDownloaded'] = 0
 
         # Adjust fields if not a clean run
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg="emailParts['body']['failed']=[{}]".format(emailParts['body']['failed']))
@@ -743,6 +757,8 @@ class EmailServer:
         msg['Subject'] = subject
         if sender is None:
             sender = self.options['sender']
+        if self.options['sendername'] != '':
+            sender = '{} <{}>'.format(self.options['sendername'], sender)
         msg['From'] = sender
         if receiver is None:
             receiver = self.options['receiver']

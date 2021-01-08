@@ -164,6 +164,12 @@ When set to "true" dupReport will instruct the email server to mark all emails a
 
 The default is "false," instructing dupReport to leave the mailbox in the same state as it found it. Setting this option to "false" will slow down processing because dupReport must read all messages in the mailbox looking for messages of interest. However, if you have other programs that use the mailbox or you want to control the read/seen status of your email messages manually, set this option to "false".  **(IMAP)**
 
+```
+sendername = dupReport Summary
+```
+
+Defines the "friendly name" for the email account used to send dupReport results. **(SMTP)**
+
 
 
 

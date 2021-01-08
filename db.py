@@ -84,8 +84,8 @@ class Database:
             sizeOfOpenedFiles, notProcessedFiles, addedFolders, tooLargeFiles, filesWithError, \
             modifiedFolders, modifiedSymlinks, addedSymlinks, deletedSymlinks, partialBackup, \
             dryRun, mainOperation, parsedResult, verboseOutput, verboseErrors, endTimestamp, \
-            beginTimestamp, duration, messages, warnings, errors, dbSeen, dupversion, logdata) \
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+            beginTimestamp, duration, messages, warnings, errors, dbSeen, dupversion, logdata, bytesUploaded, bytesDownloaded) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)"
 
         data  = (emailParts['header']['messageId'], emailParts['header']['sourceComp'], emailParts['header']['destComp'], emailParts['header']['emailTimestamp'], emailParts['body']['deletedFiles'], \
                 emailParts['body']['deletedFolders'], emailParts['body']['modifiedFiles'], emailParts['body']['examinedFiles'], emailParts['body']['openedFiles'], \
@@ -94,7 +94,7 @@ class Database:
                 emailParts['body']['modifiedFolders'], emailParts['body']['modifiedSymlinks'], emailParts['body']['addedSymlinks'], emailParts['body']['deletedSymlinks'], \
                 emailParts['body']['partialBackup'], emailParts['body']['dryRun'], emailParts['body']['mainOperation'], emailParts['body']['parsedResult'], emailParts['body']['verboseOutput'], \
                 emailParts['body']['verboseErrors'], emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'], \
-                durVal, emailParts['body']['messages'], emailParts['body']['warnings'], emailParts['body']['errors'], emailParts['body']['dupversion'], emailParts['body']['logdata'])
+                durVal, emailParts['body']['messages'], emailParts['body']['warnings'], emailParts['body']['errors'], emailParts['body']['dupversion'], emailParts['body']['logdata'], emailParts['body']['bytesUploaded'], emailParts['body']['bytesDownloaded'])
 
         globs.log.write(globs.SEV_DEBUG, function='Database', action='execEmailInsertSql', msg='sqlStmt=[{}]'.format(sqlStmt))
         globs.log.write(globs.SEV_DEBUG, function='Database', action='execEmailInsertSql', msg='data=[{}]'.format(data))
@@ -178,14 +178,15 @@ class Database:
             modifiedFolders int, modifiedSymlinks int, addedSymlinks int, deletedSymlinks int, partialBackup varchar(30), \
             dryRun varchar(30), mainOperation varchar(30), parsedResult varchar(30), verboseOutput varchar(30), \
             verboseErrors varchar(30), endTimestamp real, \
-            beginTimestamp real, duration real, messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100), dbSeen int, dupversion varchar(100), logdata varchar(255))"
+            beginTimestamp real, duration real, messages varchar(255), warnings varchar(255), errors varchar(255), failedMsg varchar(100), dbSeen int, dupversion varchar(100), logdata varchar(255), \
+            bytesUploaded int, bytesDownloaded int)"
         self.execSqlStmt(sqlStmt)
         self.execSqlStmt("create index emailindx on emails (messageId)")
         self.execSqlStmt("create index srcdestindx on emails (sourceComp, destComp)")
 
         sqlStmt = "create table report (source varchar(20), destination varchar(20), timestamp real, date real, time real, duration real, examinedFiles int, examinedFilesDelta int, \
             sizeOfExaminedFiles int, fileSizeDelta int, addedFiles int, deletedFiles int, modifiedFiles int, filesWithError int, parsedResult varchar(30), messages varchar(255), \
-            warnings varchar(255), errors varchar(255), failedMsg varchar(100), dupversion varchar(100), logdata varchar(255))"
+            warnings varchar(255), errors varchar(255), failedMsg varchar(100), dupversion varchar(100), logdata varchar(255), bytesUploaded int, bytesDownloaded int)"
         self.execSqlStmt(sqlStmt)
 
         # backup sets contains information on all source-destination pairs in the backups

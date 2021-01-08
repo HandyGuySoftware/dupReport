@@ -12,7 +12,6 @@
 # Import system modules
 import db
 import drdatetime
-import apprise
 
 # Import dupReport modules
 import globs
@@ -25,7 +24,7 @@ class dupApprise:
     def __init__(self):
         globs.log.write(globs.SEV_NOTICE, function='Apprise', action='Init', msg='Initializing Apprise support')
 
-        #import apprise
+        import apprise
 
         # Read name/value pairs from [apprise] section
         self.appriseOpts = globs.optionManager.getRcSection('apprise')

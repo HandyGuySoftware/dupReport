@@ -26,8 +26,8 @@ There are usually only two branches in the dupReport repository:
 
 | Branch Name  | Current Version | Purpose                                                      |
 | ------------ | --------------- | ------------------------------------------------------------ |
-| **master**   | 3.0.0           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
-| **pre_prod** | \<None>         | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
+| **master**   | 3.0.1           | This is the Release branch, which should contain <u>completely stable</u> code. If you want the latest and greatest release version, get it here. If you are looking for an earlier release, tags in this branch with the name "Release_x.x.x" will point you there. |
+| **pre_prod** | <3.0.2>         | The Pre-Production branch. This is a late-stage beta branch where code should be mostly-stable, but no guarantees. Once final testing of code in this branch is complete it will be moved to master and released to the world. If you want to get a peek at what's coming up in the next release, get the code from here. **If you don't see a pre_prod branch in the repository, that means there isn't any beta code available for testing.** |
 
 If you see any additional branches in the repository, they are there for early-stage development or bug fix testing purposes. Code in such branches should be considered **<u>highly unstable</u>**. Swim here at your own risk. Void where prohibited. Batteries not included. Freshest if eaten before date on carton. For official use only. Use only in a well-ventilated area. Keep away from fire or flames. May contain peanuts. Keep away from pets and small children.
 
@@ -56,7 +56,7 @@ dupReport Version 3.0 includes some new and advanced features for analyzing and 
 - Added ability to rollback (-b and -B) to a relative time (e.g., 1w,3h) instead of an absolute date time (i.e., "04/11/2020 8:00:00").
 - Re-structured the documentation for better readibility and made it easier to find specific settings.
 
-Please see the (new, updated, and reorganbized) documentation on these and all the dupReport features.
+Please see the (new, updated, and reorganized) documentation on these and all the dupReport features.
 
 ------
 

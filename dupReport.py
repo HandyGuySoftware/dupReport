@@ -12,6 +12,7 @@
 # Import system modules
 import time
 import sys
+import platform
 import os
 import json
 
@@ -49,6 +50,7 @@ if __name__ == "__main__":
     globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Program Version {}.{}.{} {}'.format(globs.version[0], globs.version[1], globs.version[2], globs.status))
     globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Database Version {}.{}.{}'.format(globs.dbVersion[0], globs.dbVersion[1], globs.dbVersion[2]))
     globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Python version {}'.format(sys.version))
+    globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='OS Platform: {}'.format(platform.platform()))
     globs.log.write(globs.SEV_NOTICE, function='main', action='startup', msg='Program path: {}'.format(globs.progPath))
     # Check if we're running a compatible version of Python. Must be 3.0 or higher
     if sys.version_info.major < 3:

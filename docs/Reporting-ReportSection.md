@@ -56,7 +56,7 @@ dupReport comes with several pre-defined report formats:
 
 
 
-**noactivity**: This prints a report of all the Source-Destination pairs that were not seen during the run of the program. This can be helpful for seeing which systems may be down or otherwise not reporting in properly. Here is an example of the noactivity report:
+**noactivity**: This prints a report of all the Source-Destination pairs that were not seen during the run of the program. This can be helpful for seeing which systems may be down or otherwise not reporting in properly. Here is an example of the noactivity report: 
 
 ![](images/report_noactivity.jpg)
 
@@ -68,11 +68,25 @@ dupReport comes with several pre-defined report formats:
 
 
 
+**offline**: This prints a list of all the backup sets that are listed as "offline" in the .rc file (i.e., *offline=true*). Here is an example of the offline report:
+
+
+
+![](images/report_offline.jpg)
+
+
+
+Because the offline report only has one column (the Source-Destination field) you may wish to suppress the printing of the column title by using the `suppresscolumntitles = true` option in the .rc file section for that report. The resulting report will look like this:
+
+![](images/report_offline_notitles.jpg)
+
+
+
 Any of these pre-defined reports can be used in the *layout=* option to customize the report as you wish. Here are some examples of sample report layouts:
 
 > layout = srcdest, noactivity, lastseen  (Prints the srcdest, noactivity, and lastseen reports in that order)
 >
-> layout = noactivity, bydest (Prints the noactivityand bydest reports in that order)
+> layout = noactivity, offline, bydest (Prints the noactivityand bydest reports in that order)
 >
 > layout = bydate (Prints only the bydate report)
 >
@@ -251,6 +265,12 @@ failedonly = false
 
 If this is set to "true" it instructs dupReport to only print backup jobs that has a "warning" or "failed" result status. The default is "false."
 
+```
+showoffline = false
+```
+
+With this option set to "true," any backup job with it's own [source-destination] section and the *offline=true* option set within that section will be displayed in the 'noactivity' and 'lastseen' reports with an '[OFFLINE]' indicator. If this option is set to 'false,' those backup jobs will be excluded from those specific reports. The default is 'false'.
+
 ------
 
 **Sending Email if an individual Backup Has Not Been Seen**
@@ -336,6 +356,7 @@ There are some pre-defined sections in the dupReport.rc file that are used by bu
 | ------------ | ------------------------------------------------------------ |
 | [noactivity] | Specifies layout and format options for reporting on which backup jobs were not seen during the program's last run. |
 | [lastseen]   | Specifies layout and format options for reporting on when all backup jobs were last seen during the program's last run. |
+| [offline]    | Specifies layout and format options for reporting on which backup jobs are listed as 'offline' on the .rc file. |
 
 These reports can be added to the *layout=* option in the [report] section:
 
