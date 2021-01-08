@@ -1,3 +1,7 @@
+3.0.2
+-----
+- Added BytesUploaded & BytesDownload fields from JSON emails to database & reports. (Issue #157)
+
 3.0.1
 ------
 - Made offline backup sets more visible by adding an "offline" report style, adding an [OFFLINE] indicator to the noactivity and lastseen reports, and ading a 'showoffline' option to the [report] section (Issue #156)

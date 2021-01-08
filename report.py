@@ -49,7 +49,9 @@ fldDefs = {
     'messages':             ('left',        '50',       '50'),
     'warnings':             ('left',        '50',       '50'),
     'errors':               ('left',        '50',       '50'),
-    'logdata':              ('left',        '50',       '50')
+    'logdata':              ('left',        '50',       '50'),
+    'bytesUploaded':        ('right',       '>21',      '>21,.3f'),
+    'bytesDownloaded':      ('right',       '>21',      '>21,.3f')
     }
 
 dataRowTypes = {
@@ -62,7 +64,7 @@ dataRowTypes = {
         }
 
 # List of all the valid column names that can be used in reports
-colNames = ['source','destination','date','time','examinedFiles','examinedFilesDelta','sizeOfExaminedFiles','fileSizeDelta','addedFiles','deletedFiles','modifiedFiles','filesWithError','parsedResult','messages','warnings','errors','duration','logdata','dupversion']
+colNames = ['source','destination','date','time','examinedFiles','examinedFilesDelta','sizeOfExaminedFiles','fileSizeDelta','addedFiles','deletedFiles','modifiedFiles','filesWithError','parsedResult','messages','warnings','errors','duration','logdata','dupversion', 'bytesUploaded', 'bytesDownloaded']
 
 # List of allowable keyword substitutions
 keyWordList = { 
@@ -638,7 +640,7 @@ class Report:
 
             # Select all activity for src/dest pair since last report run
             sqlStmt = 'SELECT dupVersion, endTimestamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                filesWithError, parsedResult, warnings, errors, messages, logdata FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
+                filesWithError, parsedResult, warnings, errors, messages, logdata, bytesUploaded, bytesDownloaded FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
                 AND  endTimestamp > {} order by endTimestamp'.format(source, destination, lastTimestamp)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
 
@@ -647,7 +649,7 @@ class Report:
             if emailRows: 
                 # Loop through each new activity and report
                 for dupversion, endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                    filesWithError, parsedResult, warnings, errors, messages, logdata in emailRows:
+                    filesWithError, parsedResult, warnings, errors, messages, logdata, bytesUploaded, bytesDownloaded in emailRows:
             
                     # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount
@@ -665,9 +667,9 @@ class Report:
                     
                     # Convert from timestamp to date & time strings
                     sqlStmt = "INSERT INTO report (source, destination, timestamp, date, time, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-                        addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata) \
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                    rptData = (source, destination, endTimeStamp, reportDateStamp, reportTimeStamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
+                        addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata, bytesUploaded, bytesDownloaded) \
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    rptData = (source, destination, endTimeStamp, reportDateStamp, reportTimeStamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata, bytesUploaded, bytesDownloaded)
                     globs.db.execReportInsertSql(sqlStmt, rptData)
 
                     # Update latest activity into into backupsets
@@ -923,7 +925,7 @@ class Report:
     def adjustFileSizeDisplay(self, field, sizeDisplay, singleRow, i):
         returnTup = singleRow
 
-        if field in ['sizeOfExaminedFiles', 'fileSizeDelta'] and sizeDisplay != 'none': # Translate to 'mb' or 'gb'
+        if field in ['sizeOfExaminedFiles', 'fileSizeDelta', 'bytesUploaded', 'bytesDownloaded'] and sizeDisplay != 'none': # Translate to 'mb' or 'gb'
             val = singleRow[i]
             if sizeDisplay[:2].lower() == 'mb':
                 val = val / 1000000.00
@@ -1020,7 +1022,7 @@ class Report:
 
         return singleReport
 
-    # Crate a report that doesn't have any groups (groupby = None)
+    # Crate a report that doesn't have any groups (groupby = Yes)
     # Take data from report table and build the resulting report structure.
     # Output structure will be used to generate the final report
     # 'reportStructure' is the report options as extracted from the .rc file
@@ -1076,6 +1078,7 @@ class Report:
                         fldName = reportStructure['options']['columns'][i][0]
                         newStr, markup = self.adjustTimeFields(fldName, rowList[singleRow][i], fldDefs[fldName], reportStructure['options']['durationzeroes'])
                         singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                    # Format message/warning/log lines properly
                     elif ((reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (reportStructure['options']['weminline'] is False)):
                         shouldContinue, truncatedMsg  = self.checkWemFields(rowList[singleRow][i], reportStructure['options'], i)
                         if shouldContinue:
@@ -1084,8 +1087,8 @@ class Report:
                         # Error message lines get a [message, bground, markup, ColTitle] list assigned to it.
                         # Do all that stuff and add it to msgList for now.
                         msgList[reportStructure['options']['columns'][i][0]] = [truncatedMsg, bground, markup, reportStructure['options']['columns'][i][1]]
-                    # See if the field is one of the numeric fields. Need to ass commas, right justify, & possibly reduce scale (mb/gb)
-                    elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:
+                    # See if the field is one of the numeric fields. Need to add commas, right justify, & possibly reduce scale (mb/gb)
+                    elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError', 'bytesUploaded', 'bytesDownloaded']:
                         rowList[singleRow] = self.adjustFileSizeDisplay(reportStructure['options']['columns'][i][0], reportStructure['options']['sizedisplay'], rowList[singleRow], i)
                         markup = toMarkup(align='right')
                         newStr = '{:{fmt}}'.format(rowList[singleRow][i], fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
