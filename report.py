@@ -1078,7 +1078,7 @@ class Report:
                 # Loop through each column in the row
                 for i in range(len(reportStructure['options']['columns'])):
                 
-                    # Figure out the appropriate background. backgrounds. We'll need this in a couple of places
+                    # Figure out the appropriate background. We'll need this in a couple of places
                     # Default color is white (#FFFFFF)
                     bground = self.getBackgroundColor(reportStructure, reportStructure['options']['columns'][i][0], i, rowList[singleRow][i])
 
