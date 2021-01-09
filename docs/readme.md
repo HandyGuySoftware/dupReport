@@ -1,6 +1,6 @@
 
 
-# WELCOME TO dupReport!!!
+# WELCOME TO dupReport
 
 dupReport is an email-based reporting system for Duplicati. It will gather all your Duplicati backup status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
 
