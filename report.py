@@ -981,6 +981,7 @@ class Report:
                     fldName = reportStructure['options']['columns'][i][0]
                     newStr, markup = self.adjustTimeFields(fldName, rowList[singleRow][i], fldDefs[fldName], reportStructure['options']['durationzeroes'])
                     singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
+                # Format message/warning/log lines properly
                 elif ((reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (reportStructure['options']['weminline'] is False)):
                     shouldContinue, truncatedMsg  = self.checkWemFields(rowList[singleRow][i], reportStructure['options'], i)
                     if shouldContinue:
@@ -990,7 +991,7 @@ class Report:
                     # Do all that stuff and add it to msgList for now.
                     msgList[reportStructure['options']['columns'][i][0]] = [truncatedMsg, bground, markup, reportStructure['options']['columns'][i][1]]
                 # See if the field is one of the numeric fields. Need to add commas, right justify, & possibly reduce scale (mb/gb)
-                elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:
+                elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError', 'bytesUploaded', 'bytesDownloaded']:
                     rowList[singleRow] = self.adjustFileSizeDisplay(reportStructure['options']['columns'][i][0], reportStructure['options']['sizedisplay'], rowList[singleRow], i)
                     markup = toMarkup(align='right')
                     newStr = '{:{fmt}}'.format(rowList[singleRow][i], fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
