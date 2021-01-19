@@ -24,14 +24,14 @@ verbose = 7
 # Do you want to append each log to the last one?
 logappend = false
 
-# The default regular expressions for the subject, source, destination, and delimeter work for most circumstances
+# The default regular expressions for the subject, source, destination, and delimiter work for most circumstances
 subjectregex = ^Duplicati Backup report for
 srcregex = \w*
 destregex = \w*
 srcdestdelimiter = -
 
 # Date format is VERY important. PLEASE MAKE SURE you have a properly-formatted dateformat spec.
-# This should be set in the Guided Startup. It can be overrided on a per-backup basis in the per-back sections below if you have jobs that run in multiple locales.
+# This should be set in the Guided Startup. It can be overridden on a per-backup basis in the per-back sections below if you have jobs that run in multiple locales.
 dateformat = MM/DD/YYYY
 
 # There is only one valid time specification. DO NOT CHANGE THIS.
@@ -210,7 +210,7 @@ title = Duplicati Backup Summary Report
 # Note that column defintions can be split into multiple lines. BUT, you MUST LEAVE SPACES BEFORE THE SECOND LINE (and the third and the fourth...)
 # If you try to split .rc entries up into multiple lines and you're getting strange results, chances are you did it wrong.
 columns = source:Source, destination:Destination, date: Date, time: Time, dupversion:Version, duration:Duration, examinedFiles:Files, 
-    examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, 
+    examinedFilesDelta:+/-, sizeOfExaminedFiles:Size, fileSizeDelta:+/-, bytesUploaded:Uploaded, bytesDownloaded:Downloaded, addedFiles:Added, deletedFiles:Deleted, modifiedFiles:Modified, 
 	filesWithError:Errors, parsedResult:Result, messages:Messages, warnings:Warnings, errors:Errors, logdata:Log Data
 weminline = false
 groupheadingbg = #D3D3D3

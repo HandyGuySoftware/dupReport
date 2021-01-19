@@ -49,7 +49,9 @@ fldDefs = {
     'messages':             ('left',        '50',       '50'),
     'warnings':             ('left',        '50',       '50'),
     'errors':               ('left',        '50',       '50'),
-    'logdata':              ('left',        '50',       '50')
+    'logdata':              ('left',        '50',       '50'),
+    'bytesUploaded':        ('right',       '>21',      '>21,.3f'),
+    'bytesDownloaded':      ('right',       '>21',      '>21,.3f')
     }
 
 dataRowTypes = {
@@ -62,7 +64,15 @@ dataRowTypes = {
         }
 
 # List of all the valid column names that can be used in reports
-colNames = ['source','destination','date','time','examinedFiles','examinedFilesDelta','sizeOfExaminedFiles','fileSizeDelta','addedFiles','deletedFiles','modifiedFiles','filesWithError','parsedResult','messages','warnings','errors','duration','logdata','dupversion']
+colNames = ['source','destination','date','time','examinedFiles','examinedFilesDelta','sizeOfExaminedFiles','fileSizeDelta','addedFiles','deletedFiles','modifiedFiles','filesWithError','parsedResult','messages','warnings','errors','duration','logdata','dupversion', 'bytesUploaded', 'bytesDownloaded']
+
+# Group field types
+wemFields = ['messages', 'warnings', 'errors', 'logdata']
+intFields = ['border', 'padding', 'normaldays', 'warningdays', 'nobackupwarn', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata']
+boolFields = ['displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'includeruntime', 'failedonly', 'showoffline']
+sizeFields = ['sizeOfExaminedFiles', 'fileSizeDelta', 'bytesUploaded', 'bytesDownloaded']
+timestampFields = ['date', 'time', 'duration']
+numberFields = ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError', 'bytesUploaded', 'bytesDownloaded']
 
 # List of allowable keyword substitutions
 keyWordList = { 
@@ -222,7 +232,7 @@ def adjustColumnCountInfo(count, colNames, wemInLine):
     
     if wemInLine == False:
         for i in reversed(range(len(colNames))):
-            if newColNames[i][0] in ['messages', 'warnings', 'errors', 'logdata']:
+            if newColNames[i][0] in wemFields:
                 newColNames.pop(i)
                 newColCount -= 1
     
@@ -407,11 +417,11 @@ class Report:
         self.rStruct['defaults'] = globs.optionManager.getRcSection('report')
 
         # Fix some of the data field types - integers
-        for item in ('border', 'padding', 'nobackupwarn', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
+        for item in intFields:
             self.rStruct['defaults'][item] = int(self.rStruct['defaults'][item])
 
         # Fix some of the data field types - boolean
-        for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'includeruntime', 'failedonly', 'showoffline'):
+        for item in boolFields:
             self.rStruct['defaults'][item] = self.rStruct['defaults'][item].lower() in ('true')   
             
         # Get reports that need to run as defined in [report]layout option
@@ -445,12 +455,12 @@ class Report:
                     self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
                 # Fix some of the data field types - integers
-                for item in ('border', 'padding', 'nobackupwarn', 'truncatemessage', 'truncatewarning', 'truncateerror', 'truncatelogdata'):
+                for item in intFields:
                     if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
 
                 # Fix some of the data field types - boolean
-                for item in ('displaymessages', 'displaywarnings', 'displayerrors', 'displaylogdata', 'repeatcolumntitles', 'suppresscolumntitles', 'durationzeroes', 'weminline', 'failedonly'):
+                for item in boolFields:
                     if type (self.rStruct['sections'][rIndex]['options'][item]) is not bool:
                        self.rStruct['sections'][rIndex]['options'][item] = self.rStruct['sections'][rIndex]['options'][item].lower() in ('true')   
         
@@ -481,7 +491,8 @@ class Report:
                             self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
                 # Fix some of the data field types - integers
-                for item in ('border', 'padding', 'normaldays', 'warningdays'):
+                #for item in ('border', 'padding', 'normaldays', 'warningdays'):
+                for item in intFields:
                     if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
             elif self.rStruct['sections'][rIndex]['type'] == 'lastseen':
@@ -494,7 +505,7 @@ class Report:
                     self.rStruct['sections'][rIndex]['options'][optTmp] = optionTmp[optTmp]
 
                 # Fix some of the data field types - integers
-                for item in ('border', 'padding', 'normaldays', 'warningdays'):
+                for item in intFields:
                     if type(self.rStruct['sections'][rIndex]['options'][item]) is not int:
                         self.rStruct['sections'][rIndex]['options'][item] = int(self.rStruct['sections'][rIndex]['options'][item])
             
@@ -638,7 +649,7 @@ class Report:
 
             # Select all activity for src/dest pair since last report run
             sqlStmt = 'SELECT dupVersion, endTimestamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                filesWithError, parsedResult, warnings, errors, messages, logdata FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
+                filesWithError, parsedResult, warnings, errors, messages, logdata, bytesUploaded, bytesDownloaded FROM emails WHERE sourceComp=\'{}\' AND destComp=\'{}\' \
                 AND  endTimestamp > {} order by endTimestamp'.format(source, destination, lastTimestamp)
             dbCursor = globs.db.execSqlStmt(sqlStmt)
 
@@ -647,7 +658,7 @@ class Report:
             if emailRows: 
                 # Loop through each new activity and report
                 for dupversion, endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
-                    filesWithError, parsedResult, warnings, errors, messages, logdata in emailRows:
+                    filesWithError, parsedResult, warnings, errors, messages, logdata, bytesUploaded, bytesDownloaded in emailRows:
             
                     # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount
@@ -665,9 +676,9 @@ class Report:
                     
                     # Convert from timestamp to date & time strings
                     sqlStmt = "INSERT INTO report (source, destination, timestamp, date, time, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, \
-                        addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata) \
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                    rptData = (source, destination, endTimeStamp, reportDateStamp, reportTimeStamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata)
+                        addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata, bytesUploaded, bytesDownloaded) \
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    rptData = (source, destination, endTimeStamp, reportDateStamp, reportTimeStamp, duration, examinedFiles, examinedFilesDelta, sizeOfExaminedFiles, fileSizeDelta, addedFiles, deletedFiles, modifiedFiles, filesWithError, parsedResult, messages, warnings, errors, dupversion, logdata, bytesUploaded, bytesDownloaded)
                     globs.db.execReportInsertSql(sqlStmt, rptData)
 
                     # Update latest activity into into backupsets
@@ -923,7 +934,7 @@ class Report:
     def adjustFileSizeDisplay(self, field, sizeDisplay, singleRow, i):
         returnTup = singleRow
 
-        if field in ['sizeOfExaminedFiles', 'fileSizeDelta'] and sizeDisplay != 'none': # Translate to 'mb' or 'gb'
+        if field in sizeFields and sizeDisplay != 'none': # Translate to 'mb' or 'gb'
             val = singleRow[i]
             if sizeDisplay[:2].lower() == 'mb':
                 val = val / 1000000.00
@@ -975,11 +986,12 @@ class Report:
 
                 # See if we need to substitute date, time, or duration fields
                 # All are stored as timestamp data, so they need to be converted to actual dates & times
-                if reportStructure['options']['columns'][i][0] in ['date', 'time', 'duration']:
+                if reportStructure['options']['columns'][i][0] in timestampFields:
                     fldName = reportStructure['options']['columns'][i][0]
                     newStr, markup = self.adjustTimeFields(fldName, rowList[singleRow][i], fldDefs[fldName], reportStructure['options']['durationzeroes'])
                     singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
-                elif ((reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (reportStructure['options']['weminline'] is False)):
+                # Format message/warning/log lines properly
+                elif ((reportStructure['options']['columns'][i][0] in wemFields) and (reportStructure['options']['weminline'] is False)):
                     shouldContinue, truncatedMsg  = self.checkWemFields(rowList[singleRow][i], reportStructure['options'], i)
                     if shouldContinue:
                         continue
@@ -988,7 +1000,7 @@ class Report:
                     # Do all that stuff and add it to msgList for now.
                     msgList[reportStructure['options']['columns'][i][0]] = [truncatedMsg, bground, markup, reportStructure['options']['columns'][i][1]]
                 # See if the field is one of the numeric fields. Need to add commas, right justify, & possibly reduce scale (mb/gb)
-                elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:
+                elif reportStructure['options']['columns'][i][0] in numberFields:
                     rowList[singleRow] = self.adjustFileSizeDisplay(reportStructure['options']['columns'][i][0], reportStructure['options']['sizedisplay'], rowList[singleRow], i)
                     markup = toMarkup(align='right')
                     newStr = '{:{fmt}}'.format(rowList[singleRow][i], fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
@@ -997,7 +1009,7 @@ class Report:
                     # See if we need to truncate WEM messages
                     msg = rowList[singleRow][i]
                     msgType = reportStructure['options']['columns'][i][0]
-                    if reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']:
+                    if reportStructure['options']['columns'][i][0] in wemFields:
                         msg = truncateWarnErrMsgs(msgType, msg, reportStructure['options'])
                     markup = toMarkup(align='left')
                     newStr = '{:{fmt}}'.format(msg, fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
@@ -1020,7 +1032,7 @@ class Report:
 
         return singleReport
 
-    # Crate a report that doesn't have any groups (groupby = None)
+    # Crate a report that doesn't have any groups (groupby = Yes)
     # Take data from report table and build the resulting report structure.
     # Output structure will be used to generate the final report
     # 'reportStructure' is the report options as extracted from the .rc file
@@ -1066,17 +1078,18 @@ class Report:
                 # Loop through each column in the row
                 for i in range(len(reportStructure['options']['columns'])):
                 
-                    # Figure out the appropriate background. backgrounds. We'll need this in a couple of places
+                    # Figure out the appropriate background. We'll need this in a couple of places
                     # Default color is white (#FFFFFF)
                     bground = self.getBackgroundColor(reportStructure, reportStructure['options']['columns'][i][0], i, rowList[singleRow][i])
 
                     # See if we need to substitute date, time, or duration fields
                     # All are stored as timestamp data, so they need to be converted to actual dates & times
-                    if reportStructure['options']['columns'][i][0] in ['date', 'time', 'duration']:
+                    if reportStructure['options']['columns'][i][0] in timestampFields:
                         fldName = reportStructure['options']['columns'][i][0]
                         newStr, markup = self.adjustTimeFields(fldName, rowList[singleRow][i], fldDefs[fldName], reportStructure['options']['durationzeroes'])
                         singleReport['dataRows'][dataRowIndex].append([newStr, bground, markup])
-                    elif ((reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']) and (reportStructure['options']['weminline'] is False)):
+                    # Format message/warning/log lines properly
+                    elif ((reportStructure['options']['columns'][i][0] in wemFields) and (reportStructure['options']['weminline'] is False)):
                         shouldContinue, truncatedMsg  = self.checkWemFields(rowList[singleRow][i], reportStructure['options'], i)
                         if shouldContinue:
                             continue
@@ -1084,8 +1097,8 @@ class Report:
                         # Error message lines get a [message, bground, markup, ColTitle] list assigned to it.
                         # Do all that stuff and add it to msgList for now.
                         msgList[reportStructure['options']['columns'][i][0]] = [truncatedMsg, bground, markup, reportStructure['options']['columns'][i][1]]
-                    # See if the field is one of the numeric fields. Need to ass commas, right justify, & possibly reduce scale (mb/gb)
-                    elif reportStructure['options']['columns'][i][0] in ['examinedFiles', 'examinedFilesDelta', 'sizeOfExaminedFiles', 'fileSizeDelta', 'addedFiles', 'deletedFiles', 'modifiedFiles', 'filesWithError']:
+                    # See if the field is one of the numeric fields. Need to add commas, right justify, & possibly reduce scale (mb/gb)
+                    elif reportStructure['options']['columns'][i][0] in numberFields:
                         rowList[singleRow] = self.adjustFileSizeDisplay(reportStructure['options']['columns'][i][0], reportStructure['options']['sizedisplay'], rowList[singleRow], i)
                         markup = toMarkup(align='right')
                         newStr = '{:{fmt}}'.format(rowList[singleRow][i], fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
@@ -1094,7 +1107,7 @@ class Report:
                         # See if we need to truncate WEM messages
                         msg = rowList[singleRow][i]
                         msgType = reportStructure['options']['columns'][i][0]
-                        if reportStructure['options']['columns'][i][0] in ['messages', 'warnings', 'errors', 'logdata']:
+                        if reportStructure['options']['columns'][i][0] in wemFields:
                             msg = truncatedMsg = truncateWarnErrMsgs(msgType, msg, reportStructure['options'])
                         markup = toMarkup(align='left')
                         newStr = '{:{fmt}}'.format(msg, fmt=fldDefs[reportStructure['options']['columns'][i][0]][2])
@@ -1478,17 +1491,11 @@ class Report:
                 rowType, colspan = reportSection['dataRows'][dataRowIndex][0]
                 if rowType in [dataRowTypes['rptTitle'], dataRowTypes['grpHeading'], dataRowTypes['wemData'], dataRowTypes['singleLine']]:
                     msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
-                #elif rowType == dataRowTypes['grpHeading']:
-                #    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
                 elif rowType in [dataRowTypes['rowHead'], dataRowTypes['data']]:
                     for column in range(1,len(reportSection['dataRows'][dataRowIndex])):
                         element = reportSection['dataRows'][dataRowIndex][column]
                         msgText += '{}'.format(element[0])
                     msgText += '\n'
-                #elif rowType == dataRowTypes['wemData']:
-                #    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
-                #elif rowType == dataRowTypes['singleLine']:
-                #    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
                 else:
                     pass    # Invalid data row descriptor
 
