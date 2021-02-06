@@ -661,7 +661,7 @@ class OptionManager:
         options['incoming']['password'] = self.guidedSetupHelper(prompt='Please enter the password used to log into the \'incoming\' server', default='secretpassword', secure=True)
         options['incoming']['folder'] = ''
         if options['incoming']['protocol'] == 'imap':
-            options['incoming']['folder'] = self.guidedSetupHelper(prompt='Please enter the IMAP folder name to where Duplicati emails are stored on the \'incoming\' server', default='INBOX', convertUpper = True)
+            options['incoming']['folder'] = self.guidedSetupHelper(prompt='Please enter the IMAP folder name to where Duplicati emails are stored on the \'incoming\' server', default='Inbox')
 
         # Outgoing mail server
         print("\nNow we'll need information about your \'outgoing\' email server.")
