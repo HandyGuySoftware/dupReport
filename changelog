@@ -1,6 +1,6 @@
 3.0.3
 -----
-- Fixed bug where guided setup was converting inbox folder name to all uppercase
+- Fixed bug where guided setup was converting inbox folder name to all uppercase (Issue #163)
 
 3.0.2
 -----
