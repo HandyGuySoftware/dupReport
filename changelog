@@ -1,3 +1,7 @@
+3.0.3
+-----
+- Fixed bug where guided setup was converting inbox folder name to all uppercase (Issue #163)
+
 3.0.2
 -----
 - Added BytesUploaded & BytesDownload fields from JSON emails to database & reports. (Issue #157)
