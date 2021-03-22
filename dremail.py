@@ -589,8 +589,12 @@ class EmailServer:
             for section,regex,flag,typ,jsonSection in lineParts:
                 emailParts['body'][section] = self.searchMessagePartJson(jsonData, jsonSection, typ)
             # Get Up/Download data
-            emailParts['body']['bytesUploaded'] = jsonData['BackendStatistics']['BytesUploaded']
-            emailParts['body']['bytesDownloaded'] = jsonData['BackendStatistics']['BytesDownloaded']
+            if 'BackendStatistics' in jsonData:
+                emailParts['body']['bytesUploaded'] = jsonData['BackendStatistics']['BytesUploaded']
+                emailParts['body']['bytesDownloaded'] = jsonData['BackendStatistics']['BytesDownloaded']
+            else:
+                emailParts['body']['bytesUploaded'] = 0
+                emailParts['body']['bytesDownloaded'] = 0
 
             # See if there are log lines to display
             if len(jsonStatus['LogLines']) > 0:
