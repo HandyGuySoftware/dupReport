@@ -1,3 +1,8 @@
+
+3.0.4
+-----
+- Fixed bug where program would crash is using JSON emails and email contained an error message. (Issue #164)
+
 3.0.3
 -----
 - Fixed bug where guided setup was converting inbox folder name to all uppercase (Issue #163)
