@@ -326,19 +326,19 @@ def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
     globs.log.write(globs.SEV_DEBUG, function='Report', action='buildWarningMessage', msg='Warning message subject: \'{}\''.format(subj))
 
     warnHtml='<html><head></head><body><table border=\"{}\" cellpadding=\"{}\">\n'.format(opts['border'],opts['padding'])
-    warnHtml += '<tr><td bgcolor="#FF0000" align="center"><b>Backup Warning for {}{}{}</b></td></tr>\n'.format(source, globs.opts['srcdestdelimiter'], destination)
-    warnHtml += '<tr><td bgcolor="#E6E6E6" align="center">Your last backup from {} to {} was on {} at {} - {} days ago.</td></tr>\n'.format(source, destination, lastDateStr,lastTimeStr, nDays)
+    warnHtml += '<tr><td bgcolor="#FF0000" align="center"><b>Backup Warning for {}{}{}</b></td></tr>\r\n'.format(source, globs.opts['srcdestdelimiter'], destination)
+    warnHtml += '<tr><td bgcolor="#E6E6E6" align="center">Your last backup from {} to {} was on {} at {} - {} days ago.</td></tr>\r\n'.format(source, destination, lastDateStr,lastTimeStr, nDays)
     warnHtml += '<tr><td align="center"> {} has not been backed up in the last {} days!<br>'.format(source, nDays)
-    warnHtml += "If {} has been powered off or has been offline for the last {} days, no further action is required.<br>\n".format(source, nDays)
+    warnHtml += "If {} has been powered off or has been offline for the last {} days, no further action is required.<br>\r\n".format(source, nDays)
     warnHtml += 'Your backups will resume the next time {} is brought back online.<br>'.format(source)
-    warnHtml += 'Otherwise, please make sure your Duplicati service is running and/or manually run a backup as soon as possible!</td></tr>\n'
+    warnHtml += 'Otherwise, please make sure your Duplicati service is running and/or manually run a backup as soon as possible!</td></tr>\r\n'
     warnHtml += '</table></body></html>'
 
-    warnText = 'Backup Warning for {}{}{}!\n\n'.format(source,globs.opts['srcdestdelimiter'],destination)
-    warnText += 'Your last backup from {} to {} was on {} at {} - {} days ago.\n\n'.format(source, destination, lastDateStr,lastTimeStr, nDays)
-    warnText += "If {} has been powered off or has been offline for the last {} days, no further action is required.\n".format(source, nDays)
-    warnText += 'Your backups will resume the next time {} is brought back online.\n'.format(source)
-    warnText += 'Otherwise, please make sure your Duplicati service is running and/or manually run a backup as soon as possible!\n'
+    warnText = 'Backup Warning for {}{}{}!\r\n\r\n'.format(source,globs.opts['srcdestdelimiter'],destination)
+    warnText += 'Your last backup from {} to {} was on {} at {} - {} days ago.\r\n\r\n'.format(source, destination, lastDateStr,lastTimeStr, nDays)
+    warnText += "If {} has been powered off or has been offline for the last {} days, no further action is required.\r\n".format(source, nDays)
+    warnText += 'Your backups will resume the next time {} is brought back online.\r\n'.format(source)
+    warnText += 'Otherwise, please make sure your Duplicati service is running and/or manually run a backup as soon as possible!\r\n'
     
     sender = globs.emailManager.getSmtpServer().options['sender']
     receiver = globs.optionManager.getRcOption(srcDest, 'receiver')
@@ -411,7 +411,7 @@ class Report:
         self.formattedReports = {'html': None, 'txt': None, 'csv': None, 'json': None}
 
         self.rStruct = {}
-        self.validConfig = True     # Is the report config valid? Default to true for now. Alter if true later
+        self.validConfig = True     # Is the report config valid? Default to true for now. Alter if false later
         
         # Read in the default options
         self.rStruct['defaults'] = globs.optionManager.getRcSection('report')
@@ -1436,7 +1436,7 @@ class Report:
 
     def createHtmlFormat(self, reportStructure, reportOutput):
         globs.log.write(globs.SEV_NOTICE, function='Report', action='createHtmlFormat', msg='Creating HTML formatted output.')
-        msgHtml = '<html><head></head><body>\n'
+        msgHtml = '<html><head></head><body>\r\n'
         sectionIndex = -1
         for reportSection in reportOutput['sections']:
             sectionIndex += 1
@@ -1444,36 +1444,36 @@ class Report:
             rptOptions = reportStructure['sections'][sectionIndex]['options']
             
             # Start table
-            msgHtml += '<table border={} cellpadding="{}">\n'.format(rptOptions['border'], rptOptions['padding'])
+            msgHtml += '<table border={} cellpadding="{}">\r\n'.format(rptOptions['border'], rptOptions['padding'])
 
             for dataRowIndex in range(len(reportSection['dataRows'])):
                 rowType, colspan = reportSection['dataRows'][dataRowIndex][0]
                 if rowType == dataRowTypes['rptTitle']:
                     start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
-                    msgHtml += '<tr><td align=\"{}\" colspan=\"{}\" bgcolor=\"{}\">{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                    msgHtml += '<tr><td align=\"{}\" colspan=\"{}\" bgcolor=\"{}\">{}{}{}</td></tr>\r\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
                 elif rowType == dataRowTypes['grpHeading']:
                     start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
-                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}">{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}">{}{}{}</td></tr>\r\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
                 elif rowType in [dataRowTypes['rowHead'], dataRowTypes['data']]:
                     msgHtml += '<tr>'
                     for column in range(1,len(reportSection['dataRows'][dataRowIndex])):
                         element = reportSection['dataRows'][dataRowIndex][column]
                         start, end, align = fromMarkup(element[2])
                         msgHtml += '<td align=\"{}\" colspan=\"{}\" bgcolor=\"{}\" >{}{}{}</td>'.format(align, colspan, element[1], start, element[0], end)
-                    msgHtml += '</tr>\n'
+                    msgHtml += '</tr>\r\n'
                 elif rowType == dataRowTypes['wemData']:
                     start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
-                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}"><details><summary>{}</summary><p>{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], reportSection['dataRows'][dataRowIndex][1][3], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}"><details><summary>{}</summary><p>{}{}{}</td></tr>\r\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], reportSection['dataRows'][dataRowIndex][1][3], start, reportSection['dataRows'][dataRowIndex][1][0], end)
                 elif rowType == dataRowTypes['singleLine']:
                     start, end, align = fromMarkup(reportSection['dataRows'][dataRowIndex][1][2])
-                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}">{}{}{}</td></tr>\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
+                    msgHtml += '<tr><td align=\"{}\" colspan="{}" bgcolor="{}">{}{}{}</td></tr>\r\n'.format(align, colspan, reportSection['dataRows'][dataRowIndex][1][1], start, reportSection['dataRows'][dataRowIndex][1][0], end)
                 else:
                     pass    # Invalid data row descriptor
 
             msgHtml += '</table><br>'
 
         msgHtml += '<br>Report generated by <a href=\'https://github.com/HandyGuySoftware/dupReport\'>dupReport</a> Version {}.{}.{} ({})<br>'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
-        msgHtml += '</body></html>\n'
+        msgHtml += '</body></html>\r\n'
 
         return msgHtml
 
@@ -1490,18 +1490,18 @@ class Report:
             for dataRowIndex in range(len(reportSection['dataRows'])):
                 rowType, colspan = reportSection['dataRows'][dataRowIndex][0]
                 if rowType in [dataRowTypes['rptTitle'], dataRowTypes['grpHeading'], dataRowTypes['wemData'], dataRowTypes['singleLine']]:
-                    msgText += '{}\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
+                    msgText += '{}\r\n'.format(reportSection['dataRows'][dataRowIndex][1][0])
                 elif rowType in [dataRowTypes['rowHead'], dataRowTypes['data']]:
                     for column in range(1,len(reportSection['dataRows'][dataRowIndex])):
                         element = reportSection['dataRows'][dataRowIndex][column]
                         msgText += '{}'.format(element[0])
-                    msgText += '\n'
+                    msgText += '\r\n'
                 else:
                     pass    # Invalid data row descriptor
 
-            msgText += '\n'
+            msgText += '\r\n'
 
-        msgText += 'Report generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})\n'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
+        msgText += 'Report generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})\r\n'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
 
         return msgText
 
@@ -1518,15 +1518,15 @@ class Report:
             for dataRowIndex in range(len(reportSection['dataRows'])):
                 rowType, colspan = reportSection['dataRows'][dataRowIndex][0]
                 if rowType in [dataRowTypes['rptTitle'], dataRowTypes['grpHeading'], dataRowTypes['wemData'], dataRowTypes['singleLine']]:
-                    msgCsv += '\"{}\"\n'.format(reportSection['dataRows'][dataRowIndex][1][0].strip())
+                    msgCsv += '\"{}\"\r\n'.format(reportSection['dataRows'][dataRowIndex][1][0].strip())
                 elif rowType in [dataRowTypes['rowHead'], dataRowTypes['data']]:
                     for column in range(1,len(reportSection['dataRows'][dataRowIndex])):
                         element = reportSection['dataRows'][dataRowIndex][column]
                         msgCsv += '\"{}\",'.format(element[0].strip())
-                    msgCsv += '\n'
+                    msgCsv += '\r\n'
                 else:
                     pass    # Invalid data row descriptor
-        msgCsv += '\"Report generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})\"\n'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
+        msgCsv += '\"Report generated by dupReport (https://github.com/HandyGuySoftware/dupReport) Version {}.{}.{} ({})\"\r\n'.format(globs.version[0], globs.version[1], globs.version[2], globs.status)
 
         return msgCsv
 

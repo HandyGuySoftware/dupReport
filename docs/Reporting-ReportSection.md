@@ -250,7 +250,7 @@ If any of these options are set to "false" those messages will not be shown in t
 truncatemessage = 0
 truncatewarning = 0
 truncateerror = 0
-truncateerror = 0
+truncatelogdata = 0
 ```
 
 These settings truncate the message, warning, error, and log data fields generated during backup job execution. Duplicati job messages can be quite lengthy and take up a lot of room in the report. These options allow you to truncate those messages to a reasonable length. A length of 0 (zero) indicates that the message should not be truncated. If the length of the message/warning/error is less than the size indicated, the entire message/warning/error will be displayed. If a message gets truncated and you'd like to view the original (full) message string, refer to the email generated for that backup job.
