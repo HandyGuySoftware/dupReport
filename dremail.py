@@ -813,7 +813,7 @@ class EmailServer:
 
         # Issue #166. Received a "501 Syntax error - line too long" error when sending through GMX SMTP servers.
         # Needed to change from smtplib.sendmail() to smtplib.send_message(). 
-        # Tested on Gmail, Yahoo, & GMX with no erors.
+        # Tested on Gmail, Yahoo, & GMX with no errors.
         # Keeping this around in comment as I don't think this is the last we'll hear of this problem.
         #       #self.serverconnect.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
         #       #The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
