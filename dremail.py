@@ -158,7 +158,14 @@ class EmailManager:
         return
 
     def sendEmail(self, **kwargs):
-        self.getSmtpServer().sendEmail(**kwargs)
+        svr = self.getSmtpServer()
+
+        # Issue #169. program would crash if no valid SMTP server was connected (probably because of bad login credentials).
+        # If so, just quietly log the message and return.
+        if svr is None:
+            globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='sendEmail', msg="Can't send outgoing email. No valid SMTP server connected. Check logs for connection problems.")
+        else:
+            self.getSmtpServer().sendEmail(**kwargs)
 
     # Validate the .rc file options for an email server
     # Return true/false if options are valid and list of options    
@@ -776,10 +783,12 @@ class EmailServer:
         # According to RFC 2046, the last part of a multipart message is best and preferred.
         # So attach text first, then HTML
         if msgText != None:
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='sendEmail', msg='Length=[{}] TextVersion=[{}]'.format(len(msgText),msgText))
             msgPart = MIMEText(msgText, 'plain')
             msg.attach(msgPart)
 
         if msgHtml != None:
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='sendEmail', msg='Length=[{}] HTMLVersion=[{}]'.format(len(msgHtml),msgHtml))
             msgPart = MIMEText(msgHtml, 'html')
             msg.attach(msgPart)
 
@@ -800,8 +809,15 @@ class EmailServer:
                     msg.attach(part)
 
         # Send the message via SMTP server.
-        # The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
-        globs.log.write(globs.SEV_NOTICE,function='EmailServer', action='sendEmail', msg='Sending email to [{}]'.format(globs.maskData(receiver.split(','))))
-        self.serverconnect.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
+        globs.log.write(globs.SEV_NOTICE,function='EmailServer', action='sendEmail', msg='Sending email to [{}]. Total length=[{}] AsString Length=[{}]'.format(globs.maskData(receiver.split(',')), len(msg), len(msg.as_string())))
+
+        # Issue #166. Received a "501 Syntax error - line too long" error when sending through GMX SMTP servers.
+        # Needed to change from smtplib.sendmail() to smtplib.send_message(). 
+        # Tested on Gmail, Yahoo, & GMX with no errors.
+        # Keeping this around in comment as I don't think this is the last we'll hear of this problem.
+        #       #self.serverconnect.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
+        #       #The encode('utf-8') was added to deal with non-english character sets in emails. See Issue #26 for details
+        self.serverconnect.send_message(msg, sender, receiver.split(','))
+
         return None
 

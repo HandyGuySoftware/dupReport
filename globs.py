@@ -8,7 +8,7 @@
 import os
 
 # Define version info
-version=[3,0,4]     # Program Version
+version=[3,0,5]     # Program Version
 status='Release'
 dbVersion=[3,0,1]   # Required DB version
 rcVersion=[3,1,0]   # Required RC version
