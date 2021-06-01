@@ -410,6 +410,13 @@ class Report:
         # Initialize fomatted report list
         self.formattedReports = {'html': None, 'txt': None, 'csv': None, 'json': None}
 
+        # Trackers to see if there are any success, warning, or error emails
+        # See Issue #172 for details
+        self.resultList = {}
+        self.resultList["success"] = False
+        self.resultList["warning"] = False
+        self.resultList["error"] = False
+
         self.rStruct = {}
         self.validConfig = True     # Is the report config valid? Default to true for now. Alter if false later
         
@@ -659,6 +666,14 @@ class Report:
                 # Loop through each new activity and report
                 for dupversion, endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                     filesWithError, parsedResult, warnings, errors, messages, logdata, bytesUploaded, bytesDownloaded in emailRows:
+
+                    # Check success, warning, & error flags
+                    if parsedResult == 'Success':
+                        self.resultList["success"] = True
+                    elif parsedResult == 'Warning':
+                        self.resultList["warning"] = True
+                    elif parsedResult == 'Error':
+                        self.resultList["error"] = True
             
                     # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount

@@ -1,4 +1,9 @@
 
+3.0.6
+-----
+- Added the ability to indicate job status (Success/Warning/Error) in the email subject (Issue #172)
+- Fixed typos in documentation
+
 3.0.5
 -----
 - Fixed bug that caused "smtplib.SMTPDataError: (501, b'Syntax error - line too long')" error when using GMX email servers (Issue #166)

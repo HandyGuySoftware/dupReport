@@ -765,6 +765,15 @@ class EmailServer:
         msg = MIMEMultipart('alternative')
         if subject is None:
             subject = globs.report.rStruct['defaults']['title']
+
+            # Check for title substitutions - Issue #17
+            if globs.report.resultList["success"] == True:
+                subject = subject.replace('#SUCCESS#','[SUCCESS]')
+            if globs.report.resultList["warning"] == True:
+                subject = subject.replace('#WARNING#','[WARNING]')
+            if globs.report.resultList["success"] == True:
+                subject = subject.replace('#ERROR#','[ERROR]')
+
         msg['Subject'] = subject
         if sender is None:
             sender = self.options['sender']
