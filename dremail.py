@@ -766,13 +766,25 @@ class EmailServer:
         if subject is None:
             subject = globs.report.rStruct['defaults']['title']
 
-            # Check for title substitutions - Issue #17
-            if globs.report.resultList["success"] == True:
-                subject = subject.replace('#SUCCESS#','[SUCCESS]')
-            if globs.report.resultList["warning"] == True:
-                subject = subject.replace('#WARNING#','[WARNING]')
-            if globs.report.resultList["success"] == True:
-                subject = subject.replace('#ERROR#','[ERROR]')
+            # Check for title substitutions - Issue #172
+            # It turns out that - for whatever reason - SMTP REALLY DOES NOT like using a '[' as the first character in a subject line,
+            # and the resulting subject line can be unpredictable; not exactly what you want in a program. 
+            # So, the bounding character for the keyword replacement was changed to '|'. That seemed to work much better.
+            # If someone knows why that is, please let me know, as I wasted far too many hours trying to figure it out.
+            if globs.report.resultList['success'] == True:
+                subject = subject.replace('#SUCCESS#',"|SUCCESS|")
+            else:
+                subject = subject.replace('#SUCCESS#','')
+
+            if globs.report.resultList['warning'] == True:
+                subject = subject.replace('#WARNING#',"|WARNING|")
+            else:
+                subject = subject.replace('#WARNING#','')
+
+            if globs.report.resultList['error'] == True:
+                subject = subject.replace('#ERROR#',"|ERROR|")
+            else:
+                subject = subject.replace('#ERROR#','')
 
         msg['Subject'] = subject
         if sender is None:

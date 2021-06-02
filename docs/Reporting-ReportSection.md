@@ -186,11 +186,11 @@ You use the email title to indicate whether any of the jobs in the report ended 
 
  specification:
 
-| Keyword   | Meaning                                    |
-| --------- | ------------------------------------------ |
-| #SUCCESS# | Adds '[Success]' to the email subject line |
-| #WARNING# | Adds '[Warning]' to the email subject line |
-| #ERROR#   | Adds '[Error]' to the email subject line   |
+| Keyword   | Meaning                                      |
+| --------- | -------------------------------------------- |
+| #SUCCESS# | Adds '\|Success\|' to the email subject line |
+| #WARNING# | Adds '\|Warning\|' to the email subject line |
+| #ERROR#   | Adds '\|Error\|' to the email subject line   |
 
 You can use any or all of the keywords anywhere in your subject line. For example,
 
@@ -205,6 +205,8 @@ Will produce the following subject line if any of the backup jobs ended with a W
 The substitution will only occur if any of the jobs actually ended with the indicated status. For example, using the above specification, if some of the jobs ended with an Error stats but none ended with a Warning status, the following subject line would be produced:
 
 'Duplicati Backup Summary Report \[Error\]'
+
+***Important note***: placing these keywords at the beginning of the subject line can lead to unpredictable results on some email servers and clients. The reason for this is unknown. If you are having problems with the keywords at the beginning of your subject line, try moving them to the end of the line.
 
 ```
 border=1

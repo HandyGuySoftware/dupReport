@@ -27,6 +27,13 @@ import drdatetime
 import dupapprise
 from datetime import datetime
 
+# Dear future programmer
+# When I wrote this code, only God and I knew how it worked.
+# Now, only God knows!
+# Therefore, if you are trying to optimize this program and it fails (most surely),
+# please increase this counter as a warning for the next person:
+total_hours_wasted = 1024
+
 # Print program verersion info
 def versionInfo():
     globs.log.out('\n-----\ndupReport: A summary email report generator for Duplicati.')

@@ -669,11 +669,11 @@ class Report:
 
                     # Check success, warning, & error flags
                     if parsedResult == 'Success':
-                        self.resultList["success"] = True
+                        self.resultList['success'] = True
                     elif parsedResult == 'Warning':
-                        self.resultList["warning"] = True
+                        self.resultList['warning'] = True
                     elif parsedResult == 'Error':
-                        self.resultList["error"] = True
+                        self.resultList['error'] = True
             
                     # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount
