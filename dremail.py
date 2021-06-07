@@ -795,6 +795,7 @@ class EmailServer:
         else:
             globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Subject already exists: \'{}.\''.format(subject))
 
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Final subject line: \'{}\'.'.format(subject))
         msg['Subject'] = subject
         if sender is None:
             sender = self.options['sender']
