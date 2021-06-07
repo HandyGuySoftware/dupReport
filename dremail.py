@@ -764,6 +764,8 @@ class EmailServer:
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Building email.')
         msg = MIMEMultipart('alternative')
         if subject is None:
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='No subject yet, using default subject of \'{}\'.'.format(globs.report.rStruct['defaults']['title']))
+
             subject = globs.report.rStruct['defaults']['title']
 
             # Check for title substitutions - Issue #172
@@ -771,20 +773,27 @@ class EmailServer:
             # and the resulting subject line can be unpredictable; not exactly what you want in a program. 
             # So, the bounding character for the keyword replacement was changed to '|'. That seemed to work much better.
             # If someone knows why that is, please let me know, as I wasted far too many hours trying to figure it out.
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='resultlist: success={}, warning={}, error={}'.format(globs.report.resultList['success'], globs.report.resultList['warning'], globs.report.resultList['error']))
+
             if globs.report.resultList['success'] == True:
+                globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='replacing #SUCCESS# in subject line.')
                 subject = subject.replace('#SUCCESS#',"|SUCCESS|")
             else:
                 subject = subject.replace('#SUCCESS#','')
 
             if globs.report.resultList['warning'] == True:
+                globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='replacing #WARNING# in subject line.')
                 subject = subject.replace('#WARNING#',"|WARNING|")
             else:
                 subject = subject.replace('#WARNING#','')
 
             if globs.report.resultList['error'] == True:
+                globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='replacing #ERROR# in subject line.')
                 subject = subject.replace('#ERROR#',"|ERROR|")
             else:
                 subject = subject.replace('#ERROR#','')
+        else:
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Subject already exists: \'{}.\''.format(subject))
 
         msg['Subject'] = subject
         if sender is None:
