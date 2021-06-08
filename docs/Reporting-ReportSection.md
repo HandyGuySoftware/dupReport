@@ -182,15 +182,18 @@ This defines the subject line for the report email that gets produced and also s
 
 ***Title Keyword Substitution***
 
-You use the email title to indicate whether any of the jobs in the report ended with a Success, Warning, or Error status. To do this, include any of the following keywords in the 'title='
+You use the email title to indicate whether any of the jobs in the report ended with a Success, Warning, Error, or Failure status. To do this, include any of the following keywords in the 'title='
 
  specification:
 
-| Keyword   | Meaning                                      |
-| --------- | -------------------------------------------- |
-| #SUCCESS# | Adds '\|Success\|' to the email subject line |
-| #WARNING# | Adds '\|Warning\|' to the email subject line |
-| #ERROR#   | Adds '\|Error\|' to the email subject line   |
+| Keyword    | Meaning                                          |
+| ---------- | ------------------------------------------------ |
+| #SUCCESS#  | Adds '\|Success\|' to the email subject line     |
+| #WARNING#  | Adds '\|Warning\|' to the email subject line     |
+| #ERROR#    | Adds '\|Error\|' to the email subject line       |
+| #FAILURE#  | Adds '\|Error\|' to the email subject line       |
+| #ALL#      | Equivalent to #SUCCESS##WARNING##ERROR##FAILURE# |
+| #ANYERROR# | Equivalent to #WARNING##ERROR##FAILURE#          |
 
 You can use any or all of the keywords anywhere in your subject line. For example,
 
@@ -200,11 +203,11 @@ title = Duplicati Backup Summary Report #WARNING##ERROR#
 
 Will produce the following subject line if any of the backup jobs ended with a Warning or Error status:
 
-'Duplicati Backup Summary Report \[Warning\]\[Error\]'
+'Duplicati Backup Summary Report |Warning||Error|'
 
 The substitution will only occur if any of the jobs actually ended with the indicated status. For example, using the above specification, if some of the jobs ended with an Error stats but none ended with a Warning status, the following subject line would be produced:
 
-'Duplicati Backup Summary Report \[Error\]'
+'Duplicati Backup Summary Report |Error|'
 
 ***Important note***: placing these keywords at the beginning of the subject line can lead to unpredictable results on some email servers and clients. The reason for this is unknown. If you are having problems with the keywords at the beginning of your subject line, try moving them to the end of the line.
 

@@ -413,9 +413,6 @@ class Report:
         # Trackers to see if there are any success, warning, or error emails
         # See Issue #172 for details
         self.resultList = {}
-        self.resultList["success"] = False
-        self.resultList["warning"] = False
-        self.resultList["error"] = False
 
         self.rStruct = {}
         self.validConfig = True     # Is the report config valid? Default to true for now. Alter if false later
@@ -667,13 +664,8 @@ class Report:
                 for dupversion, endTimeStamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
                     filesWithError, parsedResult, warnings, errors, messages, logdata, bytesUploaded, bytesDownloaded in emailRows:
 
-                    # Check success, warning, & error flags
-                    if parsedResult == 'Success':
-                        self.resultList['success'] = True
-                    elif parsedResult == 'Warning':
-                        self.resultList['warning'] = True
-                    elif parsedResult == 'Error':
-                        self.resultList['error'] = True
+                    # Check success, warning, & error flags - Issue #172
+                    self.resultList[parsedResult] = True
             
                     # Determine file count & size difference from last run
                     examinedFilesDelta = examinedFiles - lastFileCount
