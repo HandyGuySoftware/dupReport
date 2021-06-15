@@ -206,7 +206,8 @@ durationzeroes = false
 displaylogdata = true
 joblogdatabg = #FFFF00
 truncatelogdata = 0
-title = Duplicati Backup Summary Report
+# Email title will include an indication if any of the backup jobs ended with an error status
+title = Duplicati Backup Summary Report #ANYERROR#
 # Note that column defintions can be split into multiple lines. BUT, you MUST LEAVE SPACES BEFORE THE SECOND LINE (and the third and the fourth...)
 # If you try to split .rc entries up into multiple lines and you're getting strange results, chances are you did it wrong.
 columns = source:Source, destination:Destination, date: Date, time: Time, dupversion:Version, duration:Duration, examinedFiles:Files, 

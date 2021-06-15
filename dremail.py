@@ -614,8 +614,9 @@ class EmailServer:
                 # The JSON report has somewhat different fields than the "classic" report, so we have to fudge this a little bit
                 #   so we can use common code to process both types later.
                 emailParts['body']['failed'] = 'Failure'   
+                globs.report.resultList['Failure'] = True
                 if emailParts['body']['parsedResult'] == '':
-                    emailParts['body']['parsedResult'] = 'Failure'   
+                    emailParts['body']['parsedResult'] = 'Failure'
                 emailParts['body']['errors'] = jsonData['Message'] if 'Message' in jsonData else ''
         else: # Not JSON - standard Duplicati message format
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message is Duplicati formatted')
@@ -668,6 +669,7 @@ class EmailServer:
             if not isJson:
                 emailParts['body']['errors'] = emailParts['body']['failed']
                 emailParts['body']['parsedResult'] = 'Failure'
+                globs.report.resultList['Failure'] = True
                 emailParts['body']['warnings'] = emailParts['body']['details']
 
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Errors=[{}]'.format(emailParts['body']['errors']))
@@ -756,6 +758,18 @@ class EmailServer:
         else:       # string
             return ''
 
+    # Replace substrings in title field
+    def subjectSubstitute(self, subject = None, category = None, results = {}, seeking = None, replacement = None):
+
+        # See if we even  have this type of message
+        if category not in results:
+            newsubject = subject.replace(seeking,'')
+        else:
+            newsubject  = subject.replace(seeking, replacement)
+        
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='subjectSubstitute', msg='Replacing {} in subject line. Was \'{}\'. Now \'{}\''.format(seeking, subject, newsubject))
+        return newsubject
+      
     # Send final email result
     def sendEmail(self, msgHtml = None, msgText = None, subject = None, sender = None, receiver = None, fileattach = False):
         self.connect()
@@ -764,7 +778,37 @@ class EmailServer:
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Building email.')
         msg = MIMEMultipart('alternative')
         if subject is None:
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='No subject yet, using default subject of \'{}\'.'.format(globs.report.rStruct['defaults']['title']))
+
             subject = globs.report.rStruct['defaults']['title']
+
+            # Check for title substitutions - Issue #172
+            # It turns out that - for whatever reason - SMTP REALLY DOES NOT like using a '[' as the first character in a subject line,
+            # and the resulting subject line can be unpredictable; not exactly what you want in a program. 
+            # So, the bounding character for the keyword replacement was changed to '|'. That seemed to work much better.
+            # If someone knows why that is, please let me know, as I wasted far too many hours trying to figure it out.
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='subject={}  resultlist={}'.format(subject, globs.report.resultList))
+
+            # Check for #ALL# keyword substitution
+            substr = re.search("#ALL#", subject)
+            if substr is not None:
+                subject = subject.replace("#ALL#","#SUCCESS##WARNING##ERROR##FAILURE#")
+                globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='#ALL# keyword detected, substituting. New subject={}'.format(subject))
+            else:
+                # Check for #ANYERROR# substitution
+                substr = re.search("#ANYERROR#", subject)
+                if substr is not None:
+                    subject = subject.replace("#ANYERROR#","#WARNING##ERROR##FAILURE#")
+                    globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='#ANYERROR# keyword detected, substituting. New subject={}'.format(subject))
+
+            subject = self.subjectSubstitute(subject, 'Success', globs.report.resultList, '#SUCCESS#', '|Success|')
+            subject = self.subjectSubstitute(subject, 'Warning', globs.report.resultList, '#WARNING#', '|Warning|')
+            subject = self.subjectSubstitute(subject, 'Error', globs.report.resultList, '#ERROR#', '|Error|')
+            subject = self.subjectSubstitute(subject, 'Failure', globs.report.resultList, '#FAILURE#', '|Failure|')
+        else:
+            globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Subject already exists: \'{}.\''.format(subject))
+
+        globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='Final subject line: \'{}\'.'.format(subject))
         msg['Subject'] = subject
         if sender is None:
             sender = self.options['sender']

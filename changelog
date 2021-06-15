@@ -1,7 +1,13 @@
 
+3.0.6
+-----
+- Added the ability to indicate job status (Success/Warning/Error/Failure) in the email subject line. See Report Section docs for more information. (Issue #172)
+- Updates example .rc file with new options
+- Fixed errors/typos in documentation
+
 3.0.5
 -----
-- Fixed bug that caused "smtplib.SMTPDataError: (501, b'Syntax error - line too long')" error when using GMX email servers (Issue #166)
+- Fixed bug that caused "smtplib.SMTPDataError: (501, b'Syntax error - line too long')" error when using GMX email servers. (Issue #166)
 - Fixed issue where program would crash if no valid SMTP server was connected (probably because of bad login credentials).(Issue #169)
 - Updated description for -v option
 - Fixed typos in [report] section documentation
