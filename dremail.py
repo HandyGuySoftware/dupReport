@@ -798,8 +798,8 @@ class EmailServer:
                 # Check for #ANYERROR# substitution
                 substr = re.search("#ANYERROR#", subject)
                 if substr is not None:
-                    globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='#ANYERROR# keyword detected, substituting. New subject={}'.format(subject))
                     subject = subject.replace("#ANYERROR#","#WARNING##ERROR##FAILURE#")
+                    globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='#ANYERROR# keyword detected, substituting. New subject={}'.format(subject))
 
             subject = self.subjectSubstitute(subject, 'Success', globs.report.resultList, '#SUCCESS#', '|Success|')
             subject = self.subjectSubstitute(subject, 'Warning', globs.report.resultList, '#WARNING#', '|Warning|')
