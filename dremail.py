@@ -393,6 +393,7 @@ class EmailServer:
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='parenOrRaw', msg='Extracting actual value from {}'.format(val))
         retval = val    # Set default return as input value
         # Search for '(XXX)' in value
+        # Modified in 3.0.7 by @ekutner
         pat = re.compile('\([^\)]*\)')
         match = re.search(pat, val)
         if match:  # value found in parentheses
@@ -506,6 +507,8 @@ class EmailServer:
             return emailParts['header']['messageId']    # Not a message of Interest
 
         # Get source & desination computers from email subject
+        # Modified in 3.0.7 by @ekutner - Optimized string parsing for source & destination systems - Issue #174
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg="subjectregex='[{}]' srcregex='[{}]' srcdelimiter='[{}]' destregex='[{}]'".format(globs.opts['subjectregex'],globs.opts['srcregex'],self._unwrap_quotes(globs.opts['srcdestdelimiter']), globs.opts['destregex']))
         regex = '{} ({}){}({})'.format(globs.opts['subjectregex'],globs.opts['srcregex'],self._unwrap_quotes(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
         m = re.search(regex, emailParts['header']['subject'])
 
@@ -513,9 +516,10 @@ class EmailServer:
             globs.log.write(globs.SEV_NOTICE,  function='EmailServer', action='processNextMessage', msg="Correct subject '{}' but regex doesn't match {} . Skipping message.".format(emailParts['header']['subject'], regex))
             return emailParts['header']['messageId']
 
-        # Extract source & destrination information
+        # Extract source & destination information
         emailParts['header']['sourceComp'] = m.group(1)
         emailParts['header']['destComp'] = m.group(2)
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg="Extract: source='[{}]' destination='[{}]'".format(emailParts['header']['sourceComp'],emailParts['header']['destComp']))
 
         # See if the record is already in the database, meaning we've seen it before
         if globs.db.searchForMessage(emailParts['header']['messageId']):    # Is message is already in database?
@@ -619,7 +623,9 @@ class EmailServer:
                     emailParts['body']['parsedResult'] = 'Failure'
                 emailParts['body']['errors'] = jsonData['Message'] if 'Message' in jsonData else ''
         else: # Not JSON - standard Duplicati message format
+            # Issue #174 - Some email systems generate HTML instead of text output. To prevent crashing, replace any HTML '<br>' breaks with newlines.
             emailParts['body']['fullbody'] = emailParts['body']['fullbody'].replace('<br/>','\n')
+
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message is Duplicati formatted')
             # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in emailParts['body']{}
             for section,regex,flag,typ, jsonSection in lineParts:
@@ -707,12 +713,12 @@ class EmailServer:
         return emailParts['header']['messageId']
 
 
+    # Issue #174 support. Remove quites from a string
     def _unwrap_quotes(self, src):
         QUOTE_SYMBOLS = ('"', "'")
         for quote in QUOTE_SYMBOLS:
             if src.startswith(quote) and src.endswith(quote):
                 return src.strip(quote)
-
         return src
 
     # Issue #111 feature request
