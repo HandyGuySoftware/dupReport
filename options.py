@@ -2,14 +2,14 @@
 #
 # Module name:  options.py
 # Purpose:      Manage program options from command line & .rc file
-# 
+#
 # Notes:
 #
 #####
 
 # Import Python modules
 import configparser
-from configparser import SafeConfigParser 
+from configparser import SafeConfigParser
 import argparse
 import os
 import sys
@@ -50,7 +50,7 @@ rcParts= [
     ('main',        'emailservers',     'incoming, outgoing',                                                       True),
     ('main',        'syslog',           '',                                                                         True),
     ('main',        'sysloglevel',      '5',                                                                        True),
-    
+
     # [incoming] section defaults
     ('incoming',    'protocol',       'imap',                                                                       False),
     ('incoming',    'server',         'localhost',                                                                  False),
@@ -178,7 +178,7 @@ class OptionManager:
         if self.cmdLineArgs.nomasksensitive:
             mask = False
         return mask
-   
+
     def openRcFile(self, rcFileSpec):
         globs.log.write(globs.SEV_NOTICE, function='Options', action='openRcFile', msg='Opening .rc file {}'.format(globs.maskData(rcFileSpec, self.maskPath())))
         if self.rcFileName:     # Rc file already initiailzed. Something is wrong.
@@ -200,7 +200,7 @@ class OptionManager:
         needToUpgrade = False   # Assume .rc file is up to date
         currVerNum = 0
 
-        # Get current RC version, if available. 
+        # Get current RC version, if available.
         if self.parser.has_option('main','version'):        # Old rc version name (pre-v2.2.7)
             rcVersion = self.parser.get('main','version')
         elif self.parser.has_option('main','rcversion'):    # New rc version name (post-v2.2.7)
@@ -224,7 +224,7 @@ class OptionManager:
 
     # See if RC file has all the parts needed before proceeding with the rest of the program
     # Returns <status>, <newRC>
-    # 
+    #
     # <newRC> = True if enough RC info has changed to require user config & restart
     # <newRC> = False if program can continue without restart
     def setRcDefaults(self):
@@ -245,7 +245,7 @@ class OptionManager:
         for section, option, default, canCont in rcParts:
             if section in ['incoming', 'outgoing'] and hasEmailServers == True:   # No need to default email servers
                 continue
-            
+
             if not self.parser.has_section(section): # Whole section is missing.
                 globs.log.write(globs.SEV_DEBUG, function='Options', action='setRcDefaults', msg='Adding RC section: [{}]'.format(section))
                 self.parser.add_section(section)
@@ -280,7 +280,7 @@ class OptionManager:
         return defaultsOK
 
     # Read .rc file options
-    # Many command line options have .rc equivalents. 
+    # Many command line options have .rc equivalents.
     # Command line options take precedence over .rc file options
     # returns <restart>
     # restart =   False if OK to continue
@@ -314,11 +314,11 @@ class OptionManager:
 
         # Set default path for RC file. Command line may override this.
         self.options['rcpath'] = globs.progPath + '/' + globs.rcName
-        
+
         # Now, override with command line options
         # Database, rc file, and log file paths - default stored in globs.dbName
-        configList = [  [self.cmdLineArgs.dbpath, 'dbpath', globs.dbName], 
-                        [self.cmdLineArgs.rcpath, 'rcpath', globs.rcName], 
+        configList = [  [self.cmdLineArgs.dbpath, 'dbpath', globs.dbName],
+                        [self.cmdLineArgs.rcpath, 'rcpath', globs.rcName],
                         [self.cmdLineArgs.logpath, 'logpath', globs.logName]
                      ]
 
@@ -327,7 +327,7 @@ class OptionManager:
                 globs.log.write(globs.SEV_DEBUG, function='Options', action='readRcOptions', msg='Option {} specified on command line.'.format(optName))
                 self.options[optName] = self.processPath(option, globName)
             elif optName in self.options and self.options[optName] == '':  # No command line & not specified in RC file. Use default path & filename
-                self.options[optname] = self.processPath(globs.progPath, globName)
+                self.options[optName] = self.processPath(globs.progPath, globName)
             else:  # Path specified in rc file. Add file name if necessary for full path
                 self.options[optName] = self.processPath(self.options[optName], globName)
 
@@ -355,7 +355,7 @@ class OptionManager:
         # MM/DD/YYYY HH:MM:SS               - Roll back to specific date and time
         # Xs,Xm,Xh,Xd,Xw                    - Subtract X seconds, months, hours, days, weeks from current time (regardless of timestamps in DB)
         for rb in ['rollback', 'rollbackx']:
-            if self.options[rb] != None: 
+            if self.options[rb] != None:
                 if drdatetime.checkValidDateTimeSpec(self.options[rb], self.options['dateformat'], self.options['timeformat']) == False:
                     # It's not a standard date/time spec and not a timedelta spec
                     globs.log.write(globs.SEV_ERROR, function='Options', action='readRcOptions', msg='Invalid rollback date specification: {}.\n'.format(self.options[rb]))
@@ -371,7 +371,7 @@ class OptionManager:
         if self.cmdLineArgs.emailservers != None:
             self.options['emailservers'] = self.cmdLineArgs.emailservers
         self.options['initdb'] = self.cmdLineArgs.initdb
-        
+
         # Store output files for later use
         # Create ofileList[] - list of output files
         # Consists of tuples of (<filespec>,<emailSpec>)
@@ -481,7 +481,7 @@ class OptionManager:
         globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='validatereport = [{}]'.format(self.cmdLineArgs.validatereport))
         globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='layout = [{}]'.format(self.cmdLineArgs.layout))
         globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='emailservers = [{}]'.format(self.cmdLineArgs.emailservers))
-    
+
         # Figure out where RC file is located
         if self.cmdLineArgs.rcpath is not None:  # RC Path specified on command line
             globs.log.write(globs.SEV_NOTICE, function='Options', action='processCmdLineArgs', msg='RC path specified on command line.')
@@ -618,7 +618,7 @@ class OptionManager:
             else:
                 ready = True
         return response
-    
+
     def guidedSetup(self):
         globs.log.write(globs.SEV_NOTICE, function='Options', action='guidedSetup', msg='Running guided setup for .rc file')
 
@@ -631,7 +631,7 @@ class OptionManager:
         print("Welcome to the dupReport guided setup.")
         print("Here we'll collect some basic information from you to help configure the program.")
         print("Let's get started...\n")
-        
+
         # Date format
         print("Valid date formats in dupReport are:")
         for key in drdatetime.dtFmtDefs.keys():
@@ -702,8 +702,8 @@ def initOptions():
         oMgr.needGuidedSetup = True
 
     # Prepare the .rc file for processing
-    oMgr.openRcFile(oMgr.options['rcfilename'])   
-    
+    oMgr.openRcFile(oMgr.options['rcfilename'])
+
     # Check if .rc file needs upgrading
     needToUpgrade, currRcVersion = oMgr.checkRcFileVersion()
     if needToUpgrade is True and os.path.isfile(oMgr.options['rcfilename']):
@@ -711,17 +711,17 @@ def initOptions():
         import convert
         convert.convertRc(oMgr, currRcVersion)
         globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='RC file has been updated to the latest version.')
-    
+
     # If the current .rc version is 0 there is no .rc file. Flag need to run guided setup (unless explicitly told not to)
     if currRcVersion == 0 and not oMgr.cmdLineArgs.noguidedsetup:
         oMgr.needGuidedSetup = True
-    
+
         # Check .rc file structure to see if all proper fields are there. If False, something needs attention.
     if oMgr.setRcDefaults() is False:
         globs.log.write(globs.SEV_NOTICE, function='Options', action='initOptions', msg='RC file {} has changed or has an unrecoverable error. Please edit file with proper configuration, then re-run program'.format(oMgr.options['rcfilename']))
         return False
 
-    # RC file is structurally correct. Now need to parse rc options for global use. 
+    # RC file is structurally correct. Now need to parse rc options for global use.
     if oMgr.readRcOptions() is True:  # Need to restart program (.rc file needs editing)
         return False
 
@@ -746,7 +746,7 @@ def validateOutputFiles():
     # See where the output files are going
     if globs.ofileList:    # Potential list of output files specified on command line
         for fspec in globs.ofileList:
-            fsplit = fspec[0].split(',')   
+            fsplit = fspec[0].split(',')
             if len(fsplit) != 2:
                 globs.log.write(globs.SEV_NOTICE, function='Options', action='validateOutputFiles', msg='Invalid output file specificaton: {}. Correct format is <filespec>,<format>. Please check your command line parameters.'.format(fsplit))
                 canContinue = False

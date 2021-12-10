@@ -2,7 +2,7 @@
 #
 # Module name:  dremail.com
 # Purpose:      Manage email connections for dupReport
-# 
+#
 # Notes:
 #
 #####
@@ -100,7 +100,7 @@ class EmailManager:
                 else: # Smtp
                     # Before you go blindly opening up an outgoing connection....
                     # We don't need to open an outbound (smtp) email server if we're not sending email
-                    # But... you'll need one for Apprise support if you're using Apprise to notify you through email. 
+                    # But... you'll need one for Apprise support if you're using Apprise to notify you through email.
                     # Thus, you may not want to also send redundant emails through dupReport.
                     # However, if you haven't supressed backup warnings (i.e., -w), you'll still need an outgoing server connection
                     # So, basically, if you've suppressed BOTH backup warnings AND outgoing email, skip opening the outgoing server
@@ -168,14 +168,14 @@ class EmailManager:
             self.getSmtpServer().sendEmail(**kwargs)
 
     # Validate the .rc file options for an email server
-    # Return true/false if options are valid and list of options    
+    # Return true/false if options are valid and list of options
     def validateServerOptions(self, server):
         globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='validateServerOptions', msg='Validating .rc file options for server {}'.format(server))
 
         options = {}
         isValid = True
         rcOptions = globs.optionManager.getRcSection(server)
-        
+
         # Make sure there is a valid protocol field in the spec. Without this, all else is useless
         if rcOptions is None:
             globs.log.write(globs.SEV_NOTICE, function='EmailManager', action='validateServerOptions', msg='No specification found in .rc file for email server \'{}\''.format(server))
@@ -208,7 +208,7 @@ class EmailManager:
 class EmailServer:
     def __init__(self, serverName, optionList):
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='init', msg='Initializing email server \'{}\''.format(serverName))
-        
+
         self.options = optionList
         self.name = serverName
         self.serverconnect = None
@@ -359,8 +359,8 @@ class EmailServer:
         if self.options['protocol'] == 'pop3':
             self.numEmails = len(self.serverconnect.list()[1])  # Get list of new emails
             if self.numEmails == 0:     # No new emails
-                self.newEmails = None 
-                self.nextEmail = 0      
+                self.newEmails = None
+                self.nextEmail = 0
                 return 0
             self.newEmails = list(range(self.numEmails))
             self.nextEmail = -1     # processNextMessage() pre-increments message index. Initializing to -1 ensures the pre-increment start at 0
@@ -376,7 +376,7 @@ class EmailServer:
                 self.nextEmail = 0
                 return 0
             self.newEmails = list(data[0].split())   # Get list of new emails
-            self.numEmails = len(self.newEmails)          
+            self.numEmails = len(self.newEmails)
             self.nextEmail = -1     # processNextMessage() pre-increments message index. Initializing to -1 ensures the pre-increment start at 0
             return self.numEmails
         else:  # Invalid protocol
@@ -393,7 +393,7 @@ class EmailServer:
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='parenOrRaw', msg='Extracting actual value from {}'.format(val))
         retval = val    # Set default return as input value
         # Search for '(XXX)' in value
-        pat = re.compile('\(.*\)')
+        pat = re.compile('\([^\)]*\)')
         match = re.search(pat, val)
         if match:  # value found in parentheses
             retval = val[match.regs[0][0]+1:match.regs[0][1]-1]
@@ -442,7 +442,7 @@ class EmailServer:
 
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='extractHeaders', msg='Header fields extracted: [{}]'.format(hdrFields))
         return hdrFields['date'], hdrFields['subject'], hdrFields['message-id'], hdrFields['content-transfer-encoding']
-    
+
     # Retrieve and process next message from server
     # Returns <Message-ID> or '<INVALID>' if there are more messages in queue, even if this message was unusable
     # Returns None if no more messages
@@ -450,7 +450,7 @@ class EmailServer:
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='Processing next message on server {}. Protocol={}'.format(self.options['server'], self.options['protocol']))
         self.connect()
 
-        # Increment message counter to the next message. 
+        # Increment message counter to the next message.
         # Skip for message #0 because we haven't read any messages yet
         self.nextEmail += 1
 
@@ -460,7 +460,7 @@ class EmailServer:
             }
 
         # Check no-more-mail conditions. Either no new emails to get or gone past the last email on list
-        if (self.newEmails == None) or (self.nextEmail == self.numEmails):  
+        if (self.newEmails == None) or (self.nextEmail == self.numEmails):
             return None
 
         if self.options['protocol'] == 'pop3':
@@ -484,10 +484,10 @@ class EmailServer:
         else:   # Invalid protocol spec
             globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='Invalid protocol specification: {}.'.format(self.options['protocol']))
             return None
-            
+
         # Log message basics
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Next Message: headers=[{}]'.format(emailParts['header']))
-        
+
         # Check if any of the vital parts are missing
         if emailParts['header']['messageId'] is None or emailParts['header']['messageId'] == '':
             globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='processNextMessage', msg='No message-Id. Abandoning message.')
@@ -506,14 +506,16 @@ class EmailServer:
             return emailParts['header']['messageId']    # Not a message of Interest
 
         # Get source & desination computers from email subject
-        srcRegex = '{}{}'.format(globs.opts['srcregex'], re.escape(globs.opts['srcdestdelimiter']))
-        destRegex = '{}{}'.format(re.escape(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
-        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='srcRegex=[{}]  destRegex=[{}]'.format(srcRegex, destRegex))
-        partsSrc = re.search(srcRegex, emailParts['header']['subject'])
-        partsDest = re.search(destRegex, emailParts['header']['subject'])
-        if (partsSrc is None) or (partsDest is None):    # Correct subject but delimeter not found. Something is wrong.
-            globs.log.write(globs.SEV_NOTICE,  function='EmailServer', action='processNextMessage', msg='SrcDestDelimeter [{}] not found in subject line. Skipping message.'.format(globs.opts['srcdestdelimiter']))
+        regex = '{} ({}){}({})'.format(globs.opts['subjectregex'],globs.opts['srcregex'],self._unwrap_quotes(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
+        m = re.search(regex, emailParts['header']['subject'])
+
+        if (len(m.groups()) != 2):    # Correct subject but delimeter not found. Something is wrong.
+            globs.log.write(globs.SEV_NOTICE,  function='EmailServer', action='processNextMessage', msg="Correct subject '{}' but regex doesn't match {} . Skipping message.".format(emailParts['header']['subject'], regex))
             return emailParts['header']['messageId']
+
+        # Extract source & destrination information
+        emailParts['header']['sourceComp'] = m.group(1)
+        emailParts['header']['destComp'] = m.group(2)
 
         # See if the record is already in the database, meaning we've seen it before
         if globs.db.searchForMessage(emailParts['header']['messageId']):    # Is message is already in database?
@@ -537,14 +539,12 @@ class EmailServer:
             # It doesn't matter what date/time format we pass in (as long as it's valid)
             # When it comes back out later, it'll be parsed into the user-defined format from the .rc file
             # For now, we'll use YYYY/MM/DD HH:MM:SS
-            xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])  
+            xDate = '{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}'.format(dTup[0], dTup[1], dTup[2], dTup[3], dTup[4], dTup[5])
             dtTimStmp = drdatetime.toTimestamp(xDate, dfmt='YYYY/MM/DD', tfmt='HH:MM:SS')  # Convert the string into a timestamp
             emailParts['header']['emailTimestamp'] = dtTimStmp
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Email Date: Timestamp=[{}] Date=[{}]'.format(dtTimStmp, drdatetime.fromTimestamp(dtTimStmp)))
 
-        # Extract source & destrination information
-        emailParts['header']['sourceComp'] = re.search(srcRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[0]
-        emailParts['header']['destComp'] = re.search(destRegex, emailParts['header']['subject']).group().split(globs.opts['srcdestdelimiter'])[1]
+
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='emailParts[\'header\']={}'.format(emailParts['header']))
 
         # Search for source/destination pair in database. Add if not already there
@@ -564,10 +564,10 @@ class EmailServer:
         elif self.options['protocol'] == 'imap':
             # Retrieve just the body text of the message.
             retVal, data = self.serverconnect.fetch(self.newEmails[self.nextEmail],'(BODY.PEEK[TEXT])')
-        
+
             # Fix issue #71
             # From https://stackoverflow.com/questions/2230037/how-to-fetch-an-email-body-using-imaplib-in-python
-            # "...usually the data format is [(bytes, bytes), bytes] but when the message is marked as unseen manually, 
+            # "...usually the data format is [(bytes, bytes), bytes] but when the message is marked as unseen manually,
             # the format is [bytes, (bytes, bytes), bytes] – Niklas R Sep 8 '15 at 23:29
             # Need to check if len(data)==2 (normally unread) or ==3 (manually set unread)
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='IMAP message fetch(): retval={} dataLen={}'.format(retVal, len(data)))
@@ -575,7 +575,7 @@ class EmailServer:
                 emailParts['body']['fullbody'] = data[0][1].decode('utf-8')  # Get message body
             else:
                 emailParts['body']['fullbody'] = data[1][1].decode('utf-8')  # Get message body
-        
+
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message Body=[{}]'.format(emailParts['body']['fullbody']))
 
         # See if content-transfer-encoding is in use
@@ -613,12 +613,13 @@ class EmailServer:
                 # Set appropriate fail/message fields to relevant values
                 # The JSON report has somewhat different fields than the "classic" report, so we have to fudge this a little bit
                 #   so we can use common code to process both types later.
-                emailParts['body']['failed'] = 'Failure'   
+                emailParts['body']['failed'] = 'Failure'
                 globs.report.resultList['Failure'] = True
                 if emailParts['body']['parsedResult'] == '':
                     emailParts['body']['parsedResult'] = 'Failure'
                 emailParts['body']['errors'] = jsonData['Message'] if 'Message' in jsonData else ''
         else: # Not JSON - standard Duplicati message format
+            emailParts['body']['fullbody'] = emailParts['body']['fullbody'].replace('<br/>','\n')
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Message is Duplicati formatted')
             # Go through each element in lineParts{}, get the value from the body, and assign it to the corresponding element in emailParts['body']{}
             for section,regex,flag,typ, jsonSection in lineParts:
@@ -656,14 +657,14 @@ class EmailServer:
                 emailParts['body']['sizeOfOpenedFiles'] = self.parenOrRaw(emailParts['body']['sizeOfOpenedFiles'])
 
             # Issue #147 - 'Limited' W/E/M fields get moved to standard W/E/M fields
-            # The 'Limited' fields were introduced in Beta 2.0.5.1 (2.0.5.1_beta_2020-01-18)	
+            # The 'Limited' fields were introduced in Beta 2.0.5.1 (2.0.5.1_beta_2020-01-18)
             if emailParts['body']['limitedErrors'] != '':
-                emailParts['body']['errors'] = emailParts['body']['limitedErrors'] 
+                emailParts['body']['errors'] = emailParts['body']['limitedErrors']
             if emailParts['body']['limitedWarnings'] != '':
-                emailParts['body']['warnings'] = emailParts['body']['limitedWarnings'] 
+                emailParts['body']['warnings'] = emailParts['body']['limitedWarnings']
             if emailParts['body']['limitedMessages'] != '':
-                emailParts['body']['messages'] = emailParts['body']['limitedMessages'] 
-                  
+                emailParts['body']['messages'] = emailParts['body']['limitedMessages']
+
         else:  # Something went wrong. Let's gather the details.
             globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Email indicates a failed backup.')
             if not isJson:
@@ -679,7 +680,7 @@ class EmailServer:
             # Since the backup job report never ran, we'll use the email date/time as the report date/time
             emailParts['body']['endTimestamp'] = emailParts['header']['emailTimestamp']
             emailParts['body']['beginTimestamp'] = emailParts['header']['emailTimestamp']
-            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Replacing date/time for failed backup with: end=[{}]  begin=[{}]'.format(emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'])), 
+            globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg='Replacing date/time for failed backup with: end=[{}]  begin=[{}]'.format(emailParts['body']['endTimestamp'], emailParts['body']['beginTimestamp'])),
 
         # Replace commas (,) with newlines (\n) in message fields. SQLite really doesn't like commas in SQL statements!
         for part in ['messages', 'warnings', 'errors', 'logdata']:
@@ -705,6 +706,14 @@ class EmailServer:
         globs.db.execEmailInsertSql(emailParts)
         return emailParts['header']['messageId']
 
+
+    def _unwrap_quotes(self, src):
+        QUOTE_SYMBOLS = ('"', "'")
+        for quote in QUOTE_SYMBOLS:
+            if src.startswith(quote) and src.endswith(quote):
+                return src.strip(quote)
+
+        return src
 
     # Issue #111 feature request
     # Provide ability to mark messages as read/seen if [main]optread is true in the .rc file.
@@ -751,7 +760,7 @@ class EmailServer:
         globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='searchMessagePart', msg='Searching for JSON field \'{}\', typ=[{}]'.format(key,typ))
         if key in jsonParts:
             return jsonParts[key];
-        
+
         # Key wasn't found in list value. Return appropriate empty value
         if typ == 0: #integer
             return 0
@@ -766,10 +775,10 @@ class EmailServer:
             newsubject = subject.replace(seeking,'')
         else:
             newsubject  = subject.replace(seeking, replacement)
-        
+
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='subjectSubstitute', msg='Replacing {} in subject line. Was \'{}\'. Now \'{}\''.format(seeking, subject, newsubject))
         return newsubject
-      
+
     # Send final email result
     def sendEmail(self, msgHtml = None, msgText = None, subject = None, sender = None, receiver = None, fileattach = False):
         self.connect()
@@ -784,7 +793,7 @@ class EmailServer:
 
             # Check for title substitutions - Issue #172
             # It turns out that - for whatever reason - SMTP REALLY DOES NOT like using a '[' as the first character in a subject line,
-            # and the resulting subject line can be unpredictable; not exactly what you want in a program. 
+            # and the resulting subject line can be unpredictable; not exactly what you want in a program.
             # So, the bounding character for the keyword replacement was changed to '|'. That seemed to work much better.
             # If someone knows why that is, please let me know, as I wasted far too many hours trying to figure it out.
             globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='sendEmail', msg='subject={}  resultlist={}'.format(subject, globs.report.resultList))
@@ -818,7 +827,7 @@ class EmailServer:
         if receiver is None:
             receiver = self.options['receiver']
         msg['To'] = receiver
- 
+
         # Add 'Date' header for RFC compliance - See issue #77
         msg['Date'] = email.utils.formatdate(time.time(), localtime=True)
 
@@ -856,7 +865,7 @@ class EmailServer:
         globs.log.write(globs.SEV_NOTICE,function='EmailServer', action='sendEmail', msg='Sending email to [{}]. Total length=[{}] AsString Length=[{}]'.format(globs.maskData(receiver.split(',')), len(msg), len(msg.as_string())))
 
         # Issue #166. Received a "501 Syntax error - line too long" error when sending through GMX SMTP servers.
-        # Needed to change from smtplib.sendmail() to smtplib.send_message(). 
+        # Needed to change from smtplib.sendmail() to smtplib.send_message().
         # Tested on Gmail, Yahoo, & GMX with no errors.
         # Keeping this around in comment as I don't think this is the last we'll hear of this problem.
         #       #self.serverconnect.sendmail(sender, receiver.split(','), msg.as_string().encode('utf-8'))
