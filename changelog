@@ -1,3 +1,9 @@
+3.0.7
+-----
+- Fixed parsing routines to allow for spaces in the source/destination/delimiter specification (Ieeus #174 - Thanks ekutner)
+- Updated documentaiton for source/destination/delimiter specification
+- Updated documentaiton to clarify the use of "enable less secure apps" on Gmail and othr email services (Issue #175)
+
 
 3.0.6
 -----

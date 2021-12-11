@@ -119,6 +119,8 @@ User ID on the email system. **(IMAP, POP3, SMTP)**
 
 The Gmail default is to retrieve email starting from the oldest, with a maximum of 250 emails. If you have a large inbox this will cause you to lose the most recent emails. The "recent:" prefix tells Gmail to retrieve the most recent 30 days of email. 
 
+***NOTE:*** It is recommended that you set up a separate account to receive your Duplicati emails instead of sending them to your regular personal or business account. This will allow you to manage Duplicati messages more easily and will not interfere with the read/unread status of emails in your regular account. This will also allow you to specify different authentication requirements on your dupReport email account (see the "authentication=" specification below.)
+
 ```
 password=<password>
 ```
@@ -130,6 +132,8 @@ authentication=basic
 ```
 
 Specifies the type of authentication to be used with the server. Available options are 'basic' and 'oauth'. If you are using Oauth please check with your service provider to identify how to obtain the proper authentication keys. **(IMAP, POP3, SMTP)**
+
+***NOTE***: Some email systems, including GMail, require the use of multifactor authentication to access user accounts. dupReport does not support multifactor authentication. If you receive a "invalid credentials" message from Gmail (and you are sure you have specified the correct ID/password), this is most likely the reason. For these systems, you will need to specify the use of a simple ID/password combination. In GMail, this is done by enabling the "Enable less secure apps" setting in the account security management settings. Check with your email service/provider to see how this is accomplished for other services. 
 
 ```
 folder=INBOX
