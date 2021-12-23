@@ -20,7 +20,7 @@ Where:
 - \<Source\> is a series of alphanumeric characters
 - \<delimiter\> is a single character (typically one of the "special" characters) and **CAN NOT** be a character you use in any of your Source-Destination pairs 
 - \<Destination\> is a series of alphanumeric characters
-- **There can be NO SPACES** in or between the \<Source>, \<delimiter>, and \<Destination> specifications
+- Spaces are allowed between the \<Source>, \<delimiter>, and \<Destination> specifications, *though they are not recommended*
 
 dupReport allows you to define the format specification of the Source, Destination, and Delimiter in the [main] section of the dupReport.rc file. Each specification is the regular expression definition of that element. The defaults are: 
 
