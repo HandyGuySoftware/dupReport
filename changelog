@@ -1,6 +1,8 @@
 3.0.8
 -----
 - Fix crashing error when subject line parsing fails (Issue #177)
+- Rewrote documentation to describe advanced regex options for source, destination, and delimiter
+- Updated GitHub home page
 
 3.0.7
 -----
