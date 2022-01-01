@@ -1,11 +1,11 @@
 [main]
 
-# Please DO NOT CHANGE the rcversion setting. dupReprt uses this to determine if the file needs updating.
+# Please DO NOT CHANGE the rcversion setting. dupReport uses this to determine if the file needs updating.
 rcversion = 3.1.0
 
 # dbpath & logpath can be either directories or full path specifications
-dbpath = D:\Users\parents\Documents\Development\dupReport
-logpath = D:\Users\parents\Documents\Development\dupReport\dupReport.log
+dbpath = C:\Users\yourname\Documents\dupReport
+logpath = C:\Users\yourname\Documents\dupReport\dupReport.log
 
 # Indicates the logging level. Valid levels are:
 #SEV_EMERGENCY = 0
@@ -79,7 +79,7 @@ account = accountname@gmail.com
 password = secretpassword
 sender = accountname@gmail.com
 sendername = dupReport Summary
-receiver = sccountname@gmail.com
+receiver = accountname@gmail.com
 keepalive = false
 markread = false
 authentication = basic
@@ -136,7 +136,7 @@ account = accountname@gmail.com
 password = secretpassword
 sender = accountname@gmail.com
 sendername = dupReport Summary
-receiver = sccountname@gmail.com
+receiver = accountname@gmail.com
 keepalive = false
 markread = false
 authentication = basic

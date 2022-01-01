@@ -508,11 +508,11 @@ class EmailServer:
 
         # Get source & desination computers from email subject
         # Modified in 3.0.7 by @ekutner - Optimized string parsing for source & destination systems - Issue #174
-        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg="subjectregex='[{}]' srcregex='[{}]' srcdelimiter='[{}]' destregex='[{}]'".format(globs.opts['subjectregex'],globs.opts['srcregex'],self._unwrap_quotes(globs.opts['srcdestdelimiter']), globs.opts['destregex']))
+        globs.log.write(globs.SEV_DEBUG, function='EmailServer', action='processNextMessage', msg="subjectregex='[{}]' srcregex='[{}]' srcdestdelimiter='[{}]' destregex='[{}]'".format(globs.opts['subjectregex'],globs.opts['srcregex'],self._unwrap_quotes(globs.opts['srcdestdelimiter']), globs.opts['destregex']))
         regex = '{} ({}){}({})'.format(globs.opts['subjectregex'],globs.opts['srcregex'],self._unwrap_quotes(globs.opts['srcdestdelimiter']), globs.opts['destregex'])
         m = re.search(regex, emailParts['header']['subject'])
 
-        if (len(m.groups()) != 2):    # Correct subject but delimeter not found. Something is wrong.
+        if m is None or len(m.groups()) != 2:    # Correct subject but delimeter not found. Something is wrong.
             globs.log.write(globs.SEV_NOTICE,  function='EmailServer', action='processNextMessage', msg="Correct subject '{}' but regex doesn't match {} . Skipping message.".format(emailParts['header']['subject'], regex))
             return emailParts['header']['messageId']
 
