@@ -269,7 +269,7 @@ def sendReportToFiles(reportOutput):
     return None
 
 # Look for nobackup warning threshold
-# Default to value in [eport] section
+# Default to value in [report] section
 # Override if found in pair-specific section
 def pastBackupWarningThreshold(src, dest, nDays, nbWarnDefault):
     srcDest = src + globs.opts['srcdestdelimiter'] + dest
@@ -308,9 +308,14 @@ def sendNoBackupWarnings():
             latestTimeStamp = getLatestTimestamp(source, destination)
             diff = drdatetime.daysSince(latestTimeStamp)
             if pastBackupWarningThreshold(source, destination, diff, globs.report.rStruct['defaults']['nobackupwarn']) is True:
-                globs.log.write(globs.SEV_NOTICE, function='Report', action='sendNoBackupWarnings', msg='{} is past backup warning threshold @ {} days. Sending warning email.'.format(srcDest, diff))
-                warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.rStruct['defaults'])
-                globs.emailManager.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
+
+                # It may be past the warning threshold, but is it still within its backup interval? (Issue #180)
+                if pastBackupInterval(srcDest, diff)[0] is True:
+                    globs.log.write(globs.SEV_NOTICE, function='Report', action='sendNoBackupWarnings', msg='{} is past backup warning threshold @ {} days. Sending warning email.'.format(srcDest, diff))
+                    warnHtml, warnText, subj, send, receive = report.buildWarningMessage(source, destination, diff, latestTimeStamp, globs.report.rStruct['defaults'])
+                    globs.emailManager.sendEmail(msgHtml = warnHtml, msgText = warnText, subject = subj, sender = send, receiver = receive)
+                else:
+                    globs.log.write(globs.SEV_NOTICE, function='Report', action='sendNoBackupWarnings', msg='{} is past backup warning threshold but still within its backup interval @ {} days. Not sending warning email.'.format(srcDest, diff))
     return None
 
 def buildWarningMessage(source, destination, nDays, lastTimestamp, opts):
