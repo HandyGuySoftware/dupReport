@@ -51,13 +51,13 @@ These options specify the parameters for sending out warning emails if a particu
 offline = True
 ```
 
-This suppresses mention of the source-destination pair in the output report. This is useful when you know a system is offline for a while and you don't want to see the "not seen in X days" warning messages in the report.
+This suppresses mention of the source-destination pair in the output report. This is useful when you know a system is offline for a while and you don't want to see the "not seen in X days" warning messages in the report. The source-destination pair will be noted in the "Offline Backup Sets" report.
 
 ```
 ignore = True
 ```
 
-This completely ignores any mention of that source-destination pair in either the output reports or warning emails
+This completely ignores any mention of that source-destination pair in either the output reports or warning emails. This is a companion option to the --remove option on the command line. --remove completely removes all traces of that source-destination pair from the database, while the ignore= option leaves it in the database but prevents it from showing up on any reports.
 
 ------
 

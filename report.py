@@ -1225,6 +1225,11 @@ class Report:
             dbCursor = globs.db.execSqlStmt(sqlStmt)
             countRows = dbCursor.fetchone()
 
+            # Are we ignoring this S-D pair? (Issue #178)
+            if ingoreSDPair(source, destination) == True:
+                globs.log.write(globs.SEV_DEBUG, function='Report', action='buildNoActivityOutput', msg='Ignoring {}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination))
+                continue
+
             if countRows[0] == 0:
                 # Calculate days since last activity & set background accordingly
                 srcDest = '{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination)
