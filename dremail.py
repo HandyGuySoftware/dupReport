@@ -712,8 +712,7 @@ class EmailServer:
         globs.db.execEmailInsertSql(emailParts)
         return emailParts['header']['messageId']
 
-
-    # Issue #174 support. Remove quites from a string
+    # Issue #174 support. Remove quotes from a string
     def _unwrap_quotes(self, src):
         QUOTE_SYMBOLS = ('"', "'")
         for quote in QUOTE_SYMBOLS:
@@ -722,7 +721,7 @@ class EmailServer:
         return src
 
     # Issue #111 feature request
-    # Provide ability to mark messages as read/seen if [main]optread is true in the .rc file.
+    # Provide ability to mark messages as read/seen if [main]markread is true in the .rc file.
     # This function is only works for IMAP. POP3 doesn't have this capability.
     def markMessagesRead(self):
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='markMessagesRead', msg='Marking {} {} messages as \'read/seen\''.format(self.numEmails, self.options['protocol']))

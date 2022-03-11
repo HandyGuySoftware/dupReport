@@ -53,6 +53,12 @@ offline = True
 
 This suppresses mention of the source-destination pair in the output report. This is useful when you know a system is offline for a while and you don't want to see the "not seen in X days" warning messages in the report.
 
+```
+ignore = True
+```
+
+This completely ignores any mention of that source-destination pair in either the output reports or warning emails
+
 ------
 
 **Defining Backup Intervals**

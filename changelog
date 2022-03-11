@@ -2,6 +2,7 @@
 -----
 - Fix bug that reported a backup as past the nobackupwarning period even if it was still within its backup interval (Issue #180)
 - Fixed typo in documentation (Issue #181)
+- Added ignore= option to the [source-destination] sections in the .rc file See docs for more information on how this works. (Issue #178)
 
 3.0.8
 -----

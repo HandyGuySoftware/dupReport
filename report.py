@@ -178,6 +178,17 @@ def splitRcIntoList(inputString):
     globs.log.write(globs.SEV_DEBUG, function='Report', action='splitRcIntoList', msg='.rc entry \'{}\' split into list: {}'.format(inputString, iniList))
     return iniList
 
+# See if a source-destination pair is set to 'ignore' in the .rc file
+def ingoreSDPair(source, destination):
+    retval = False
+    skipSrcDest = globs.optionManager.getRcOption('{}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination),'ignore')
+    if skipSrcDest is not None:
+        if skipSrcDest.lower() == 'true':
+            retval = True
+
+    globs.log.write(globs.SEV_DEBUG, function='Report', action='ingoreSDPair', msg='Ignore {}{}{}: {}.'.format(source, globs.opts['srcdestdelimiter'], destination, retval))
+    return retval
+
 markupDefs = {
     'bold':         0x01,
     'italic':       0x02,
@@ -297,6 +308,12 @@ def sendNoBackupWarnings():
     srcDestRows = dbCursor.fetchall()
     if len(srcDestRows) != 0:
         for source, destination in srcDestRows:
+
+            # Are we ignoring this S-D pair? (Issue #178)
+            if ingoreSDPair(source, destination) == True:
+                globs.log.write(globs.SEV_DEBUG, function='Report', action='sendNoBackupWarnings', msg='Ignoring {}{}{}'.format(source, globs.opts['srcdestdelimiter'], destination))
+                continue
+
 			# First, see if SrcDest is listed as offline. If so, skip.
             srcDest = source + globs.opts['srcdestdelimiter'] + destination
             offline = globs.optionManager.getRcOption(srcDest, 'offline')
@@ -655,6 +672,11 @@ class Report:
         for source, destination, lastTimestamp, lastFileCount, lastFileSize, lastdupversion in bkSetRows:
             globs.log.write(globs.SEV_DEBUG, function='Report', action='extractReportData', msg='Next email record: Src={} Dest={} lastTimestamp={} lastFileCount={} lastFileSize={}  dupversion={}'.format(source, 
                 destination, lastTimestamp, lastFileCount, lastFileSize, lastdupversion))
+
+            # If the [source-destination] section in the .rc file includes ignore=true, skip this data row (Issue #178)
+            if ingoreSDPair(source, destination) is True:
+                globs.log.write(globs.SEV_DEBUG, function='Report', action='extractReportData', msg='Source-Destination Pair {}{}{} set to ignore in .rc file. Skipping.'.format(source, globs.opts['srcdestdelimiter'], destination))
+                continue;
 
             # Select all activity for src/dest pair since last report run
             sqlStmt = 'SELECT dupVersion, endTimestamp, beginTimeStamp, duration, examinedFiles, sizeOfExaminedFiles, addedFiles, deletedFiles, modifiedFiles, \
