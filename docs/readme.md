@@ -2,7 +2,7 @@
 
 # WELCOME TO dupReport
 
-dupReport is an Python-based email collection and reporting system for Duplicati. It will gather all your Duplicati backup status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
+dupReport is a Python-based email collection and reporting system for Duplicati. It will gather all your Duplicati backup status emails and produce a summary report on what Duplicati backup jobs were run and their success or failure.
 
 Here is a list of some of dupReport's most important features:
 
