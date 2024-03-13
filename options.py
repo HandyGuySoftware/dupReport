@@ -9,7 +9,7 @@
 
 # Import Python modules
 import configparser
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 import argparse
 import os
 import sys
@@ -36,8 +36,8 @@ rcParts= [
     ('main',        'verbose',          '5',                                                           True),
     ('main',        'logappend',        'false',                                                                    True),
     ('main',        'subjectregex',     '^Duplicati Backup report for',                                             True),
-    ('main',        'srcregex',         '\w+',                                                                      True),
-    ('main',        'destregex',        '\w+',                                                                      True),
+    ('main',        'srcregex',         r'\w+',                                                                      True),
+    ('main',        'destregex',        r'\w+',                                                                      True),
     ('main',        'srcdestdelimiter', '-',                                                                        True),
     ('main',        'dateformat',       'MM/DD/YYYY',                                                               False),
     ('main',        'timeformat',       'HH:MM:SS',                                                                 False),
@@ -162,7 +162,7 @@ rcParts= [
 # Class to manage all program options
 class OptionManager:
     rcFileName = None   # Path to.rc file
-    parser = None       # Handle for SafeConfigParser
+    parser = None       # Handle for ConfigParser
     cmdLineArgs = None  # Command line arguments, passed from parse_args()
     needGuidedSetup = False
     options = {}        # List of all available program options
@@ -185,7 +185,7 @@ class OptionManager:
             globs.log.write(globs.SEV_NOTICE, function='Options', action='openRcFile', msg='RC file {} already initialized. {} is a duplicate request.'.format(self.rcFileName, globs.maskData(rcFileSpec, self.maskPath())))
             return False
         try:
-            self.parser = configparser.SafeConfigParser(interpolation=None)
+            self.parser = configparser.ConfigParser(interpolation=None)
             self.parser.read(rcFileSpec)
         except configparser.ParsingError as err:
             globs.log.write(globs.SEV_ERROR, function='Options', action='openRcFile', msg='RC file parsing error: {} {}\n'.format(globs.maskData(rcFileSpec, self.maskPath()), err))

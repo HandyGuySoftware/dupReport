@@ -37,44 +37,44 @@ import report
 #
 #   [0]internal name        [1] Duplicati email string      [2]regex flags (0 = none)   [3]field Type (0=int or 1=str)  [4] JSON field name
 lineParts = [
-    ('deletedFiles',        'DeletedFiles: \d+',            0,                          0,                              'DeletedFiles'),
-    ('deletedFolders',      'DeletedFolders: \d+',          0,                          0,                              'DeletedFolders'),
-    ('modifiedFiles',       'ModifiedFiles: \d+',           0,                          0,                              'ModifiedFiles'),
-    ('examinedFiles',       'ExaminedFiles: \d+',           0,                          0,                              'ExaminedFiles'),
-    ('openedFiles',         'OpenedFiles: \d+',             0,                          0,                              'OpenedFiles'),
-    ('addedFiles',          'AddedFiles: \d+',              0,                          0,                              'AddedFiles'),
-    ('sizeOfModifiedFiles', 'SizeOfModifiedFiles: .*',      0,                          0,                              'SizeOfModifiedFiles'),
-    ('sizeOfAddedFiles',    'SizeOfAddedFiles: .*',         0,                          0,                              'SizeOfAddedFiles'),
-    ('sizeOfExaminedFiles', 'SizeOfExaminedFiles: .*',      0,                          0,                              'SizeOfExaminedFiles'),
-    ('sizeOfOpenedFiles',   'SizeOfOpenedFiles: .*',        0,                          0,                              'SizeOfOpenedFiles'),
-    ('notProcessedFiles',   'NotProcessedFiles: \d+',       0,                          0,                              'NotProcessedFiles'),
-    ('addedFolders',        'AddedFolders: \d+',            0,                          0,                              'AddedFolders'),
-    ('tooLargeFiles',       'TooLargeFiles: \d+',           0,                          0,                              'TooLargeFiles'),
-    ('filesWithError',      'FilesWithError: \d+',          0,                          0,                              'FilesWithError'),
-    ('modifiedFolders',     'ModifiedFolders: \d+',         0,                          0,                              'ModifiedFolders'),
-    ('modifiedSymlinks',    'ModifiedSymlinks: \d+',        0,                          0,                              'ModifiedSymlinks'),
-    ('addedSymlinks',       'AddedSymlinks: \d+',           0,                          0,                              'AddedSymlinks'),
-    ('deletedSymlinks',     'DeletedSymlinks: \d+',         0,                          0,                              'DeletedSymlinks'),
-    ('bytesUploaded',       'BytesUploaded: .*',            0,                          0,                              'BytesUploaded'),
-    ('bytesDownloaded',     'BytesDownloaded: .*',          0,                          0,                              'BytesDownloaded'),
-    ('partialBackup',       'PartialBackup: \w+',           0,                          1,                              'PartialBackup'),
-    ('dryRun',              'Dryrun: \w+',                  0,                          1,                              'Dryrun'),
-    ('mainOperation',       'MainOperation: \w+',           0,                          1,                              'MainOperation'),
-    ('parsedResult',        'ParsedResult: \w+',            0,                          1,                              'ParsedResult'),
-    ('verboseOutput',       'VerboseOutput: \w+',           0,                          1,                              ''),                        # No JSON equivalent
-    ('verboseErrors',       'VerboseErrors: \w+',           0,                          1,                              ''),                        # No JSON equivalent
-    ('endTimeStr',          'EndTime: .*',                  0,                          1,                              'EndTime'),
-    ('beginTimeStr',        'BeginTime: .*',                0,                          1,                              'BeginTime'),
-    ('dupversion',          'Version: .*',                  0,                          1,                              'Version'),
-    ('messages',            'Messages: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
-    ('warnings',            'Warnings: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
-    ('errors',              'Errors: \[.*^\]',              re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
-    ('limitedMessages',     'LimitedMessages: \[.*^\]',     re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
-    ('limitedWarnings',     'LimitedWarnings: \[.*^\]',     re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
-    ('limitedErrors',       'LimitedErrors: \[.*^\]',       re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
-    ('logdata',             'Log data:(.*?)\n(.*?)(?=\Z)',  re.MULTILINE|re.DOTALL,     1,                              'LogLines'),
-    ('details',             'Details: .*',                  re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
-    ('failed',              'Failed: .*',                   re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('deletedFiles',        r'DeletedFiles: \d+',            0,                          0,                              'DeletedFiles'),
+    ('deletedFolders',      r'DeletedFolders: \d+',          0,                          0,                              'DeletedFolders'),
+    ('modifiedFiles',       r'ModifiedFiles: \d+',           0,                          0,                              'ModifiedFiles'),
+    ('examinedFiles',       r'ExaminedFiles: \d+',           0,                          0,                              'ExaminedFiles'),
+    ('openedFiles',         r'OpenedFiles: \d+',             0,                          0,                              'OpenedFiles'),
+    ('addedFiles',          r'AddedFiles: \d+',              0,                          0,                              'AddedFiles'),
+    ('sizeOfModifiedFiles', r'SizeOfModifiedFiles: .*',      0,                          0,                              'SizeOfModifiedFiles'),
+    ('sizeOfAddedFiles',    r'SizeOfAddedFiles: .*',         0,                          0,                              'SizeOfAddedFiles'),
+    ('sizeOfExaminedFiles', r'SizeOfExaminedFiles: .*',      0,                          0,                              'SizeOfExaminedFiles'),
+    ('sizeOfOpenedFiles',   r'SizeOfOpenedFiles: .*',        0,                          0,                              'SizeOfOpenedFiles'),
+    ('notProcessedFiles',   r'NotProcessedFiles: \d+',       0,                          0,                              'NotProcessedFiles'),
+    ('addedFolders',        r'AddedFolders: \d+',            0,                          0,                              'AddedFolders'),
+    ('tooLargeFiles',       r'TooLargeFiles: \d+',           0,                          0,                              'TooLargeFiles'),
+    ('filesWithError',      r'FilesWithError: \d+',          0,                          0,                              'FilesWithError'),
+    ('modifiedFolders',     r'ModifiedFolders: \d+',         0,                          0,                              'ModifiedFolders'),
+    ('modifiedSymlinks',    r'ModifiedSymlinks: \d+',        0,                          0,                              'ModifiedSymlinks'),
+    ('addedSymlinks',       r'AddedSymlinks: \d+',           0,                          0,                              'AddedSymlinks'),
+    ('deletedSymlinks',     r'DeletedSymlinks: \d+',         0,                          0,                              'DeletedSymlinks'),
+    ('bytesUploaded',       r'BytesUploaded: .*',            0,                          0,                              'BytesUploaded'),
+    ('bytesDownloaded',     r'BytesDownloaded: .*',          0,                          0,                              'BytesDownloaded'),
+    ('partialBackup',       r'PartialBackup: \w+',           0,                          1,                              'PartialBackup'),
+    ('dryRun',              r'Dryrun: \w+',                  0,                          1,                              'Dryrun'),
+    ('mainOperation',       r'MainOperation: \w+',           0,                          1,                              'MainOperation'),
+    ('parsedResult',        r'ParsedResult: \w+',            0,                          1,                              'ParsedResult'),
+    ('verboseOutput',       r'VerboseOutput: \w+',           0,                          1,                              ''),                        # No JSON equivalent
+    ('verboseErrors',       r'VerboseErrors: \w+',           0,                          1,                              ''),                        # No JSON equivalent
+    ('endTimeStr',          r'EndTime: .*',                  0,                          1,                              'EndTime'),
+    ('beginTimeStr',        r'BeginTime: .*',                0,                          1,                              'BeginTime'),
+    ('dupversion',          r'Version: .*',                  0,                          1,                              'Version'),
+    ('messages',            r'Messages: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('warnings',            r'Warnings: \[.*^\]',            re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('errors',              r'Errors: \[.*^\]',              re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('limitedMessages',     r'LimitedMessages: \[.*^\]',     re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('limitedWarnings',     r'LimitedWarnings: \[.*^\]',     re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('limitedErrors',       r'LimitedErrors: \[.*^\]',       re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('logdata',             r'Log data:(.*?)\n(.*?)(?=\Z)',  re.MULTILINE|re.DOTALL,     1,                              'LogLines'),
+    ('details',             r'Details: .*',                  re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
+    ('failed',              r'Failed: .*',                   re.MULTILINE|re.DOTALL,     1,                              ''),                        # No JSON equivalent
     ]
 
 serverRcParts = {
@@ -394,7 +394,7 @@ class EmailServer:
         retval = val    # Set default return as input value
         # Search for '(XXX)' in value
         # Modified in 3.0.7 by @ekutner
-        pat = re.compile('\([^\)]*\)')
+        pat = re.compile(r'\([^\)]*\)')
         match = re.search(pat, val)
         if match:  # value found in parentheses
             retval = val[match.regs[0][0]+1:match.regs[0][1]-1]
@@ -726,7 +726,7 @@ class EmailServer:
     def markMessagesRead(self):
         globs.log.write(globs.SEV_NOTICE, function='EmailServer', action='markMessagesRead', msg='Marking {} {} messages as \'read/seen\''.format(self.numEmails, self.options['protocol']))
         for msg in range(self.numEmails):
-            self.serverconnect.store(self.newEmails[msg],'+FLAGS','\Seen')
+            self.serverconnect.store(self.newEmails[msg],'+FLAGS',r'\Seen')
         return
 
     # Search for field in message

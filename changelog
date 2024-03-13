@@ -1,3 +1,9 @@
+3.0.10
+-----
+- Read options file using ConfigParser() instead of SafeConfigParser(), which has been deprecated
+- Update regex strings to avoid syntax errors
+- Renamed primary Git branch from "master" to "main"
+
 3.0.9
 -----
 - Fix bug that reported a backup as past the nobackupwarning period even if it was still within its backup interval (Issue #180)
