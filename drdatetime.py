@@ -44,9 +44,9 @@ dtFmtDefs={
 # The program (via toTimestamp()) will use this regex to extract the date from the parsed emails
 # If the structure is correct (e.g., 'MM/DD/YYYY') but the delimiters are wrong (e.g., '04-30-2018') the program will still be able to parse it.
 # As a result, all the regex's for dtFmtDefs date fields are all the same now. (Change from previous versions)
-dateParseRegex = '(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'     # i.e., <numbers>[/-.]<numbers>[/-.]<numbers>
-timeParseRegex = '(\d)+[:](\d+)[:](\d+)'                            # i.e., <numbers>:<numbers>:<numbers>
-validDateDelims = '[/\-\.]'                                         # Valid delimiters in a date string
+dateParseRegex = r'(\s)*(\d)+[/\-\.](\s)*(\d)+[/\-\.](\s)*(\d)+'     # i.e., <numbers>[/-.]<numbers>[/-.]<numbers>
+timeParseRegex = r'(\d)+[:](\d+)[:](\d+)'                            # i.e., <numbers>:<numbers>:<numbers>
+validDateDelims = r'[/\-\.]'                                         # Valid delimiters in a date string
 validTimeDelims = ':'                                               # Valid delimiters in a time string
 
 # Print error messages to the log and stderr if there is a date or time format problem.
@@ -112,7 +112,7 @@ def toTimestamp(dtStr, dfmt = None, tfmt = None, utcOffset = None):
     second = int(timePart[seCol])
     
     # See if we need AM/PM adjustment
-    pmPat = re.compile('AM|PM')
+    pmPat = re.compile(r'AM|PM')
     pmMatch = re.search(pmPat,dtStr)
     if pmMatch:
         dayPart = dtStr[pmMatch.regs[0][0]:pmMatch.regs[0][1]]
@@ -272,7 +272,7 @@ def timeDeltaSpec(spec):
 
     # Check if it's time delta format
     tsParts = spec.split(',')
-    p = re.compile('\d+[smhdw]')
+    p = re.compile(r'\d+[smhdw]')
     
     for spec in range(len(tsParts)):
         m = p.match(tsParts[spec])
